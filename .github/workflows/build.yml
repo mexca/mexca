@@ -61,4 +61,4 @@ jobs:
       - name: Check style against standards using prospector
         run: prospector
       - name: Check import order
-        run: isort --check-only my_python_package --diff
+        run: isort --check-only mexca --diff

@@ -17,7 +17,7 @@
 
 # -- Project information -----------------------------------------------------
 
-project = u"my_python_package"
+project = u"mexca"
 copyright = u"2022, Netherlands eScience Center"
 author = u"Malte Luken"
 
@@ -61,7 +61,7 @@ todo_include_todos = False
 
 # -- Use autoapi.extension to run sphinx-apidoc -------
 
-autoapi_dirs = ['../my_python_package']
+autoapi_dirs = ['../mexca']
 
 # -- Options for HTML output ----------------------------------------------
 
