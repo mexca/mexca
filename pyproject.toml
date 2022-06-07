@@ -7,7 +7,7 @@ testpaths = ["tests"]
 
 [tool.coverage.run]
 branch = true
-source = ["my_python_package"]
+source = ["mexca"]
 command_line = "-m pytest"
 
 [tool.tox]

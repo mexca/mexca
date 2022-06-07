@@ -1,4 +1,4 @@
-# `my_python_package` developer documentation
+# `mexca` developer documentation
 
 If you're looking for user documentation, go [here](README.md).
 
@@ -15,7 +15,7 @@ source env/bin/activate
 python3 -m pip install --upgrade pip setuptools
 
 # (from the project root directory)
-# install my_python_package as an editable package
+# install mexca as an editable package
 python3 -m pip install --no-cache-dir --editable .
 # install development dependencies
 python3 -m pip install --no-cache-dir --editable .[dev]
@@ -33,7 +33,7 @@ The first way requires an activated virtual environment with the development too
 pytest -v
 ```
 
-The second is to use `tox`, which can be installed separately (e.g. with `pip install tox`), i.e. not necessarily inside the virtual environment you use for installing `my_python_package`, but then builds the necessary virtual environments itself by simply running:
+The second is to use `tox`, which can be installed separately (e.g. with `pip install tox`), i.e. not necessarily inside the virtual environment you use for installing `mexca`, but then builds the necessary virtual environments itself by simply running:
 
 ```shell
 tox
@@ -70,15 +70,15 @@ development tools installed.
 # linter
 prospector
 
-# recursively check import style for the my_python_package module only
-isort --recursive --check-only my_python_package
+# recursively check import style for the mexca module only
+isort --recursive --check-only mexca
 
-# recursively check import style for the my_python_package module only and show
+# recursively check import style for the mexca module only and show
 # any proposed changes as a diff
-isort --recursive --check-only --diff my_python_package
+isort --recursive --check-only --diff mexca
 
-# recursively fix import style for the my_python_package module only
-isort --recursive my_python_package
+# recursively fix import style for the mexca module only
+isort --recursive mexca
 ```
 
 To fix readability of your code style you can use [yapf](https://github.com/google/yapf).
@@ -150,7 +150,7 @@ In a new terminal, without an activated virtual environment or an env directory:
 
 ```shell
 # prepare a new directory
-cd $(mktemp -d my_python_package.XXXXXX)
+cd $(mktemp -d mexca.XXXXXX)
 
 # fresh git clone ensures the release has the state of origin/main branch
 git clone https://github.com/mexca/mexca .
@@ -167,7 +167,7 @@ python3 -m pip install --no-cache-dir .
 python3 -m pip install --no-cache-dir .[publishing]
 
 # clean up any previously generated artefacts
-rm -rf my_python_package.egg-info
+rm -rf mexca.egg-info
 rm -rf dist
 
 # create the source distribution and the wheel
@@ -178,13 +178,13 @@ twine upload --repository-url https://test.pypi.org/legacy/ dist/*
 ```
 
 Visit
-[https://test.pypi.org/project/my_python_package](https://test.pypi.org/project/my_python_package)
+[https://test.pypi.org/project/mexca](https://test.pypi.org/project/mexca)
 and verify that your package was uploaded successfully. Keep the terminal open, we'll need it later.
 
 In a new terminal, without an activated virtual environment or an env directory:
 
 ```shell
-cd $(mktemp -d my_python_package-test.XXXXXX)
+cd $(mktemp -d mexca-test.XXXXXX)
 
 # prepare a clean virtual environment and activate it
 python3 -m venv env
@@ -196,7 +196,7 @@ pip install --upgrade pip setuptools
 # install from test pypi instance:
 python3 -m pip -v install --no-cache-dir \
 --index-url https://test.pypi.org/simple/ \
---extra-index-url https://pypi.org/simple my_python_package
+--extra-index-url https://pypi.org/simple mexca
 ```
 
 Check that the package works as it should when installed from pypitest.

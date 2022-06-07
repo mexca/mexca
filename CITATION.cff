@@ -14,7 +14,7 @@ authors:
 date-released: 20??-MM-DD
 doi: <insert your DOI here>
 version: "0.1.0"
-repository-code: "https://github.com/mexca/my-python-project"
+repository-code: "https://github.com/mexca/mexca"
 keywords:
   - keyword1
   - keyword2
