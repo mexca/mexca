@@ -1,10 +1,13 @@
 """ Face identification classes and methods """
 
 import cv2
+import numpy as np
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
+from mexca.video.annotation import Face
 from moviepy.editor import VideoFileClip
 from PIL import Image
+from spectralcluster import SpectralClusterer
 from torchvision import transforms
 
 class FaceIdentifier:
@@ -12,25 +15,42 @@ class FaceIdentifier:
 
     def __init__(self) -> 'FaceIdentifier':
         self._transform = transforms.Compose([transforms.ToTensor()])
-        self._mtcnn = MTCNN(device=self.device)
+        self._mtcnn = MTCNN(device=self.device, keep_all=True)
         self._resnet = InceptionResnetV1(pretrained='vggface2', device=self.device).eval()
 
 
     def apply(self, filepath):
         with VideoFileClip(filepath, audio=False) as clip:
             faces = []
+            frame_idx = 0
 
-            for frame in clip.iter_frames():
+            for t, frame in clip.iter_frames(with_times=True):
                 img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
-                boxes, probs = self._mtcnn.detect(img)
+                crops, probs = self._mtcnn(img, return_prob=True)
 
-                if boxes is not None:
-                    crops = torch.stack([self._transform(img.crop(tuple(box))) for box in boxes])
-                    embeddings = self._resnet.forward(crops).detach().cpu()
-                    faces.append({
-                        'boxes': [box.tolist() for box in boxes],
-                        'probs': [prob.tolist() for prob in probs],
-                        'embeddings': [emb.tolist() for emb in embeddings]
-                    })
+                if crops is not None:
+                    embeddings = self._resnet(crops).detach().cpu()
+                    for crop, prob, emb in zip(crops, probs, embeddings):
+                        face = Face(
+                            frame=frame_idx,
+                            time=t,
+                            array=crop,
+                            prob=prob,
+                            embeddings=emb,
+                            label=None
+                        )
+                        faces.append(face)
+
+                frame_idx += 1
+
+        return faces
+
+
+class FaceClassifier(SpectralClusterer):
+    def apply(self, faces):
+        embeddings = np.stack([face.embeddings for face in faces])
+        labels = self.predict(embeddings)
+        for face, label in zip(faces, labels):
+            face.label = label
 
         return faces
