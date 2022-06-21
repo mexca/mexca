@@ -6,13 +6,13 @@ from pyannote.database.util import load_rttm
 
 class TestSpeakerIdentifier:
     detector = SpeakerIdentifier()
-    filepath = os.path.join('tests', 'audio_files', 'test_audio.wav')
+    filepath = os.path.join('tests', 'audio_files', 'test_audio_5_seconds.wav')
 
-    ref_speakers = load_rttm(os.path.join('tests', 'reference_files', 'reference_audio.rttm'))
+    ref_speakers = load_rttm(os.path.join('tests', 'reference_files', 'reference_audio_5_seconds.rttm'))
 
     def test_apply(self):
         speakers = self.detector.apply(self.filepath)
-        assert are_equal(speakers, self.ref_speakers['reference_audio'])
+        assert are_equal(speakers, self.ref_speakers['test_audio_5_seconds'])
 
 
 
