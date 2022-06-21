@@ -1,9 +1,10 @@
 """ Test facial feature extraction class and methods """
 
 import json
-import numpy as np
 import os
+import numpy as np
 import pandas as pd
+import pytest
 import torch
 from mexca.video.extraction import FaceExtractor
 
@@ -28,4 +29,4 @@ class TestFaceExtractor:
     def test_apply(self):
         make_reproducible(2022)
         features = self.extractor.apply(self.filepath)
-        assert pd.DataFrame(features).to_json() == self.features
+        assert pd.DataFrame(features).to_json() == pytest.approx(self.features)
