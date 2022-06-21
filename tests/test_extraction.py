@@ -1,9 +1,19 @@
 """ Test facial feature extraction class and methods """
 
 import json
+import numpy as np
 import os
 import pandas as pd
+import torch
 from mexca.video.extraction import FaceExtractor
+
+def make_reproducible(seed):
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+    torch.set_num_threads(1)
 
 class TestFaceExtractor:
     extractor = FaceExtractor(min_clusters=1, max_clusters=4)
@@ -16,5 +26,6 @@ class TestFaceExtractor:
         features = json.loads(file.read())
 
     def test_apply(self):
+        make_reproducible(2022)
         features = self.extractor.apply(self.filepath)
         assert pd.DataFrame(features).to_json() == self.features
