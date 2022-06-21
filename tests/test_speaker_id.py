@@ -12,7 +12,7 @@ class TestSpeakerIdentifier:
 
     def test_apply(self):
         speakers = self.detector.apply(self.filepath)
-        assert are_equal(speakers, self.ref_speakers)
+        assert are_equal(speakers, self.ref_speakers['reference_audio'])
 
 
 
@@ -22,7 +22,7 @@ def are_equal(annotation1, annotation2):
     segments1 = annotation1.itertracks(yield_label=True)
     segments2 = annotation2.itertracks(yield_label=True)
 
-    for (speech_turn1, track1, speaker1), (speech_turn2, track2, speaker2) in zip(segments1,segments2):
+    for (speech_turn1, _, speaker1), (speech_turn2, _, speaker2) in zip(segments1,segments2):
         if (int(speech_turn1.start) != int(speech_turn2.start)) or (int(speech_turn1.end) != int(speech_turn2.end)) or (f'{speaker1}' != f'{speaker2}'):
             equal = False
 

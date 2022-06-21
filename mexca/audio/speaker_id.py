@@ -1,7 +1,7 @@
 """ Speaker identification classes and methods """
 
+import os
 from pyannote.audio import Pipeline
-from os.path import exists
 
 class SpeakerIdentifier:
 
