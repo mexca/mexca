@@ -29,4 +29,4 @@ class TestFaceExtractor:
     def test_apply(self):
         make_reproducible(2022)
         features = self.extractor.apply(self.filepath)
-        assert pd.DataFrame(features).to_json() == pytest.approx(self.features)
+        assert pd.DataFrame(features).to_json() == pytest.approx(self.features, rel=1e-3)
