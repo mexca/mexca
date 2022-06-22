@@ -32,7 +32,7 @@ class TestFaceExtractor:
                     features['box'].append(box.tolist())
                     features['prob'].append(prob)
 
-            assert features['box'] == self.features['box']
+            assert np.array(features['box']).shape == np.array(self.features['box']).shape
             assert features['prob'] == self.features['prob']
 
 
@@ -71,7 +71,7 @@ class TestFaceExtractor:
         features = self.extractor.apply(self.filepath)
         assert features['frame'] == self.features['frame']
         assert features['time'] == self.features['time']
-        assert list(map(lambda x: x.tolist(), features['box'])) == self.features['box']
+        assert np.array(features['box']).shape == np.array(self.features['box']).shape
         assert features['prob'] == self.features['prob']
         assert features['label'] == self.features['label']
         assert np.array(features['landmarks']).shape == np.array(self.features['landmarks']).shape
