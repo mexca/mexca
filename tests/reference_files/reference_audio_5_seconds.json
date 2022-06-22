@@ -1,0 +1,1 @@
+{"pyannote": "Annotation", "content": [{"segment": {"start": 0.26, "end": 0.9500000000000001}, "track": "A", "label": "SPEAKER_00"}], "uri": "test_audio_5_seconds"}
