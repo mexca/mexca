@@ -17,7 +17,6 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Download libsndfile
-        if: matrix.os == 'ubuntu-latest'
         run: sudo apt-get install libsndfile1
       - name: Set up Python 3.9
         uses: actions/setup-python@v2
