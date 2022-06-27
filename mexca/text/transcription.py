@@ -19,4 +19,4 @@ class AudioTranscriber:
 
         transcription = self._pipeline.transcribe(filepath)
 
-        return transcription[0]['transcription'], transcription[0]['start_timestamps'], transcription[0]['end_timestamps'], transcription[0]['probabilities']
+        return transcription[0]
