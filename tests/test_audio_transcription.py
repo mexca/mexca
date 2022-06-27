@@ -11,7 +11,7 @@ class TestAudioTranscription:
         ref_transcription = file.read().replace('\n', '')
 
     def test_apply(self):
-        transcription = self.audio_transcriber.apply(self.filepath)
+        transcription = self.audio_transcriber.apply([self.filepath])
         assert are_equal(transcription, self.ref_transcription)
 
 
