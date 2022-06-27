@@ -13,7 +13,7 @@ class TestAudioTranscription:
         ref_transcription = json.loads(file.read())
 
     def test_apply(self):
-        transcription = self.audio_transcriber.apply([self.filepath])
+        transcription = self.audio_transcriber.apply(self.filepath)
         assert are_equal(transcription['transcription'], self.ref_transcription['transcription'])
 
 
