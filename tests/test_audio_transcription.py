@@ -14,14 +14,5 @@ class TestAudioTranscription:
 
     def test_apply(self):
         transcription = self.audio_transcriber.apply(self.filepath)
-        assert are_equal(transcription['transcription'], self.ref_transcription['transcription'])
+        assert transcription['transcription'] == self.ref_transcription['transcription']
 
-
-def are_equal(transcription1, transcription2):
-
-    reference_transcription = transcription1
-    predicted_transcription = transcription2
-
-    equal = (reference_transcription == predicted_transcription)
-
-    return equal
