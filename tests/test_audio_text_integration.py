@@ -17,24 +17,9 @@ class TestAudioTextIntegration:
     def test_apply(self):
 
         out  = self.audio_text_integrator.apply(self.audio_filepath)
+        assert out['speech_start'] == self.text_audio_transcription['speech_start']
+        assert out['speech_end'] == self.text_audio_transcription['speech_end']
+        assert out['speaker'] == self.text_audio_transcription['speaker']
+        assert out['text'] == self.text_audio_transcription['text']
 
-        assert are_equal(out, self.text_audio_transcription) # test the output against the reference
 
-
-
-def are_equal(reference_output, predicted_output):
-
-    dict1_len = len(reference_output)
-    dict2_len = len(predicted_output)
-    total_dict_count = dict1_len + dict2_len
-    shared_dict = {}
-
-    equal = False
-    for i in reference_output:
-        if (i in predicted_output) and (reference_output[i] == predicted_output[i]):
-            shared_dict[i] = reference_output[i]
-    len_shared_dict=len(shared_dict)
-
-    if (len_shared_dict == total_dict_count/2):
-        equal = True
-    return equal
