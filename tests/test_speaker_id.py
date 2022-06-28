@@ -8,7 +8,7 @@ from pyannote.core import Annotation
 from mexca.audio.speaker_id import SpeakerIdentifier
 
 class TestSpeakerIdentifier:
-    detector = SpeakerIdentifier()
+    speaker_identifier = SpeakerIdentifier()
     filepath = os.path.join(
         'tests', 'audio_files', 'test_audio_5_seconds.wav'
     )
@@ -18,7 +18,7 @@ class TestSpeakerIdentifier:
         ref_speakers = Annotation.from_json(json.loads(file.read()))
 
     def test_apply(self):
-        speakers = self.detector.apply(self.filepath)
+        speakers = self.speaker_identifier.apply(self.filepath)
         track_pairs = itertools.zip_longest(
             speakers.itertracks(yield_label=True),
             self.ref_speakers.itertracks(yield_label=True)

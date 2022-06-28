@@ -16,19 +16,19 @@ class AudioTranscriber:
         else:
           raise ModelTranscriberInitError("Invalid language. Please specify either 'dutch' or 'english'")
 
+
     def apply(self, filepath):
         transcription = self._pipeline.transcribe([filepath])
 
         return transcription[0]
 
 
-
 class AudioTextIntegrator:
 
-    def __init__(self,language=None) -> 'AudioTextIntegrator':
-        self.language = language
-        self._audio_transcriber = AudioTranscriber(language=language)
-        self._speech_segmenter = SpeakerIdentifier()
+    def __init__(self, audio_transcriber, speaker_identifier) -> 'AudioTextIntegrator':
+        self._audio_transcriber = audio_transcriber
+        self._speech_segmenter = speaker_identifier
+
 
     def apply(self, filepath):
         transcription = self._audio_transcriber.apply(filepath)
@@ -36,18 +36,21 @@ class AudioTextIntegrator:
         out = self._segment_text(transcription, annotation)
         return out
 
+
     def _segment_text(self, transcription, annotation):
 
         text, char_starts, char_ends = transcription['transcription'], transcription['start_timestamps'], transcription['end_timestamps']
 
+        output = {'speech_start':[], 'speech_end':[], 'speaker':[], 'text':[]}
 
-        output = {'speech_start':[],'speech_end':[],'speaker':[],'text':[]}
         for speech_turn, _, speaker in annotation.itertracks(yield_label=True):
             # convert pyannote annotation time to ms to match the text transcription
-            speech_start, speech_end = 1000 * round(speech_turn.start,3), 1000 * round(speech_turn.end,3)
+            speech_start, speech_end = 1000 * round(speech_turn.start, 3), 1000 * round(speech_turn.end, 3)
 
             # extract character within the time window identified in the pyannote annotation (i.e., characters within start and end)
-            extracted_text = ''.join([char  for i,char in enumerate(text) if (char_ends[i]>=speech_start and char_starts[i]<=speech_end)])
+            extracted_text = ''.join(
+                [char for i, char in enumerate(text) if (char_ends[i]>=speech_start and char_starts[i]<=speech_end)]
+            )
 
             # append info into a dictionary
             output['speech_start'].append(speech_start)

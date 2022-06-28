@@ -3,10 +3,14 @@
 import os
 import json
 from mexca.text.transcription import AudioTextIntegrator
-
+from mexca.text.transcription import AudioTranscriber
+from mexca.audio.speaker_id import SpeakerIdentifier
 
 class TestAudioTextIntegration:
-    audio_text_integrator = AudioTextIntegrator(language='dutch')
+    audio_text_integrator = AudioTextIntegrator(
+        audio_transcriber=AudioTranscriber(language='dutch'),
+        speaker_identifier=SpeakerIdentifier()
+    )
     audio_filepath = os.path.join('tests', 'audio_files', 'test_dutch_5_seconds.wav')
 
     # reference output
@@ -21,5 +25,3 @@ class TestAudioTextIntegration:
         assert out['speech_end'] == self.text_audio_transcription['speech_end']
         assert out['speaker'] == self.text_audio_transcription['speaker']
         assert out['text'] == self.text_audio_transcription['text']
-
-
