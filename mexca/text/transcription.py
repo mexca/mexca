@@ -2,7 +2,6 @@
 
 from huggingsound import SpeechRecognitionModel
 from mexca.core.exceptions import ModelTranscriberInitError
-from mexca.audio.speaker_id import SpeakerIdentifier
 
 class AudioTranscriber:
 
@@ -10,11 +9,11 @@ class AudioTranscriber:
         self.language = language
 
         if language == 'dutch':
-          self._pipeline = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-dutch")
+            self._pipeline = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-dutch")
         elif language == 'english':
-          self._pipeline = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-english")
+            self._pipeline = SpeechRecognitionModel("jonatasgrosman/wav2vec2-large-xlsr-53-english")
         else:
-          raise ModelTranscriberInitError("Invalid language. Please specify either 'dutch' or 'english'")
+            raise ModelTranscriberInitError("Invalid language. Please specify either 'dutch' or 'english'")
 
 
     def apply(self, filepath):
@@ -25,14 +24,12 @@ class AudioTranscriber:
 
 class AudioTextIntegrator:
 
-    def __init__(self, audio_transcriber, speaker_identifier) -> 'AudioTextIntegrator':
+    def __init__(self, audio_transcriber) -> 'AudioTextIntegrator':
         self._audio_transcriber = audio_transcriber
-        self._speech_segmenter = speaker_identifier
 
 
-    def apply(self, filepath):
+    def apply(self, filepath, annotation):
         transcription = self._audio_transcriber.apply(filepath)
-        annotation = self._speech_segmenter.apply(filepath)
         out = self._segment_text(transcription, annotation)
         return out
 
