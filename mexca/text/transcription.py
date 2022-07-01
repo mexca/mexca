@@ -1,5 +1,6 @@
 """ Audio to text transcription classes and methods """
 
+import numpy as np
 from huggingsound import SpeechRecognitionModel
 from mexca.core.exceptions import ModelTranscriberInitError
 
@@ -28,10 +29,42 @@ class AudioTextIntegrator:
         self._audio_transcriber = audio_transcriber
 
 
-    def apply(self, filepath, annotation):
+    def apply(self, filepath, audio_features):
         transcription = self._audio_transcriber.apply(filepath)
-        out = self._segment_text(transcription, annotation)
-        return out
+        audio_text_features = self.add_transcription(transcription, audio_features)
+        return audio_text_features
+
+
+    def add_transcription(self, transcription, audio_features):
+        tokens_text = transcription['transcription'].split(' ')
+
+        time = audio_features['time']
+
+        audio_text_features = audio_features
+        audio_text_features['text_token_id'] = np.zeros_like(time)
+        audio_text_features['text_token'] = np.full_like(
+            time, '', dtype=np.chararray
+        )
+        audio_text_features['text_token_start'] = np.zeros_like(time)
+        audio_text_features['text_token_end'] = np.zeros_like(time)
+
+        char_idx = 0
+
+        for id, token in enumerate(tokens_text):
+            start = transcription['start_timestamps'][char_idx] / 1000
+            char_idx += len(token)
+            end = transcription['end_timestamps'][char_idx-1] / 1000
+            #char_idx += 1
+
+            is_token = np.logical_and(
+                np.less(time, end), np.greater(time, start)
+            )
+            audio_text_features['text_token_id'][is_token] = id
+            audio_text_features['text_token'][is_token] = token
+            audio_text_features['text_token_start'][is_token] = start
+            audio_text_features['text_token_end'][is_token] = end
+
+        return audio_text_features
 
 
     def _segment_text(self, transcription, annotation):
