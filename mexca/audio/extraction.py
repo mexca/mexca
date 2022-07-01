@@ -1,6 +1,5 @@
 """ Voice feature extraction classes and methods """
 
-from warnings import warn
 import mexca.audio.features
 import numpy as np
 from parselmouth import Sound

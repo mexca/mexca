@@ -3,16 +3,13 @@
 import json
 import os
 import numpy as np
-import pandas as pd
-import pytest
-import torch
 from mexca.video.extraction import FaceExtractor
 from moviepy.editor import VideoFileClip
 
 class TestFaceExtractor:
     extractor = FaceExtractor(min_clusters=1, max_clusters=4)
     filepath = os.path.join(
-        'tests', 'video_files', 'test_video_multi_5_frames.mp4'
+        'tests', 'test_files', 'test_video_multi_5_frames.mp4'
     )
     with open(os.path.join(
             'tests', 'reference_files', 'features_video_multi_5_frames.json'

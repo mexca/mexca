@@ -1,7 +1,6 @@
 """ Voice feature classes and methods """
 
 import numpy as np
-from dataclasses import dataclass
 
 
 class FeaturePitchF0:

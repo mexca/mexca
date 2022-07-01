@@ -33,9 +33,6 @@ class AudioIntegrator:
 
             seg_idx += 1
 
-        for key, val in audio_features.items():
-            annotated_features[key] = val
-
         return annotated_features
 
 

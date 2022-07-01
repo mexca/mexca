@@ -63,7 +63,7 @@ class Pipeline:
             pipeline_result.add(audio_result)
 
             if self.text:
-                text_result = self.text.apply(audio_path, audio_result)
+                text_result = self.text.apply(audio_path, audio_result['time'])
                 pipeline_result.add(text_result)
 
             if remove_audiofile:

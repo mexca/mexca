@@ -21,7 +21,7 @@ class VoiceFeatureError(Exception):
 
 class TimeStepError(Exception):
     def __init__(self) -> 'TimeStepError':
-        self.message = 'To extract audio features video processing must be enabled or the argument "time_step" must be supplied'
+        self.message = 'To extract audio features, video processing must be enabled or the argument "time_step" must be supplied'
         super().__init__(self.message)
 
 

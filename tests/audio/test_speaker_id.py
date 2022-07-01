@@ -10,7 +10,7 @@ from mexca.audio.speaker_id import SpeakerIdentifier
 class TestSpeakerIdentifier:
     speaker_identifier = SpeakerIdentifier()
     filepath = os.path.join(
-        'tests', 'audio_files', 'test_audio_5_seconds.wav'
+        'tests', 'test_files', 'test_audio_5_seconds.wav'
     )
     with open(os.path.join(
             'tests', 'reference_files', 'reference_audio_5_seconds.json'
