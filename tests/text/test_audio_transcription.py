@@ -6,7 +6,7 @@ from mexca.text.transcription import AudioTranscriber
 
 class TestAudioTranscription:
     audio_transcriber = AudioTranscriber(language='dutch')
-    filepath = os.path.join('tests', 'audio_files', 'test_dutch_5_seconds.wav')
+    filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
 
     with open(os.path.join(
             'tests', 'reference_files', 'transcription_dutch_1_second.json'), 'r') as file:

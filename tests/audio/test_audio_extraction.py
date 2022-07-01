@@ -1,8 +1,8 @@
 """ Test voice feature extraction classes and methods """
 
 import json
-import numpy as np
 import os
+import numpy as np
 import pytest
 from mexca.audio.extraction import VoiceExtractor
 
@@ -10,9 +10,7 @@ class TestVoiceExtractor:
     extractor = VoiceExtractor(time_step=0.04)
     filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
 
-    with open(
-        os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'), 'r'
-    ) as file:
+    with open(os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'), 'r') as file:
         reference_features = json.loads(file.read())
 
     def test_extract_features(self):

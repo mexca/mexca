@@ -22,4 +22,4 @@ class TestAudioIntegrator:
 
     def test_integrate(self):
         annotated_features = self.integrator.apply(self.filepath, self.reference_features['time'])
-        assert all(int(annotated_features['segment_id']) == int(self.reference_features['segment_id']))
+        assert all(annotated_features['segment_id'] == self.reference_features['segment_id'])

@@ -8,7 +8,7 @@ from mexca.core.pipeline import Pipeline
 from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber
 from mexca.video.extraction import FaceExtractor
 
-@pytest.skip('Requires test file with both video and audio')
+@pytest.mark.skip('Requires test file with both video and audio')
 class TestPipeline:
     pipeline = Pipeline(
         video=FaceExtractor(

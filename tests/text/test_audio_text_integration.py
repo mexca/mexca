@@ -19,7 +19,7 @@ class TestAudioTextIntegration:
 
     def test_apply(self):
 
-        out  = self.audio_text_integrator.apply(self.filepath, self.text_audio_transcription)
+        out  = self.audio_text_integrator.apply(self.filepath, self.text_audio_transcription['time'])
         assert all(out['text_token_id'] == self.text_audio_transcription['text_token_id'])
         assert all(out['text_token'] == self.text_audio_transcription['text_token'])
         assert all(out['text_token_start'] == self.text_audio_transcription['text_token_start'])
