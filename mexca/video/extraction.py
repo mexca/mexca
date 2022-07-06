@@ -34,12 +34,16 @@ class FaceExtractor:
         return faces, boxes, probs
 
 
-    def identify(self, faces):
+    def encode(self, faces):
         if faces is not None:
             embeddings = self._resnet(faces).detach().cpu()
-            labels = self._cluster.predict(embeddings.numpy())
         else:
-            labels = np.array([np.nan for face in faces])
+            embeddings = None
+
+        return embeddings
+
+    def identify(self, embeddings):
+        labels = self._cluster.predict(embeddings.squeeze())
 
         return labels
 
@@ -60,28 +64,32 @@ class FaceExtractor:
                 'box': [],
                 'prob': [],
                 'landmarks': [],
-                'aus': [],
-                'label': []
+                'aus': []
             }
+
+            embeddings = [] # Embeddings are separate because they won't be returned
 
             frame_idx = 0
 
             for t, frame in clip.iter_frames(with_times=True):
                 faces, boxes, probs = self.detect(frame)
-                labels = self.identify(faces)
+                embs = self.encode(faces).numpy() # Embeddings per frame
                 landmarks, aus = self.extract(frame, boxes)
 
                 landmarks_np = np.array(landmarks).squeeze()
 
-                for box, prob, label, landmark, au in zip(boxes, probs, labels, landmarks_np, aus):
+                for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
                     features['frame'].append(frame_idx)
                     features['time'].append(t)
                     features['box'].append(box)
                     features['prob'].append(prob)
                     features['landmarks'].append(landmark)
                     features['aus'].append(au)
-                    features['label'].append(label)
+
+                    embeddings.append(emb)
 
                 frame_idx += 1
+
+            features['label'] = self.identify(np.array(embeddings)).tolist()
 
             return features
