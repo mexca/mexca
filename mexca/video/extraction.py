@@ -11,16 +11,16 @@ from spectralcluster import SpectralClusterer
 class FaceExtractor:
     device = 'cpu'
 
-    def __init__(self, **kwargs) -> 'FaceExtractor':
+    def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
         self._mtcnn = MTCNN(device=self.device, keep_all=True)
         self._resnet = InceptionResnetV1(
             pretrained='vggface2',
             device=self.device
         ).eval()
-        self._cluster = SpectralClusterer(**kwargs)
+        self._cluster = SpectralClusterer(**clargs)
         self._pyfeat = feat.detector.Detector(
-            au_model='JAANET',
-            landmark_model='PFLD'
+            au_model=au_model,
+            landmark_model=landmark_model
         )
 
 
