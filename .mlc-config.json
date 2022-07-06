@@ -23,7 +23,7 @@
           "pattern": "^https://readthedocs.org/dashboard/import.*"
         },
         {
-          "pattern": "^ https://help.github.com/*"
+          "pattern": "^https://help.github.com/*"
         }
     ],
     "replacementPatterns": [
