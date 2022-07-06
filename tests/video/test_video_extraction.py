@@ -13,7 +13,7 @@ class TestFaceExtractor:
     )
     with open(os.path.join(
             'tests', 'reference_files', 'features_video_multi_5_frames.json'
-        ), 'r') as file:
+        ), 'r', encoding="utf-8") as file:
         features = json.loads(file.read())
 
 
