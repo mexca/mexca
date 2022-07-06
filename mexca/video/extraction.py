@@ -27,7 +27,7 @@ class FaceExtractor:
     def detect(self, frame):
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-        boxes, probs = self._mtcnn.detect(img, landmarks=False)
+        boxes, probs = self._mtcnn.detect(img, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
 
         faces = self._mtcnn.extract(frame, boxes, save_path=None)
 
@@ -41,6 +41,7 @@ class FaceExtractor:
             embeddings = None
 
         return embeddings
+
 
     def identify(self, embeddings):
         labels = self._cluster.predict(embeddings.squeeze())
