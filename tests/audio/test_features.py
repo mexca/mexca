@@ -16,7 +16,8 @@ class TestFeaturePitchF0:
     time = np.linspace(start=0.0, stop=end_time, num=int(end_time/time_step))
 
     with open(
-        os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'), 'r'
+        os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
+        'r', encoding="utf-8"
     ) as file:
         reference = json.loads(file.read())['pitchF0']
 

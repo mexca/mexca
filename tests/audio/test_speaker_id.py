@@ -14,7 +14,7 @@ class TestSpeakerIdentifier:
     )
     with open(os.path.join(
             'tests', 'reference_files', 'reference_audio_5_seconds.json'
-        ), 'r') as file:
+        ), 'r', encoding="utf-8") as file:
         ref_speakers = Annotation.from_json(json.loads(file.read()))
 
     def test_apply(self):

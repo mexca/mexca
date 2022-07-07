@@ -14,7 +14,7 @@ from mexca.video.extraction import FaceExtractor
 class Pipeline:
     def __init__(self, video=None, audio=None, text=None) -> 'Pipeline':
         if text and not audio:
-            raise PipelineError('Cannot initialize a "text" component if no "audio" component was specified')
+            raise PipelineError('Cannot initialize a "text" component because no "audio" component was specified')
         self.video = video
         self.audio = audio
         self.text = text
@@ -42,7 +42,7 @@ class Pipeline:
         )
 
 
-    def apply(self, filepath, remove_audiofile=False) -> 'Multimodal':
+    def apply(self, filepath, keep_audiofile=False) -> 'Multimodal':
         pipeline_result = Multimodal()
 
         if self.video:
@@ -70,7 +70,7 @@ class Pipeline:
                 text_result = self.text.apply(audio_path, audio_result['time'])
                 pipeline_result.add(text_result)
 
-            if remove_audiofile:
+            if not keep_audiofile:
                 os.remove(audio_path)
             print('Audio and text done')
 

@@ -18,9 +18,9 @@ class AudioTranscriber:
 
 
     def apply(self, filepath):
-        transcription = self._pipeline.transcribe([filepath])
+        transcription = self._pipeline.transcribe([filepath]) # Requires list input!
 
-        return transcription[0]
+        return transcription[0] # Output list contains only one element
 
 
 class AudioTextIntegrator:
@@ -63,27 +63,3 @@ class AudioTextIntegrator:
             audio_text_features['text_token_end'][is_token] = end
 
         return audio_text_features
-
-
-    def _segment_text(self, transcription, annotation):
-
-        text, char_starts, char_ends = transcription['transcription'], transcription['start_timestamps'], transcription['end_timestamps']
-
-        output = {'speech_start':[], 'speech_end':[], 'speaker':[], 'text':[]}
-
-        for speech_turn, _, speaker in annotation.itertracks(yield_label=True):
-            # convert pyannote annotation time to ms to match the text transcription
-            speech_start, speech_end = 1000 * round(speech_turn.start, 3), 1000 * round(speech_turn.end, 3)
-
-            # extract character within the time window identified in the pyannote annotation (i.e., characters within start and end)
-            extracted_text = ''.join(
-                [char for i, char in enumerate(text) if (char_ends[i]>=speech_start and char_starts[i]<=speech_end)]
-            )
-
-            # append info into a dictionary
-            output['speech_start'].append(speech_start)
-            output['speech_end'].append(speech_end)
-            output['speaker'].append(speaker)
-            output['text'].append(extracted_text)
-
-        return output

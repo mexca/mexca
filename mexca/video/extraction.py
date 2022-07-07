@@ -11,36 +11,40 @@ from spectralcluster import SpectralClusterer
 class FaceExtractor:
     device = 'cpu'
 
-    def __init__(self, **kwargs) -> 'FaceExtractor':
+    def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
         self._mtcnn = MTCNN(device=self.device, keep_all=True)
         self._resnet = InceptionResnetV1(
             pretrained='vggface2',
             device=self.device
         ).eval()
-        self._cluster = SpectralClusterer(**kwargs)
+        self._cluster = SpectralClusterer(**clargs)
         self._pyfeat = feat.detector.Detector(
-            au_model='JAANET',
-            landmark_model='PFLD'
+            au_model=au_model,
+            landmark_model=landmark_model
         )
 
 
     def detect(self, frame):
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-        boxes, probs = self._mtcnn.detect(img, landmarks=False)
+        boxes, probs = self._mtcnn.detect(img, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
 
         faces = self._mtcnn.extract(frame, boxes, save_path=None)
 
         return faces, boxes, probs
 
 
-    def identify(self, faces):
+    def encode(self, faces):
         if faces is not None:
             embeddings = self._resnet(faces).detach().cpu()
-            labels = self._cluster.predict(embeddings.numpy())
-
         else:
-            labels = np.array(np.nan)
+            embeddings = None
+
+        return embeddings
+
+
+    def identify(self, embeddings):
+        labels = self._cluster.predict(embeddings.squeeze())
 
         return labels
 
@@ -65,38 +69,40 @@ class FaceExtractor:
                 'box': [],
                 'prob': [],
                 'landmarks': [],
-                'aus': [],
-                'label': []
+                'aus': []
             }
 
+            embeddings = [] # Embeddings are separate because they won't be returned
 
             frame_idx = 0
             for t, frame in clip.iter_frames(with_times=True):
 
                 faces, boxes, probs = self.detect(frame)
                 if faces is not None:
-                    labels = [i for i in range(len(faces))] #self.identify(faces)
+
+                    embs = self.encode(faces).numpy() # Embeddings per frame
                     landmarks, aus = self.extract(frame, boxes)
                     landmarks_np = np.array(landmarks).squeeze()
+
                 else:
-                    boxes = [np.nan]
-                    probs = [np.nan]
-                    labels = [np.nan]
+                    embs = [np.nan]
                     landmarks_np = [np.nan]
                     aus = [np.nan]
 
 
-                for box, prob, label, landmark, au in zip(boxes, probs, labels, landmarks_np, aus):
+
+                for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
                     features['frame'].append(frame_idx)
                     features['time'].append(t)
                     features['box'].append(box)
                     features['prob'].append(prob)
                     features['landmarks'].append(landmark)
                     features['aus'].append(au)
-                    features['label'].append(label)
+
+                    embeddings.append(emb)
 
                 frame_idx += 1
 
-            labels = self.identify(faces)
+            features['label'] = self.identify(np.array(embeddings)).tolist()
 
             return features
