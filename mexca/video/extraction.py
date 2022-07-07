@@ -35,10 +35,7 @@ class FaceExtractor:
 
 
     def encode(self, faces):
-        if faces is not None:
-            embeddings = self._resnet(faces).detach().cpu()
-        else:
-            embeddings = None
+        embeddings = self._resnet(faces)
 
         return embeddings
 
