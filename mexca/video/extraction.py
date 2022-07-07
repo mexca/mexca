@@ -38,16 +38,21 @@ class FaceExtractor:
         if faces is not None:
             embeddings = self._resnet(faces).detach().cpu()
             labels = self._cluster.predict(embeddings.numpy())
+
         else:
-            labels = np.array([np.nan for face in faces])
+            labels = np.array(np.nan)
 
         return labels
 
 
     def extract(self, frame, boxes):
-        boxes_list = boxes.reshape(1, -1, 4).tolist()
-        landmarks = self._pyfeat.detect_landmarks(frame, boxes_list)
-        aus = self._pyfeat.detect_aus(frame, landmarks)
+        if boxes is not None:
+            boxes_list = boxes.reshape(1, -1, 4).tolist()
+            landmarks = self._pyfeat.detect_landmarks(frame, boxes_list)
+            aus = self._pyfeat.detect_aus(frame, landmarks)
+        else:
+            landmarks = np.nan
+            aus = np.nan
 
         return landmarks, aus
 
@@ -64,14 +69,22 @@ class FaceExtractor:
                 'label': []
             }
 
+
             frame_idx = 0
-
             for t, frame in clip.iter_frames(with_times=True):
-                faces, boxes, probs = self.detect(frame)
-                labels = self.identify(faces)
-                landmarks, aus = self.extract(frame, boxes)
 
-                landmarks_np = np.array(landmarks).squeeze()
+                faces, boxes, probs = self.detect(frame)
+                if faces is not None:
+                    labels = [i for i in range(len(faces))] #self.identify(faces)
+                    landmarks, aus = self.extract(frame, boxes)
+                    landmarks_np = np.array(landmarks).squeeze()
+                else:
+                    boxes = [np.nan]
+                    probs = [np.nan]
+                    labels = [np.nan]
+                    landmarks_np = [np.nan]
+                    aus = [np.nan]
+
 
                 for box, prob, label, landmark, au in zip(boxes, probs, labels, landmarks_np, aus):
                     features['frame'].append(frame_idx)
@@ -83,5 +96,7 @@ class FaceExtractor:
                     features['label'].append(label)
 
                 frame_idx += 1
+
+            labels = self.identify(faces)
 
             return features

@@ -31,7 +31,7 @@ class Pipeline:
             features = {'pitchF0': FeaturePitchF0(pitch_floor=75, pitch_ceiling=600)}
 
         return cls(
-            video=FaceExtractor(),
+            video=FaceExtractor(min_clusters=1),
             audio=AudioIntegrator(
                 SpeakerIdentifier(),
                 VoiceExtractor(features=features)
@@ -46,10 +46,13 @@ class Pipeline:
         pipeline_result = Multimodal()
 
         if self.video:
+            print('Analyzing video ...')
             video_result = self.video.apply(filepath)
             pipeline_result.add(video_result)
+            print('Video done')
 
         if self.audio:
+            print('Analyzing audio and text')
             with Video2AudioConverter(filepath) as clip:
                 audio_path = clip.create_audiofile_path()
                 clip.write_audiofile(audio_path)
@@ -62,11 +65,13 @@ class Pipeline:
             audio_result = self.audio.apply(audio_path, time)
             pipeline_result.add(audio_result)
 
+
             if self.text:
                 text_result = self.text.apply(audio_path, audio_result['time'])
                 pipeline_result.add(text_result)
 
             if remove_audiofile:
                 os.remove(audio_path)
+            print('Audio and text done')
 
         return pipeline_result
