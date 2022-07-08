@@ -1,11 +1,12 @@
 """ Test speaker identification classes and methods """
 
-import json
 import itertools
+import json
 import os
 import pytest
 from pyannote.core import Annotation
 from mexca.audio.speaker_id import SpeakerIdentifier
+
 
 class TestSpeakerIdentifier:
     speaker_identifier = SpeakerIdentifier()

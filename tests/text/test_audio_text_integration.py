@@ -1,9 +1,10 @@
 """ Test Audio text integration classes and methods """
 
-import os
 import json
+import os
 from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
+
 
 class TestAudioTextIntegration:
     audio_text_integrator = AudioTextIntegrator(

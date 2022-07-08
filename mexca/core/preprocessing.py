@@ -1,8 +1,9 @@
 """ Preprocessing classes and methods """
 
 import os
-from mexca.core.exceptions import AudioClipError
 from moviepy.editor import VideoFileClip
+from mexca.core.exceptions import AudioClipError
+
 
 class Video2AudioConverter(VideoFileClip):
     def __init__(self, filepath) -> 'Video2AudioConverter':

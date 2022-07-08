@@ -3,10 +3,12 @@
 import cv2
 import feat
 import numpy as np
-from facenet_pytorch import MTCNN, InceptionResnetV1
+from facenet_pytorch import MTCNN
+from facenet_pytorch import InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from spectralcluster import SpectralClusterer
+
 
 class FaceExtractor:
     device = 'cpu'

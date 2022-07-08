@@ -5,6 +5,7 @@ import pytest
 from mexca.core.exceptions import AudioClipError
 from mexca.core.preprocessing import Video2AudioConverter
 
+
 class TestVideo2AudioConverter:
     filepath = os.path.join('tests', 'test_files', 'test_video_multi_5_frames.mp4')
     converter = Video2AudioConverter(filepath)

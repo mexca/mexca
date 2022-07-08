@@ -1,9 +1,10 @@
 """ Voice feature extraction classes and methods """
 
-import mexca.audio.features
 import numpy as np
 from parselmouth import Sound
-from mexca.core.exceptions import TimeStepError, TimeStepWarning
+import mexca.audio.features
+from mexca.core.exceptions import TimeStepError
+from mexca.core.exceptions import TimeStepWarning
 
 
 class VoiceExtractor:

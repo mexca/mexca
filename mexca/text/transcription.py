@@ -4,6 +4,7 @@ import numpy as np
 from huggingsound import SpeechRecognitionModel
 from mexca.core.exceptions import ModelTranscriberInitError
 
+
 class AudioTranscriber:
 
     def __init__(self,language=None) -> 'AudioTranscriber':

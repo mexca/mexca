@@ -3,8 +3,9 @@
 import json
 import os
 import numpy as np
-from mexca.video.extraction import FaceExtractor
 from moviepy.editor import VideoFileClip
+from mexca.video.extraction import FaceExtractor
+
 
 class TestFaceExtractor:
     extractor = FaceExtractor(min_clusters=1, max_clusters=4)

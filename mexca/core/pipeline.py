@@ -8,8 +8,10 @@ from mexca.audio.speaker_id import SpeakerIdentifier
 from mexca.core.exceptions import PipelineError
 from mexca.core.output import Multimodal
 from mexca.core.preprocessing import Video2AudioConverter
-from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber
+from mexca.text.transcription import AudioTextIntegrator
+from mexca.text.transcription import AudioTranscriber
 from mexca.video.extraction import FaceExtractor
+
 
 class Pipeline:
     def __init__(self, video=None, audio=None, text=None) -> 'Pipeline':

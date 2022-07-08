@@ -1,7 +1,7 @@
 """ Test Audio to text transcription classes and methods """
 
-import os
 import json
+import os
 from mexca.text.transcription import AudioTranscriber
 
 

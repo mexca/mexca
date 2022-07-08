@@ -2,6 +2,7 @@
 
 from mexca.core.output import Multimodal
 
+
 class TestMultimodal:
 
     @staticmethod

@@ -4,8 +4,9 @@ import json
 import os
 import numpy as np
 import pytest
-from mexca.audio.features import FeaturePitchF0
 from parselmouth import Sound
+from mexca.audio.features import FeaturePitchF0
+
 
 class TestFeaturePitchF0:
     feature = FeaturePitchF0()
