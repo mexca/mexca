@@ -14,7 +14,7 @@ class TestFeaturePitchF0:
     snd = Sound(filepath)
     time_step = 0.04
     end_time = snd.get_end_time()
-    time = np.linspace(start=0.0, stop=end_time, num=int(end_time/time_step))
+    time = np.arange(start=0.0, stop=end_time, step=time_step)
 
     with open(
         os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
