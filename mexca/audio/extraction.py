@@ -1,5 +1,6 @@
 """ Voice feature extraction classes and methods """
 
+from decimal import Decimal
 import numpy as np
 from parselmouth import Sound
 import mexca.audio.features
@@ -31,11 +32,12 @@ class VoiceExtractor:
 
         if not time:
             end_time = snd.get_end_time()
+            not_processed = Decimal(end_time)%Decimal(self.time_step) # Use 'Decimal' to avoid issues with float representation
 
-            if end_time%self.time_step > 0.0:
-                TimeStepWarning('Length of file is not a multiple of "time_step": Some frames at the end of the file will not be processed')
+            if not_processed > 0.0:
+                TimeStepWarning(f'Length of file is not a multiple of "time_step": {not_processed}s at the end of the file will not be processed')
 
-            time = np.linspace(start=0.0, stop=end_time, num=int(end_time/self.time_step))
+            time = np.arange(start=0.0, stop=end_time, step=self.time_step)
 
         voice_features = {
             'time': time
