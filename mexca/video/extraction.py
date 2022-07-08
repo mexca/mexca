@@ -35,10 +35,7 @@ class FaceExtractor:
 
 
     def encode(self, faces):
-        if faces is not None:
-            embeddings = self._resnet(faces).detach().cpu()
-        else:
-            embeddings = None
+        embeddings = self._resnet(faces)
 
         return embeddings
 
@@ -61,7 +58,7 @@ class FaceExtractor:
         return landmarks, aus
 
 
-    def apply(self, filepath):
+    def apply(self, filepath): # pylint: disable=too-many-locals
         with VideoFileClip(filepath, audio=False) as clip:
             features = {
                 'frame': [],
@@ -78,8 +75,8 @@ class FaceExtractor:
             for t, frame in clip.iter_frames(with_times=True):
 
                 faces, boxes, probs = self.detect(frame)
-                if faces is not None:
 
+                if faces is not None:
                     embs = self.encode(faces).numpy() # Embeddings per frame
                     landmarks, aus = self.extract(frame, boxes)
                     landmarks_np = np.array(landmarks).squeeze()
@@ -88,7 +85,6 @@ class FaceExtractor:
                     embs = [np.nan]
                     landmarks_np = [np.nan]
                     aus = [np.nan]
-
 
 
                 for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
