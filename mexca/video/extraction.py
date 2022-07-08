@@ -83,21 +83,20 @@ class FaceExtractor:
                     landmarks, aus = self.extract(frame, boxes)
                     landmarks_np = np.array(landmarks).squeeze()
 
-                else:
-                    embs = [np.nan]
-                    landmarks_np = [np.nan]
-                    aus = [np.nan]
+                # else:
+                #     embs = [np.nan]
+                #     landmarks_np = [np.nan]
+                #     aus = [np.nan]
 
+                    for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
+                        features['frame'].append(frame_idx)
+                        features['time'].append(t)
+                        features['box'].append(box)
+                        features['prob'].append(prob)
+                        features['landmarks'].append(landmark)
+                        features['aus'].append(au)
 
-                for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
-                    features['frame'].append(frame_idx)
-                    features['time'].append(t)
-                    features['box'].append(box)
-                    features['prob'].append(prob)
-                    features['landmarks'].append(landmark)
-                    features['aus'].append(au)
-
-                    embeddings.append(emb)
+                        embeddings.append(emb)
 
                 frame_idx += 1
 
