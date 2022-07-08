@@ -1,24 +1,25 @@
 """ Test speaker identification classes and methods """
 
-import json
 import itertools
+import json
 import os
 import pytest
 from pyannote.core import Annotation
 from mexca.audio.speaker_id import SpeakerIdentifier
 
+
 class TestSpeakerIdentifier:
-    detector = SpeakerIdentifier()
+    speaker_identifier = SpeakerIdentifier()
     filepath = os.path.join(
-        'tests', 'audio_files', 'test_audio_5_seconds.wav'
+        'tests', 'test_files', 'test_audio_5_seconds.wav'
     )
     with open(os.path.join(
             'tests', 'reference_files', 'reference_audio_5_seconds.json'
-        ), 'r') as file:
+        ), 'r', encoding="utf-8") as file:
         ref_speakers = Annotation.from_json(json.loads(file.read()))
 
     def test_apply(self):
-        speakers = self.detector.apply(self.filepath)
+        speakers = self.speaker_identifier.apply(self.filepath)
         track_pairs = itertools.zip_longest(
             speakers.itertracks(yield_label=True),
             self.ref_speakers.itertracks(yield_label=True)

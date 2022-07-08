@@ -2,6 +2,7 @@
 
 from pyannote.audio import Pipeline
 
+
 class SpeakerIdentifier:
 
     def __init__(self) -> 'SpeakerIdentifier':

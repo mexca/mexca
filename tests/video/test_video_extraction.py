@@ -3,20 +3,18 @@
 import json
 import os
 import numpy as np
-import pandas as pd
-import pytest
-import torch
-from mexca.video.extraction import FaceExtractor
 from moviepy.editor import VideoFileClip
+from mexca.video.extraction import FaceExtractor
+
 
 class TestFaceExtractor:
     extractor = FaceExtractor(min_clusters=1, max_clusters=4)
     filepath = os.path.join(
-        'tests', 'video_files', 'test_video_multi_5_frames.mp4'
+        'tests', 'test_files', 'test_video_multi_5_frames.mp4'
     )
     with open(os.path.join(
             'tests', 'reference_files', 'features_video_multi_5_frames.json'
-        ), 'r') as file:
+        ), 'r', encoding="utf-8") as file:
         features = json.loads(file.read())
 
 
@@ -38,15 +36,17 @@ class TestFaceExtractor:
 
     def test_identify(self):
         with VideoFileClip(self.filepath, audio=False) as clip:
-            feature_labels = []
+            embeddings = []
             for frame in clip.iter_frames():
                 faces, _, _ = self.extractor.detect(frame)
+                embs = self.extractor.encode(faces).numpy()
 
-                frame_labels = self.extractor.identify(faces)
-                for label in frame_labels:
-                    feature_labels.append(label)
+                for emb in embs:
+                    embeddings.append(emb)
 
-            assert feature_labels == self.features['label']
+            labels = self.extractor.identify(np.array(embeddings)).tolist()
+
+            assert labels == self.features['label']
 
 
     def test_extract(self):

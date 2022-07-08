@@ -1,11 +1,12 @@
 """ Output classes and methods """
 
-from dataclasses import dataclass
-
-@dataclass
 class Multimodal:
+    def __init__(self) -> 'Multimodal':
+        self.features = {}
 
-    def __init__(self, video, audio, text) -> 'Multimodal':
-        self.video = video
-        self.audio = audio
-        self.text = text
+
+    def add(self, feature_dict, replace=False):
+        if feature_dict:
+            for key, val in feature_dict.items():
+                if key not in self.features or replace:
+                    self.features[key] = val
