@@ -67,7 +67,7 @@ class TestFaceExtractor:
             assert np.array(features['aus']).shape == np.array(self.features['aus']).shape
 
 
-    def test_apply(self):
+    def test_apply(self): # Tests JAANET AU model
         features = self.extractor.apply(self.filepath)
         assert features['frame'] == self.features['frame']
         assert features['time'] == self.features['time']
@@ -76,3 +76,17 @@ class TestFaceExtractor:
         assert features['label'] == self.features['label']
         assert np.array(features['landmarks']).shape == np.array(self.features['landmarks']).shape
         assert np.array(features['aus']).shape == np.array(self.features['aus']).shape
+
+
+    def test_pyfeat_svm(self): # Tests SVM AU model
+        svm_extractor = FaceExtractor(au_model='svm')
+        features = svm_extractor.apply(self.filepath)
+
+        assert np.array(features['aus']).shape == np.array(self.features['aus_svm']).shape
+
+
+    def test_pyfeat_logistic(self): # Tests logistic AU model
+        svm_extractor = FaceExtractor(au_model='logistic')
+        features = svm_extractor.apply(self.filepath)
+
+        assert np.array(features['aus']).shape == np.array(self.features['aus_logistic']).shape
