@@ -22,11 +22,27 @@
 
 ## How to use mexca
 
-Short description of package
+This package provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and situations.
+
+Currently, mexca supports the extraction of the following features:
+- Facial expressions (using [pyfeat](https://py-feat.org/pages/intro.html))
+  - Facial landmarks
+  - Facial action units
+- Voice (using [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth))
+  - Pitch (F0)
+
+Please cite mexca if you use it for scientific purposes.
 
 ## Installation
 
-To install mexca from GitHub repository, do:
+We recommend to install mexca in a new virtual environment, e.g., using `venv`:
+
+```console
+python3 -m venv env
+env/bin/activate
+```
+
+To install mexca from the GitHub repository, do:
 
 ```console
 git clone https://github.com/mexca/mexca.git
@@ -35,8 +51,6 @@ python3 -m pip install .
 ```
 
 ## Documentation
-
-Include a link to your project's full documentation here.
 
 ## Contributing
 

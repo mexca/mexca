@@ -49,13 +49,18 @@ class FaceExtractor:
 
 
     def extract(self, frame, boxes):
-        if boxes is not None:
-            boxes_list = boxes.reshape(1, -1, 4).tolist()
-            landmarks = self._pyfeat.detect_landmarks(frame, boxes_list)
-            aus = self._pyfeat.detect_aus(frame, landmarks)
+        if frame.ndim == 3:
+            frame = np.expand_dims(frame, 0) # convert to 4d
+
+        boxes_list = boxes.reshape(1, -1, 4).tolist()
+        landmarks = self._pyfeat.detect_landmarks(frame, boxes_list)
+        if self._pyfeat['au_model'].lower() in ['svm', 'logistic']:
+            hog, new_landmarks = self._pyfeat._batch_hog(
+                frames=frame, detected_faces=boxes_list, landmarks=landmarks
+            )
+            aus = self._pyfeat.detect_aus(hog, new_landmarks)
         else:
-            landmarks = np.nan
-            aus = np.nan
+            aus = self._pyfeat.detect_aus(frame, landmarks)
 
         return landmarks, aus
 
@@ -82,11 +87,6 @@ class FaceExtractor:
                     embs = self.encode(faces).numpy() # Embeddings per frame
                     landmarks, aus = self.extract(frame, boxes)
                     landmarks_np = np.array(landmarks).squeeze()
-
-                # else:
-                #     embs = [np.nan]
-                #     landmarks_np = [np.nan]
-                #     aus = [np.nan]
 
                     for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
                         features['frame'].append(frame_idx)
