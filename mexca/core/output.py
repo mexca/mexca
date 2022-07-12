@@ -15,7 +15,7 @@ class Multimodal:
                     self.features[key] = val
 
 
-    def match_faces_speakers(self, face_label='label', speaker_label='speaker', id_label='id'):
+    def match_faces_speakers(self, face_label='face_id', speaker_label='speaker_id', id_label='match_id'):
         time = self.features['time']
         spks = list(set(self.features[speaker_label]))
         faces = list(set(self.features[face_label]))

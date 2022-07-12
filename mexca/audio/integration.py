@@ -17,7 +17,7 @@ class AudioIntegrator:
         annotated_features['segment_start'] = np.zeros_like(time)
         annotated_features['segment_end'] = np.zeros_like(time)
         annotated_features['track'] = np.full_like(time, fill_value='', dtype=np.chararray)
-        annotated_features['speaker'] = np.full_like(time, fill_value='', dtype=np.chararray)
+        annotated_features['speaker_id'] = np.full_like(time, fill_value='', dtype=np.chararray)
 
         seg_idx = 1
 
@@ -29,7 +29,7 @@ class AudioIntegrator:
             annotated_features['segment_start'][is_segment] = seg.start
             annotated_features['segment_end'][is_segment] = seg.end
             annotated_features['track'][is_segment] = track
-            annotated_features['speaker'][is_segment] = spk
+            annotated_features['speaker_id'][is_segment] = spk
 
             seg_idx += 1
 
