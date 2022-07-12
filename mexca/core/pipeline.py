@@ -76,4 +76,7 @@ class Pipeline:
                 os.remove(audio_path)
             print('Audio and text done')
 
+            # Match face ids with speaker ids -> id vector
+            pipeline_result.match_faces_speakers()
+
         return pipeline_result
