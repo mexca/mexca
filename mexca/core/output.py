@@ -32,12 +32,12 @@ class Multimodal:
 
         max_mapping = linear_sum_assignment(mat, maximize=True)
 
-        id = np.zeros(len(time))
+        face_speaker_id = np.zeros(len(time)) # Zero indicates no match
 
         for i, match in enumerate(np.array(max_mapping).T):
-            id[np.logical_and(
+            face_speaker_id[np.logical_and(
                 np.equal(np.array(self.features[speaker_label], dtype=np.chararray), spks[match[0]]),
                 np.equal(np.array(self.features[face_label]), faces[match[1]])
-            )] = i
+            )] = i + 1
 
-        self.features['id'] = id
+        self.features[id_label] = face_speaker_id
