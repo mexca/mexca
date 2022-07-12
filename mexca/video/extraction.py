@@ -55,7 +55,7 @@ class FaceExtractor:
         boxes_list = boxes.reshape(1, -1, 4).tolist()
         landmarks = self._pyfeat.detect_landmarks(frame, boxes_list)
         if self._pyfeat['au_model'].lower() in ['svm', 'logistic']:
-            hog, new_landmarks = self._pyfeat._batch_hog(
+            hog, new_landmarks = self._pyfeat._batch_hog( # pylint: disable=protected-access
                 frames=frame, detected_faces=boxes_list, landmarks=landmarks
             )
             aus = self._pyfeat.detect_aus(hog, new_landmarks)
