@@ -4,7 +4,7 @@ import json
 import os
 from mexca.audio.extraction import VoiceExtractor
 from mexca.audio.integration import AudioIntegrator
-from mexca.audio.speaker_id import SpeakerIdentifier
+from mexca.audio.identification import SpeakerIdentifier
 
 
 class TestAudioIntegrator:

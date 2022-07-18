@@ -5,7 +5,7 @@ import json
 import os
 import pytest
 from pyannote.core import Annotation
-from mexca.audio.speaker_id import SpeakerIdentifier
+from mexca.audio.identification import SpeakerIdentifier
 
 
 class TestSpeakerIdentifier:

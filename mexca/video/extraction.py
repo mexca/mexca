@@ -55,7 +55,7 @@ class FaceExtractor:
         boxes_list = boxes.reshape(1, -1, 4).tolist()
         landmarks = self._pyfeat.detect_landmarks(frame, boxes_list)
         if self._pyfeat['au_model'].lower() in ['svm', 'logistic']:
-            hog, new_landmarks = self._pyfeat._batch_hog(
+            hog, new_landmarks = self._pyfeat._batch_hog( # pylint: disable=protected-access
                 frames=frame, detected_faces=boxes_list, landmarks=landmarks
             )
             aus = self._pyfeat.detect_aus(hog, new_landmarks)
@@ -70,10 +70,10 @@ class FaceExtractor:
             features = {
                 'frame': [],
                 'time': [],
-                'box': [],
-                'prob': [],
-                'landmarks': [],
-                'aus': []
+                'face_box': [],
+                'face_prob': [],
+                'face_landmarks': [],
+                'face_aus': []
             }
 
             embeddings = [] # Embeddings are separate because they won't be returned
@@ -91,15 +91,15 @@ class FaceExtractor:
                     for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
                         features['frame'].append(frame_idx)
                         features['time'].append(t)
-                        features['box'].append(box)
-                        features['prob'].append(prob)
-                        features['landmarks'].append(landmark)
-                        features['aus'].append(au)
+                        features['face_box'].append(box)
+                        features['face_prob'].append(prob)
+                        features['face_landmarks'].append(landmark)
+                        features['face_aus'].append(au)
 
                         embeddings.append(emb)
 
                 frame_idx += 1
 
-            features['label'] = self.identify(np.array(embeddings)).tolist()
+            features['face_id'] = self.identify(np.array(embeddings)).tolist()
 
             return features

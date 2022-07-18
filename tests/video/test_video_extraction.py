@@ -21,17 +21,17 @@ class TestFaceExtractor:
     def test_detect(self):
         with VideoFileClip(self.filepath, audio=False) as clip:
             features = {
-                'box': [],
-                'prob': []
+                'face_box': [],
+                'face_prob': []
             }
             for frame in clip.iter_frames():
                 _, boxes, probs = self.extractor.detect(frame)
                 for box, prob in zip(boxes, probs):
-                    features['box'].append(box.tolist())
-                    features['prob'].append(prob)
+                    features['face_box'].append(box.tolist())
+                    features['face_prob'].append(prob)
 
-            assert np.array(features['box']).shape == np.array(self.features['box']).shape
-            assert features['prob'] == self.features['prob']
+            assert np.array(features['face_box']).shape == np.array(self.features['face_box']).shape
+            assert features['face_prob'] == self.features['face_prob']
 
 
     def test_identify(self):
@@ -46,47 +46,47 @@ class TestFaceExtractor:
 
             labels = self.extractor.identify(np.array(embeddings)).tolist()
 
-            assert labels == self.features['label']
+            assert labels == self.features['face_id']
 
 
     def test_extract(self):
         with VideoFileClip(self.filepath, audio=False) as clip:
             features = {
-                'landmarks': [],
-                'aus': []
+                'face_landmarks': [],
+                'face_aus': []
             }
             for frame in clip.iter_frames():
                 _, boxes, _ = self.extractor.detect(frame)
                 landmarks, aus = self.extractor.extract(frame, boxes)
                 landmarks_np = np.array(landmarks).squeeze()
                 for landmark, au in zip(landmarks_np, aus):
-                    features['landmarks'].append(landmark)
-                    features['aus'].append(au)
+                    features['face_landmarks'].append(landmark)
+                    features['face_aus'].append(au)
 
-            assert np.array(features['landmarks']).shape == np.array(self.features['landmarks']).shape
-            assert np.array(features['aus']).shape == np.array(self.features['aus']).shape
+            assert np.array(features['face_landmarks']).shape == np.array(self.features['face_landmarks']).shape
+            assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
     def test_apply(self): # Tests JAANET AU model
         features = self.extractor.apply(self.filepath)
         assert features['frame'] == self.features['frame']
         assert features['time'] == self.features['time']
-        assert np.array(features['box']).shape == np.array(self.features['box']).shape
-        assert features['prob'] == self.features['prob']
-        assert features['label'] == self.features['label']
-        assert np.array(features['landmarks']).shape == np.array(self.features['landmarks']).shape
-        assert np.array(features['aus']).shape == np.array(self.features['aus']).shape
+        assert np.array(features['face_box']).shape == np.array(self.features['face_box']).shape
+        assert features['face_prob'] == self.features['face_prob']
+        assert features['face_id'] == self.features['face_id']
+        assert np.array(features['face_landmarks']).shape == np.array(self.features['face_landmarks']).shape
+        assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
     def test_pyfeat_svm(self): # Tests SVM AU model
         svm_extractor = FaceExtractor(au_model='svm')
         features = svm_extractor.apply(self.filepath)
 
-        assert np.array(features['aus']).shape == np.array(self.features['aus_svm']).shape
+        assert np.array(features['face_aus']).shape == np.array(self.features['aus_svm']).shape
 
 
     def test_pyfeat_logistic(self): # Tests logistic AU model
         svm_extractor = FaceExtractor(au_model='logistic')
         features = svm_extractor.apply(self.filepath)
 
-        assert np.array(features['aus']).shape == np.array(self.features['aus_logistic']).shape
+        assert np.array(features['face_aus']).shape == np.array(self.features['aus_logistic']).shape
