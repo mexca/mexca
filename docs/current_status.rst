@@ -8,13 +8,16 @@ The current release includes the necessary steps to (i) identify individuals' (i
 We report the list of information that Mexca currenlty provides below. We are going to update this list with future realeases. 
 
 Video:
-- facial muscle movements (i.e., action units)
-- facial landmarks coordinates (x and y coordinates) 
-- face labels
+
+* facial muscle movements (i.e., action units)
+* facial landmarks coordinates (x and y coordinates) 
+* face labels
 
 Audio:
-- speech segments
-- speaker labels
+
+* speech segments
+* speaker labels
 
 Text:
-- speech-to-text transcriptions
+
+* speech-to-text transcriptions

@@ -15,6 +15,7 @@ It's normally a good idea to make a virtual environment (virtualenv) within whic
 
 
 Alternatively, if you use conda:
+
 .. code-block:: console
 
   ~$ conda create -n mexca_venv
