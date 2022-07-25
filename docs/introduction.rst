@@ -1,3 +1,6 @@
+Introduction
+============
+
 The study of human affective behaviour requires capturing emotions in diverse, naturalistic environments, i.e., in the *wild* -- across video, audio and text. Currently, there is a number of commercially usable machine learning frameworks which provide a way to analyse human emotions in video, audio and text to anyone with a good command of python. However, to date there is no software capable of combining all these state-of-the-art solutions into one single workflow. For this reason, we have designed **Mexca**.
 
 
