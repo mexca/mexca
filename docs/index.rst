@@ -16,6 +16,7 @@ Contents:
 
   introduction
   current_status
+  installation
 
 
 ==================
