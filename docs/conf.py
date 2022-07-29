@@ -14,7 +14,25 @@
 # import os
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
+import sphinx
+if sphinx.__version__ == '5.1.0':
+    # see https://github.com/sphinx-doc/sphinx/issues/10701
+    # hope is it would get fixed for the next release
 
+    # Although crash happens within NumpyDocstring, it is subclass of GoogleDocstring
+    # so we need to overload method there
+    from sphinx.ext.napoleon.docstring import GoogleDocstring
+    from functools import wraps
+
+
+    @wraps(GoogleDocstring._consume_inline_attribute)
+    def _consume_inline_attribute_safe(self):
+        try:
+            return self._consume_inline_attribute_safe()
+        except:
+            return "", []
+
+    GoogleDocstring._consume_inline_attribute = _consume_inline_attribute_safe
 # -- Project information -----------------------------------------------------
 
 project = u"mexca"

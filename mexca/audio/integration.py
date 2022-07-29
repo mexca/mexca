@@ -1,6 +1,7 @@
 """ Audio speaker id and voice feature integration classes and methods """
 
 import numpy as np
+from tqdm import tqdm
 
 
 class AudioIntegrator:
@@ -9,7 +10,7 @@ class AudioIntegrator:
         self.extractor = extractor
 
 
-    def integrate(self, audio_features, annotation):
+    def integrate(self, audio_features, annotation, verbose=False):
         time = audio_features['time']
 
         annotated_features = audio_features
@@ -21,7 +22,7 @@ class AudioIntegrator:
 
         seg_idx = 1
 
-        for seg, track, spk in annotation.itertracks(yield_label=True):
+        for seg, track, spk in tqdm(annotation.itertracks(yield_label=True), disable=not verbose):
             is_segment = np.logical_and(
                 np.less(time, seg.end), np.greater(time, seg.start)
             )
@@ -36,9 +37,9 @@ class AudioIntegrator:
         return annotated_features
 
 
-    def apply(self, filepath, time):
-        annotation = self.identifier.apply(filepath)
+    def apply(self, filepath, time, verbose=False):
+        annotation = self.identifier.apply(filepath, verbose=verbose)
         voice_features = self.extractor.extract_features(filepath, time)
-        annotated_features = self.integrate(voice_features, annotation)
+        annotated_features = self.integrate(voice_features, annotation, verbose=verbose)
 
         return annotated_features

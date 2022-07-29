@@ -8,6 +8,7 @@ from facenet_pytorch import InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from spectralcluster import SpectralClusterer
+from tqdm import tqdm
 
 
 class FaceExtractor:
@@ -65,8 +66,20 @@ class FaceExtractor:
         return landmarks, aus
 
 
-    def apply(self, filepath): # pylint: disable=too-many-locals
-        with VideoFileClip(filepath, audio=False) as clip:
+    def apply(self, filepath, skip_frames=1, verbose=False): # pylint: disable=too-many-locals
+        """
+        Apply py-feat video pipeline
+
+        Parameters
+        ---------------------------------
+        filepath: str,
+            audio file path
+        skip_frames: float,
+            Tells detector to process every nth frame. Default to 1.
+        verbose: bool,
+            Enables the display of a progress bar. Default to False.
+        """
+        with VideoFileClip(filepath, audio=False, verbose=False) as clip:
             features = {
                 'frame': [],
                 'time': [],
@@ -79,25 +92,26 @@ class FaceExtractor:
             embeddings = [] # Embeddings are separate because they won't be returned
 
             frame_idx = 0
-            for t, frame in clip.iter_frames(with_times=True):
+            for i, (t, frame) in tqdm(enumerate(clip.iter_frames(with_times=True)), disable=not verbose):
+                if i % skip_frames == 0:
 
-                faces, boxes, probs = self.detect(frame)
+                    faces, boxes, probs = self.detect(frame)
 
-                if faces is not None:
-                    embs = self.encode(faces).numpy() # Embeddings per frame
-                    landmarks, aus = self.extract(frame, boxes)
-                    landmarks_np = np.array(landmarks).squeeze()
+                    if faces is not None:
+                        embs = self.encode(faces).numpy() # Embeddings per frame
+                        landmarks, aus = self.extract(frame, boxes)
+                        landmarks_np = np.array(landmarks).squeeze()
 
-                    for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
-                        features['frame'].append(frame_idx)
-                        features['time'].append(t)
-                        features['face_box'].append(box)
-                        features['face_prob'].append(prob)
-                        features['face_landmarks'].append(landmark)
-                        features['face_aus'].append(au)
+                        for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
+                            features['frame'].append(frame_idx)
+                            features['time'].append(t)
+                            features['face_box'].append(box)
+                            features['face_prob'].append(prob)
+                            features['face_landmarks'].append(landmark)
+                            features['face_aus'].append(au)
 
-                        embeddings.append(emb)
-
+                            embeddings.append(emb)
+                # processed frames are indexed with original video index
                 frame_idx += 1
 
             features['face_id'] = self.identify(np.array(embeddings)).tolist()
