@@ -11,6 +11,7 @@ from mexca.core.preprocessing import Video2AudioConverter
 from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
 from mexca.video.extraction import FaceExtractor
+from tqdm import tqdm
 
 
 class Pipeline:
@@ -44,17 +45,32 @@ class Pipeline:
         )
 
 
-    def apply(self, filepath, keep_audiofile=False) -> 'Multimodal':
+    def apply(self, filepath,
+              keep_audiofile=False,
+              skip_video_frames=1,
+              verbose=False) -> 'Multimodal':
+        """
+        Runs the video, audio and text pipelines
+
+        Parameters
+        ---------------------------------
+        keep_audiofile: bool
+            Keeps in memory the audio file after processing. Default to False.
+        skip_video_frames: float
+            Tells video detector to process only every nth frame. Default to 1.
+        verbose: bool,
+            Enables a progress bar. Default to False.
+        """
         pipeline_result = Multimodal()
 
         if self.video:
             print('Analyzing video ...')
-            video_result = self.video.apply(filepath)
+            video_result = self.video.apply(filepath, skip_frames=skip_video_frames, verbose=verbose)
             pipeline_result.add(video_result)
             print('Video done')
 
         if self.audio:
-            print('Analyzing audio and text')
+            print('Analyzing audio ...')
             with Video2AudioConverter(filepath) as clip:
                 audio_path = clip.create_audiofile_path()
                 clip.write_audiofile(audio_path)
@@ -64,17 +80,18 @@ class Pipeline:
             else:
                 time = None
 
-            audio_result = self.audio.apply(audio_path, time)
+            audio_result = self.audio.apply(audio_path, time, verbose=verbose)
             pipeline_result.add(audio_result)
-
+            print('Audio done')
 
             if self.text:
-                text_result = self.text.apply(audio_path, audio_result['time'])
+                print('Analyzing text ...')
+                text_result = self.text.apply(audio_path, audio_result['time'], verbose=verbose)
                 pipeline_result.add(text_result)
 
             if not keep_audiofile:
                 os.remove(audio_path)
-            print('Audio and text done')
+            print('Text done')
 
             # Match face ids with speaker ids -> id vector
             pipeline_result.match_faces_speakers()

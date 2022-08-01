@@ -9,7 +9,7 @@ class SpeakerIdentifier:
         self._pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization")
 
 
-    def apply(self, filepath, num_speakers=None):
+    def apply(self, filepath, num_speakers=None, verbose=False):
         annotation = self._pipeline(filepath, num_speakers=num_speakers)
 
         return annotation
