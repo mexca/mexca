@@ -18,7 +18,7 @@ class AudioTranscriber:
             raise ModelTranscriberInitError("Invalid language. Please specify either 'dutch' or 'english'")
 
 
-    def apply(self, filepath, verbose=False):
+    def apply(self, filepath):
         transcription = self._pipeline.transcribe([filepath]) # Requires list input!
 
         return transcription[0] # Output list contains only one element
@@ -30,7 +30,7 @@ class AudioTextIntegrator:
         self._audio_transcriber = audio_transcriber
 
 
-    def apply(self, filepath, time, verbose=False):
+    def apply(self, filepath, time):
         """
         Apply audio-to-text transcription pipeline and integrates into a unique output
 
@@ -42,7 +42,7 @@ class AudioTextIntegrator:
         verbose: bool,
             Enables the display of a progress bar. Defaul to False.
         """
-        transcription = self._audio_transcriber.apply(filepath, verbose=verbose)
+        transcription = self._audio_transcriber.apply(filepath)
         audio_text_features = self.add_transcription(transcription, time)
         return audio_text_features
 

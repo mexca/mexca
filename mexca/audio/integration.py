@@ -10,7 +10,7 @@ class AudioIntegrator:
         self.extractor = extractor
 
 
-    def integrate(self, audio_features, annotation, verbose=False):
+    def integrate(self, audio_features, annotation, show_progress=True):
         time = audio_features['time']
 
         annotated_features = audio_features
@@ -22,7 +22,7 @@ class AudioIntegrator:
 
         seg_idx = 1
 
-        for seg, track, spk in tqdm(annotation.itertracks(yield_label=True), disable=not verbose):
+        for seg, track, spk in tqdm(annotation.itertracks(yield_label=True), disable=not show_progress):
             is_segment = np.logical_and(
                 np.less(time, seg.end), np.greater(time, seg.start)
             )
@@ -37,9 +37,9 @@ class AudioIntegrator:
         return annotated_features
 
 
-    def apply(self, filepath, time, verbose=False):
-        annotation = self.identifier.apply(filepath, verbose=verbose)
+    def apply(self, filepath, time, show_progress=True):
+        annotation = self.identifier.apply(filepath, show_progress)
         voice_features = self.extractor.extract_features(filepath, time)
-        annotated_features = self.integrate(voice_features, annotation, verbose=verbose)
+        annotated_features = self.integrate(voice_features, annotation, show_progress)
 
         return annotated_features

@@ -48,7 +48,8 @@ class Pipeline:
     def apply(self, filepath,
               keep_audiofile=False,
               skip_video_frames=1,
-              verbose=False) -> 'Multimodal':
+              show_video_progress=True,
+              show_audio_progress=True) -> 'Multimodal':
         """
         Runs the video, audio and text pipelines
 
@@ -65,7 +66,11 @@ class Pipeline:
 
         if self.video:
             print('Analyzing video ...')
-            video_result = self.video.apply(filepath, skip_frames=skip_video_frames, verbose=verbose)
+            video_result = self.video.apply(
+                filepath,
+                skip_frames=skip_video_frames,
+                show_progress=show_video_progress
+            )
             pipeline_result.add(video_result)
             print('Video done')
 
@@ -80,13 +85,13 @@ class Pipeline:
             else:
                 time = None
 
-            audio_result = self.audio.apply(audio_path, time, verbose=verbose)
+            audio_result = self.audio.apply(audio_path, time, show_audio_progress)
             pipeline_result.add(audio_result)
             print('Audio done')
 
             if self.text:
                 print('Analyzing text ...')
-                text_result = self.text.apply(audio_path, audio_result['time'], verbose=verbose)
+                text_result = self.text.apply(audio_path, audio_result['time'])
                 pipeline_result.add(text_result)
 
             if not keep_audiofile:

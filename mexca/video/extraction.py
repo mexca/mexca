@@ -5,8 +5,7 @@ Extract facial features such as landmarks and action units.
 import cv2
 import feat
 import numpy as np
-from facenet_pytorch import MTCNN
-from facenet_pytorch import InceptionResnetV1
+from facenet_pytorch import MTCNN, InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from spectralcluster import SpectralClusterer
@@ -25,7 +24,7 @@ class FaceExtractor:
     """
     device = 'cpu'
 
-    def __init__(self, au_model='JAANET', landmark_model='PFLD', *clargs) -> 'FaceExtractor':
+    def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
         """Create a class for extracting facial features from a video.
 
         Parameters
@@ -34,7 +33,7 @@ class FaceExtractor:
             The name of the pretrained model for detecting action units. Default is ``JAANET``.
         landmark_model: {'PFLD', 'MobileFaceNet', 'MobileNet'}
             The name of the pretrained model for detecting facial landmarks. Default is ``PFLD``.
-        *clargs: dict, optional
+        **clargs: dict, optional
             Additional arguments that are passed to the `spectralcluster.SpectralClusterer` class instance.
 
         Returns
@@ -53,7 +52,7 @@ class FaceExtractor:
             pretrained='vggface2',
             device=self.device
         ).eval()
-        self._cluster = SpectralClusterer(*clargs)
+        self._cluster = SpectralClusterer(**clargs)
         self._pyfeat = feat.detector.Detector(
             au_model=au_model,
             landmark_model=landmark_model
@@ -121,7 +120,9 @@ class FaceExtractor:
             Cluster indices for the N face embeddings.
 
         """
-        labels = self._cluster.predict(embeddings.squeeze())
+        labels = np.full((embeddings.shape[0]), np.nan)
+        label_finite = np.all(np.isfinite(embeddings), 1)
+        labels[label_finite] = self._cluster.predict(embeddings[label_finite, :])
 
         return labels
 
@@ -208,7 +209,16 @@ class FaceExtractor:
 
                     faces, boxes, probs = self.detect(frame)
 
-                    if faces is not None:
+                    if faces is None:
+                        features['frame'].append(i)
+                        features['time'].append(t)
+                        features['face_box'].append(np.nan)
+                        features['face_prob'].append(np.nan)
+                        features['face_landmarks'].append(np.nan)
+                        features['face_aus'].append(np.nan)
+
+                        embeddings.append(np.full((self._resnet.last_bn.num_features), np.nan))
+                    else:
                         embs = self.encode(faces) # Embeddings per frame
                         landmarks, aus = self.extract(frame, boxes)
 
@@ -222,6 +232,6 @@ class FaceExtractor:
 
                             embeddings.append(emb)
 
-            features['face_id'] = self.identify(np.array(embeddings)).tolist()
+            features['face_id'] = self.identify(np.array(embeddings).squeeze()).tolist()
 
             return features
