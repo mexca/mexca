@@ -11,7 +11,6 @@ from mexca.core.preprocessing import Video2AudioConverter
 from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
 from mexca.video.extraction import FaceExtractor
-from tqdm import tqdm
 
 
 class Pipeline:
@@ -45,11 +44,14 @@ class Pipeline:
         )
 
 
-    def apply(self, filepath,
-              keep_audiofile=False,
-              skip_frames=1,
-              show_video_progress=True,
-              show_audio_progress=True) -> 'Multimodal':
+    def apply(
+            self,
+            filepath,
+            keep_audiofile=False,
+            skip_frames=1,
+            show_video_progress=True,
+            show_audio_progress=True
+        ) -> 'Multimodal': # pylint: disable=too-many-arguments
         """
         Runs the video, audio and text pipelines
 
