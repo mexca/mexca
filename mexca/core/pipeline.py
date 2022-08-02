@@ -47,7 +47,7 @@ class Pipeline:
 
     def apply(self, filepath,
               keep_audiofile=False,
-              skip_video_frames=1,
+              skip_frames=1,
               show_video_progress=True,
               show_audio_progress=True) -> 'Multimodal':
         """
@@ -68,7 +68,7 @@ class Pipeline:
             print('Analyzing video ...')
             video_result = self.video.apply(
                 filepath,
-                skip_frames=skip_video_frames,
+                skip_frames=skip_frames,
                 show_progress=show_video_progress
             )
             pipeline_result.add(video_result)
