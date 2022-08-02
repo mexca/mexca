@@ -9,9 +9,9 @@ from mexca.audio.extraction import VoiceExtractor
 
 class TestVoiceExtractor:
     extractor = VoiceExtractor(time_step=0.04)
-    filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
+    filepath = os.path.join('tests', 'test_files', 'test_eng_5_seconds.wav')
 
-    with open(os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
+    with open(os.path.join('tests', 'reference_files', 'features_eng_5_seconds.json'),
               'r', encoding="utf-8") as file:
         reference_features = json.loads(file.read())
 

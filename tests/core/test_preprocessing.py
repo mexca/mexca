@@ -11,10 +11,10 @@ class TestVideo2AudioConverter:
     converter = Video2AudioConverter(filepath)
     reference_audio_path = os.path.join('tests', 'test_files', 'test_video_multi_5_frames.wav')
 
-    @pytest.mark.xfail(raises=AudioClipError)
     def test_write_audiofile(self):
-        with self.converter as clip:
-            clip.write_audiofile(self.reference_audio_path)
+        with pytest.raises(expected_exception=AudioClipError):
+            with self.converter as clip:
+                clip.write_audiofile(self.reference_audio_path)
 
 
     def test_create_audio_file_path(self):
