@@ -1,7 +1,7 @@
 """ Utility functions """
 
-import numpy as np
 from decimal import Decimal
+import numpy as np
 from mexca.core.exceptions import TimeStepWarning
 
 

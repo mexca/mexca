@@ -3,8 +3,8 @@
 import os
 from mexca.audio.extraction import VoiceExtractor
 from mexca.audio.features import FeaturePitchF0
-from mexca.audio.integration import AudioIntegrator
 from mexca.audio.identification import SpeakerIdentifier
+from mexca.audio.integration import AudioIntegrator
 from mexca.core.output import Multimodal
 from mexca.core.preprocessing import Video2AudioConverter
 from mexca.text.transcription import AudioTextIntegrator

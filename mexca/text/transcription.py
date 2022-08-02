@@ -3,7 +3,8 @@
 import numpy as np
 from huggingsound import SpeechRecognitionModel
 from parselmouth import Sound
-from mexca.core.exceptions import ModelTranscriberInitError, TimeStepError
+from mexca.core.exceptions import ModelTranscriberInitError
+from mexca.core.exceptions import TimeStepError
 from mexca.core.utils import create_time_var_from_step
 
 
