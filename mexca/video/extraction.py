@@ -25,7 +25,7 @@ class FaceExtractor:
     device = 'cpu'
 
     def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
-        """Create a class for extracting facial features from a video.
+        """Create a class instance for extracting facial features from a video.
 
         Parameters
         ----------
