@@ -2,7 +2,9 @@
 
 import numpy as np
 from huggingsound import SpeechRecognitionModel
-from mexca.core.exceptions import ModelTranscriberInitError
+from parselmouth import Sound
+from mexca.core.exceptions import ModelTranscriberInitError, TimeStepError
+from mexca.core.utils import create_time_var_from_step
 
 
 class AudioTranscriber:
@@ -26,8 +28,9 @@ class AudioTranscriber:
 
 class AudioTextIntegrator:
 
-    def __init__(self, audio_transcriber) -> 'AudioTextIntegrator':
-        self._audio_transcriber = audio_transcriber
+    def __init__(self, audio_transcriber, time_step=None) -> 'AudioTextIntegrator':
+        self.audio_transcriber = audio_transcriber
+        self.time_step = time_step
 
 
     def apply(self, filepath, time):
@@ -42,7 +45,17 @@ class AudioTextIntegrator:
         verbose: bool,
             Enables the display of a progress bar. Defaul to False.
         """
-        transcription = self._audio_transcriber.apply(filepath)
+        transcription = self.audio_transcriber.apply(filepath)
+
+        snd = Sound(filepath)
+
+        if not time and not self.time_step:
+            raise TimeStepError()
+
+        if not time:
+            end_time = snd.get_end_time()
+            time = create_time_var_from_step(self.time_step, end_time)
+
         audio_text_features = self.add_transcription(transcription, time)
         return audio_text_features
 

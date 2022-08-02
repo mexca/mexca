@@ -14,12 +14,14 @@ from mexca.video.extraction import FaceExtractor
 
 
 class Pipeline:
-    def __init__(self, video=None, audio=None, text=None) -> 'Pipeline':
-        if text and not audio:
-            raise PipelineError('Cannot initialize a "text" component because no "audio" component was specified')
+    def __init__(self, video=None, audio=None, text=None, time_step=None) -> 'Pipeline':
         self.video = video
         self.audio = audio
         self.text = text
+
+        if not video:
+            self.audio.time_step = time_step
+            self.text.time_step = time_step
 
 
     @classmethod
@@ -44,14 +46,14 @@ class Pipeline:
         )
 
 
-    def apply(
+    def apply( # pylint: disable=too-many-arguments
             self,
             filepath,
             keep_audiofile=False,
             skip_frames=1,
             show_video_progress=True,
             show_audio_progress=True
-        ) -> 'Multimodal': # pylint: disable=too-many-arguments
+        ) -> 'Multimodal':
         """
         Runs the video, audio and text pipelines
 
@@ -75,30 +77,29 @@ class Pipeline:
             )
             pipeline_result.add(video_result)
             print('Video done')
+            time = video_result['time']
+        else:
+            time = None
 
-        if self.audio:
-            print('Analyzing audio ...')
+        if self.audio or self.text:
             with Video2AudioConverter(filepath) as clip:
                 audio_path = clip.create_audiofile_path()
                 clip.write_audiofile(audio_path)
 
-            if self.video:
-                time = video_result['time']
-            else:
-                time = None
-
-            audio_result = self.audio.apply(audio_path, time, show_audio_progress)
-            pipeline_result.add(audio_result)
-            print('Audio done')
+            if self.audio:
+                print('Analyzing audio ...')
+                audio_result = self.audio.apply(audio_path, time, show_audio_progress)
+                pipeline_result.add(audio_result)
+                print('Audio done')
 
             if self.text:
                 print('Analyzing text ...')
-                text_result = self.text.apply(audio_path, audio_result['time'])
+                text_result = self.text.apply(audio_path, time)
                 pipeline_result.add(text_result)
+                print('Text done')
 
             if not keep_audiofile:
                 os.remove(audio_path)
-            print('Text done')
 
             # Match face ids with speaker ids -> id vector
             pipeline_result.match_faces_speakers()
