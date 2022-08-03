@@ -19,9 +19,9 @@ Currently, mexca includes three independent modules (video, audio and text) whic
 
 The video submodule supports the extraction of facial features (e.g., facial landmarks, action units). It relies on [pyfeat](https://py-feat.org/pages/intro.html) and it includes the following components [1]:
 
-- Face detection with Multi-task Convolutional Neural Network (MTCNN). F1 score = 54
+- Face detection with Multi-task Convolutional Neural Network (MTCNN). F1 score = 0.54
 - Landmark detection with PFLD model. RMSE = 6.41
-- Action unit detection with Jaa-Net neural network model. F1 score = 78.4
+- Action unit detection with Jaa-Net neural network model. F1 score = .22
 
 The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth) for pitch analysis, and on [pyannote.audio](https://github.com/pyannote/pyannote-audio) for speaker diarization [2]. It includes the following components:
 
@@ -87,5 +87,7 @@ This package was created with [Cookiecutter](https://github.com/audreyr/cookiecu
 
 ## References
 [1] Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. arXiv preprint arXiv:2104.03509.
+
 [2] Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. arXiv preprint arXiv:2104.04045.
+
 [3] Schneider, S., Baevski, A., Collobert, R., & Auli, M. (2019). wav2vec: Unsupervised pre-training for speech recognition. arXiv preprint arXiv:1904.05862.
