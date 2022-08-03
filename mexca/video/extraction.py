@@ -183,7 +183,7 @@ class FaceExtractor:
         Returns
         -------
         dict
-            A dictionary with keys:
+            A dictionary with keys-value pairs:
             ``frame``: List of `int` frame indices.
             ``time``: List of `float` timestamps.
             ``face_box``: List of `numpy.ndarray` bounding boxes of detected faces.

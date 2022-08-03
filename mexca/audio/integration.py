@@ -40,7 +40,7 @@ class AudioIntegrator:
         Returns
         -------
         dict
-            A dictionary with annotated voice features per time points:
+            A dictionary with key-value pairs:
             - ``segment_id``: An int array indexing detected speech segments.
             - ``segment_start``: A float array with start times of detected speech segments.
             - ``segment_end``: A float array with end times of detected speech segments.

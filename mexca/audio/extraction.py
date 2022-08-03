@@ -60,7 +60,7 @@ class VoiceExtractor:
         ----------
         filepath: str or path
             Path to the audio file.
-        time: List or numpy.ndarray or None
+        time: list or numpy.ndarray or None
             A list of floats or array containing time points at which voice features are extracted.
 
         Returns
