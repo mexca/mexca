@@ -9,7 +9,7 @@ from mexca.core.utils import create_time_var_from_step
 
 
 class VoiceExtractor:
-    """Extracts voice features from an audio file.
+    """Extract voice features from an audio file.
     """
     def __init__(self, time_step=None, features=None) -> 'VoiceExtractor':
         """Create a class instance to extract voice features from an audio file.
@@ -23,7 +23,7 @@ class VoiceExtractor:
 
         Returns
         -------
-        A ``VoiceExtractor`` class instance that can be used to extract voice features from an audio file.
+        A ``VoiceExtractor`` class instance.
 
         See Also
         --------

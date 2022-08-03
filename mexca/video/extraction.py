@@ -15,7 +15,7 @@ from tqdm import tqdm
 
 class FaceExtractor:
     """
-    Combines steps to extract features from faces in a video file.
+    Combine steps to extract features from faces in a video file.
 
     Attributes
     ----------

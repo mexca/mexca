@@ -24,7 +24,7 @@ class FeaturePitchF0:
 
         Returns
         -------
-        A ``FeaturePitchF0`` class instance to calculate the voice pitch.
+        A ``FeaturePitchF0`` class instance.
 
         Notes
         -----
