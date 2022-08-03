@@ -16,7 +16,7 @@ class Video2AudioConverter(VideoFileClip):
             video_file = os.path.split(self.filepath)[-1]
             raise AudioClipError(f'Cannot process file "{video_file}" because it does not contain audio')
 
-        self.audio.write_audiofile(audio_path, fps=fps)
+        self.audio.write_audiofile(audio_path, fps=fps, logger=None)
 
 
     def create_audiofile_path(self):

@@ -19,8 +19,10 @@ class Pipeline:
         self.text = text
 
         if not video:
-            self.audio.time_step = time_step
-            self.text.time_step = time_step
+            if audio:
+                self.audio.time_step = time_step
+            if text:
+                self.text.time_step = time_step
 
 
     @classmethod
@@ -48,8 +50,9 @@ class Pipeline:
     def apply( # pylint: disable=too-many-arguments
             self,
             filepath,
-            keep_audiofile=False,
             skip_frames=1,
+            process_subclip=(0, None),
+            keep_audiofile=False,
             show_video_progress=True,
             show_audio_progress=True
         ) -> 'Multimodal':
@@ -72,6 +75,7 @@ class Pipeline:
             video_result = self.video.apply(
                 filepath,
                 skip_frames=skip_frames,
+                process_subclip=process_subclip,
                 show_progress=show_video_progress
             )
             pipeline_result.add(video_result)
@@ -83,7 +87,8 @@ class Pipeline:
         if self.audio or self.text:
             with Video2AudioConverter(filepath) as clip:
                 audio_path = clip.create_audiofile_path()
-                clip.write_audiofile(audio_path)
+                # Use subclip if `process_subclip` is provided (default uses entire clip)
+                clip.subclip(process_subclip[0], process_subclip[1]).write_audiofile(audio_path)
 
             if self.audio:
                 print('Analyzing audio ...')

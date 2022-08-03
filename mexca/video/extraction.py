@@ -165,7 +165,7 @@ class FaceExtractor:
         return landmarks_np, aus
 
 
-    def apply(self, filepath, skip_frames=1, show_progress=True): # pylint: disable=too-many-locals
+    def apply(self, filepath, skip_frames=1, process_subclip=(0, None), show_progress=True): # pylint: disable=too-many-locals
         """Apply multiple steps to extract features from faces in a video file.
 
         This method subsequently calls other methods for each frame of a video file to detect and cluster faces.
@@ -194,6 +194,7 @@ class FaceExtractor:
 
         """
         with VideoFileClip(filepath, audio=False, verbose=False) as clip:
+            subclip = clip.subclip(process_subclip[0], process_subclip[1])
             features = {
                 'frame': [],
                 'time': [],
@@ -205,7 +206,7 @@ class FaceExtractor:
 
             embeddings = [] # Embeddings are separate because they won't be returned
 
-            for i, (t, frame) in tqdm(enumerate(clip.iter_frames(with_times=True)), disable=not show_progress):
+            for i, (t, frame) in tqdm(enumerate(subclip.iter_frames(with_times=True)), disable=not show_progress):
                 if i % skip_frames == 0:
 
                     faces, boxes, probs = self.detect(frame)
