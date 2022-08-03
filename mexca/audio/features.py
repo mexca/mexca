@@ -28,7 +28,8 @@ class FeaturePitchF0:
 
         Notes
         -----
-        See the `praat` manual for further details on voice pitch analysis: https://www.fon.hum.uva.nl/praat/manual/Intro_4_2__Configuring_the_pitch_contour.html
+        See the `praat` manual for further details on voice pitch analysis:
+        https://www.fon.hum.uva.nl/praat/manual/Intro_4_2__Configuring_the_pitch_contour.html
 
         """
         self.time_step = time_step
