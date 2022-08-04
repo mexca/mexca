@@ -42,8 +42,7 @@ class FaceExtractor:
         """
         self._mtcnn = MTCNN(keep_all=True)
         self._resnet = InceptionResnetV1(
-            pretrained='vggface2',
-            device=self.device
+            pretrained='vggface2'
         ).eval()
         self._cluster = SpectralClusterer(**clargs)
         self._pyfeat = feat.detector.Detector(
