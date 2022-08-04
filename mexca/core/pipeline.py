@@ -13,17 +13,10 @@ from mexca.video.extraction import FaceExtractor
 
 
 class Pipeline:
-    def __init__(self, video=None, audio=None, text=None, time_step=None) -> 'Pipeline':
+    def __init__(self, video=None, audio=None, text=None) -> 'Pipeline':
         self.video = video
         self.audio = audio
         self.text = text
-
-        if not video:
-            if audio:
-                self.audio.time_step = time_step
-            if text:
-                self.text.time_step = time_step
-
 
     @classmethod
     def from_default(cls, voice='low', language='english'):
@@ -105,7 +98,8 @@ class Pipeline:
             if not keep_audiofile:
                 os.remove(audio_path)
 
-            # Match face ids with speaker ids -> id vector
+        # Match face ids with speaker ids -> id vector
+        if self.video and self.audio:
             pipeline_result.match_faces_speakers()
 
         return pipeline_result
