@@ -43,7 +43,7 @@ class TestPipeline:
 
 
     @pytest.mark.skipif(
-        platform.system == 'Windows',
+        platform.system() == 'Windows',
         reason='VMs run out of memory on windows'
     )
     def test_pipeline_video(self):
@@ -55,7 +55,7 @@ class TestPipeline:
 
 
     @pytest.mark.skipif(
-        platform.system == 'Windows',
+        platform.system() == 'Windows',
         reason='VMs run out of memory on windows'
     )
     def test_pipeline_audio(self):
@@ -70,7 +70,7 @@ class TestPipeline:
 
 
     @pytest.mark.skipif(
-        platform.system == 'Windows',
+        platform.system() == 'Windows',
         reason='VMs run out of memory on windows'
     )
     def test_pipeline_text(self):

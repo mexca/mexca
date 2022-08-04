@@ -70,7 +70,7 @@ class TestFaceExtractor:
 
 
     @pytest.mark.skipif(
-        platform.system == 'Windows',
+        platform.system() == 'Windows',
         reason='VMs run out of memory on windows'
     )
     def test_apply(self): # Tests JAANET AU model
