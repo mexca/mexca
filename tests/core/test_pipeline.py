@@ -35,8 +35,8 @@ class TestPipeline:
         # Only test if pipeline completes because the features are covered elsewhere
         assert isinstance(pipeline_result, Multimodal)
 
-    @pytest.mark.skipif(platform.system() == 'Windows',
-                        reason='Windows VMs run out of memory when loading entire pipeline')
+    @pytest.mark.skipif(reason="""VMs run out of memory when running pipeline on example.
+    We cannot choose a smaller example because pipeline requires sufficient frames.""")
     def test_from_default(self):
         pipeline = self.pipeline.from_default()
         assert isinstance(pipeline, Pipeline)
