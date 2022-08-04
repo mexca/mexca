@@ -33,17 +33,16 @@ class TestAudioTranscriptionDutch:
 
 class TestAudioTranscriptionEnglish:
     audio_transcriber = AudioTranscriber(language='english')
-    filepath = os.path.join('tests', 'test_files', 'test_eng_5_seconds.wav')
+    filepath = os.path.join('tests', 'test_files', 'test_eng_1_second.wav')
 
     with open(
-        os.path.join('tests', 'reference_files', 'transcription_eng_5_seconds.json'),
+        os.path.join('tests', 'reference_files', 'transcription_eng_1_second.json'),
         'r', encoding="utf-8") as file:
         ref_transcription = json.loads(file.read())
 
     def test_apply(self):
         transcription = self.audio_transcriber.apply(self.filepath)
-        assert all(token in ['senator', 'tom', 'carpor', 'down', 'there', 'and', 'i',
-                                'tik', 'think', 'senator', 'coons', 'is']
+        assert all(token in ['senator', 'top', 'corp']
                    for token in transcription['transcription'].split(' '))
         assert transcription['start_timestamps'] == self.ref_transcription['start_timestamps']
         assert transcription['end_timestamps'] == self.ref_transcription['end_timestamps']

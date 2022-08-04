@@ -14,16 +14,8 @@ from tqdm import tqdm
 
 
 class FaceExtractor:
+    """Combine steps to extract features from faces in a video file.
     """
-    Combine steps to extract features from faces in a video file.
-
-    Attributes
-    ----------
-    device: str, default='cpu'
-        Sets the device for processing the video file.
-
-    """
-    device = 'cpu'
 
     def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
         """Create a class instance for extracting facial features from a video.
@@ -48,7 +40,7 @@ class FaceExtractor:
         whereas ``svm`` and ``logistic`` return presence/absence (1/0) values for 20 action units.
 
         """
-        self._mtcnn = MTCNN(device=self.device, keep_all=True)
+        self._mtcnn = MTCNN(keep_all=True)
         self._resnet = InceptionResnetV1(
             pretrained='vggface2',
             device=self.device
@@ -184,13 +176,13 @@ class FaceExtractor:
         -------
         dict
             A dictionary with keys-value pairs:
-            ``frame``: List of `int` frame indices.
-            ``time``: List of `float` timestamps.
-            ``face_box``: List of `numpy.ndarray` bounding boxes of detected faces.
-            ``face_prob``: List of probabilities of detected faces.
-            ``face_landmarks``: List of `numpy.ndarray` facial landmarks.
-            ``face_aus``: List of `numpy.ndarray` facial actions units.
-            ``face_id``: List of `int` cluster labels of detected faces.
+            - `frame`: List of `int` frame indices.
+            - `time`: List of `float` timestamps.
+            - `face_box`: List of `numpy.ndarray` bounding boxes of detected faces.
+            - `face_prob`: List of probabilities of detected faces.
+            - `face_landmarks`: List of `numpy.ndarray` facial landmarks.
+            - `face_aus`: List of `numpy.ndarray` facial actions units.
+            - `face_id`: List of `int` cluster labels of detected faces.
 
         """
         with VideoFileClip(filepath, audio=False, verbose=False) as clip:
