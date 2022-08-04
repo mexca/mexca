@@ -1,8 +1,8 @@
 """ Test pipeline class and methods """
 
 import os
-# import platform
-# import pytest
+import platform
+import pytest
 from mexca.audio.extraction import VoiceExtractor
 from mexca.audio.identification import SpeakerIdentifier
 from mexca.audio.integration import AudioIntegrator
@@ -28,13 +28,15 @@ class TestPipeline:
         'tests', 'test_files', 'test_video_audio_5_seconds.mp4'
     )
 
+    @pytest.mark.skip(reason="""VMs run out of memory when running pipeline on example.
+    We cannot choose a smaller example because pipeline requires sufficient frames.""")
     def test_apply(self):
         pipeline_result = self.pipeline.apply(self.filepath)
         # Only test if pipeline completes because the features are covered elsewhere
         assert isinstance(pipeline_result, Multimodal)
 
-    # @pytest.mark.skipif(platform.system() == 'Windows',
-    #                    reason='Windows VMs run out of memory when loading entire pipeline')
+    @pytest.mark.skipif(platform.system() == 'Windows',
+                        reason='Windows VMs run out of memory when loading entire pipeline')
     def test_from_default(self):
         pipeline = self.pipeline.from_default()
         assert isinstance(pipeline, Pipeline)
