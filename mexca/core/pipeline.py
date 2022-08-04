@@ -35,16 +35,23 @@ class Pipeline:
 
         Examples
         --------
+        >>> from mexca.audio.extraction import VoiceExtractor
+        >>> from mexca.audio.identification import SpeakerIdentifier
+        >>> from mexca.audio.integration import AudioIntegrator
+        >>> from mexca.core.pipeline import Pipeline
+        >>> from mexca.text.transcription import AudioTextIntegrator
+        >>> from mexca.text.transcription import AudioTranscriber
+        >>> from mexca.video.extraction import FaceExtractor
         >>> pipeline = Pipeline(
-        >>>     video=FaceExtractor(),
-        >>>     audio=AudioIntegrator(
-        >>>         SpeakerIdentifier(),
-        >>>         VoiceExtractor()
-        >>>     ),
-        >>>     text=AudioTextIntegrator(
-        >>>         audio_transcriber=AudioTranscriber('english')
-        >>>     )
-        >>> )
+        ...     video=FaceExtractor(),
+        ...     audio=AudioIntegrator(
+        ...         SpeakerIdentifier(),
+        ...         VoiceExtractor()
+        ...     ),
+        ...     text=AudioTextIntegrator(
+        ...         audio_transcriber=AudioTranscriber('english')
+        ...     )
+        ... )
 
         """
         self.video = video
@@ -135,9 +142,10 @@ class Pipeline:
 
         Examples
         --------
-        >>> filepath = 'path/to/video'
-        >>> output = pipeline.apply(filepath)
-        >>> output.features
+        >>> ### Not run
+        >>> # filepath = 'path/to/video'
+        >>> # output = pipeline.apply(filepath)
+        >>> # output.features
         {'frame': [0, 1, 2, ...], 'time': [0.04, 0.08, 0.12, ...], ...} # Dictionary with extracted features
 
         """
