@@ -6,9 +6,9 @@ from mexca.core.exceptions import AudioClipError
 
 
 class Video2AudioConverter(VideoFileClip):
-    def __init__(self, filepath) -> 'Video2AudioConverter':
+    def __init__(self, filepath, **kwargs) -> 'Video2AudioConverter':
         self.filepath = filepath
-        super().__init__(filepath)
+        super().__init__(filepath, **kwargs)
 
 
     def write_audiofile(self, audio_path, fps=16000):
