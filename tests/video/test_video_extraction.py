@@ -3,6 +3,8 @@
 import json
 import os
 import numpy as np
+import platform
+import pytest
 from moviepy.editor import VideoFileClip
 from mexca.video.extraction import FaceExtractor
 
@@ -67,6 +69,10 @@ class TestFaceExtractor:
             assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
+    @pytest.mark.skipif(
+        platform.system == 'Windows',
+        reason='VMs run out of memory on windows'
+    )
     def test_apply(self): # Tests JAANET AU model
         features = self.extractor.apply(self.filepath)
         assert features['frame'] == self.features['frame']
