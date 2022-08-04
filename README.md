@@ -13,7 +13,8 @@
 
 ## How to use mexca
 
-This package provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts.
+If you’d like to learn how to use Mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. 
+Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts. 
 
 Currently, mexca includes three independent modules (video, audio and text) which are integrated into a *core* module. The core module is responsible for running a single pipeline which calls in turn all the other sub-modules.
 
@@ -48,6 +49,26 @@ pipeline = Pipeline().from_default(language='english')
 # Apply pipeline to video file (may take a long time depending on video length)
 output = pipeline.apply(filename)
 ```
+
+Mexca's pipeline returns a `Multimodal` object that contains the extracted emotion expression features in the `feature` attribute. We can convert the features into a `pandas.DataFrame` for further inspection and processing.
+
+```python
+df = pd.DataFrame(output.features)
+df
+```
+
+This is what the output looks like:
+
+|      |   frame |   time | face_box                                          |   face_prob | face_landmarks                | face_aus                                                               |   face_id |   pitchF0 |   segment_id |   segment_start |   segment_end | track   | speaker_id   |   text_token_id | text_token               |   text_token_start |   text_token_end |   match_id |
+|-----:|--------:|-------:|:--------------------------------------------------|------------:|:------------------------------|:-----------------------------------------------------------------------|----------:|----------:|-------------:|----------------:|--------------:|:--------|:-------------|----------------:|:-------------------------|-------------------:|-----------------:|-----------:|
+|   0 |      0 |   0.52 | [254.80342   52.627777 339.73337  162.48317 ]     |    0.999263 | [253.81114993 106.13823438]   | [1.7722143e-01 9.6993530e-01 3.4657875e-03 5.7775569e-01 7.8125650e-01 |         7 |  nan      |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |                          |               0    |             0    |          0 |
+|      |         |        |                                                   |             |                               |  6.8736470e-01 9.7945237e-01 6.4704597e-01 2.7061898e-01 1.1658277e-03 |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
+|      |         |        |                                                   |             |                               |  1.8453683e-03 1.5043484e-05]                                          |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
+|   1 |      1 |   0.56 | [255.26508  52.85576 339.82748 162.45255]         |    0.999143 | [254.09605609 106.21201348]   | [1.7896292e-01 9.6784592e-01 3.4994783e-03 5.6765985e-01 7.8207129e-01 |         7 |  nan      |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |                          |               0    |             0    |          0 |
+|      |         |        |                                                   |             |                               |  6.6663665e-01 9.7949558e-01 6.4933497e-01 2.6935115e-01 1.1610943e-03 |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
+|      |         |        |                                                   |             |                               |  1.6607261e-03 1.5213599e-05]                                          |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
+
+
 
 ## Installation
 
