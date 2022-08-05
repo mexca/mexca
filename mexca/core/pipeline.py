@@ -143,9 +143,9 @@ class Pipeline:
 
         Examples
         --------
-        >> filepath = 'path/to/video'
-        >> output = pipeline.apply(filepath)
-        >> output.features
+        >>> filepath = 'path/to/video'
+        >>> output = pipeline.apply(filepath)
+        >>> output.features
         {'frame': [0, 1, 2, ...], 'time': [0.04, 0.08, 0.12, ...], ...} # Dictionary with extracted features
 
         """
