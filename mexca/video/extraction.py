@@ -168,6 +168,10 @@ class FaceExtractor:
             Path to the video file.
         skip_frames: int, default=1
             Forces extractor to only process every nth frame.
+        process_subclip: tuple, default=(0, None)
+            Process only a part of the video clip.
+            See `moviepy.editor.VideoFileClip
+            <https://moviepy.readthedocs.io/en/latest/ref/VideoClip/VideoClip.html#videofileclip>`_ for details.
         show_progress: bool, default=True
             Enables the display of a progress bar.
 
