@@ -164,7 +164,7 @@ class FaceExtractor:
 
         Parameters
         ----------
-        filepath: str
+        filepath: str or path
             Path to the video file.
         skip_frames: int, default=1
             Forces extractor to only process every nth frame.
