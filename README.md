@@ -1,9 +1,7 @@
 
 # Multimodal Emotion Expression Capture Amsterdam
 
-<div align="center">
-<img src="mexca_logo.png">
-</div>
+
 
 [![github license badge](https://img.shields.io/github/license/mexca/mexca)](https://github.com/mexca/mexca)
 [![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://www.research-software.nl/software/mexca)
@@ -15,6 +13,10 @@
 [![cffconvert](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml)
 [![markdown-link-check](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6962473.svg)](https://doi.org/10.5281/zenodo.6962473)
+
+<div align="center">
+<img src="mexca_logo.png">
+</div>
 
 ## How to use mexca
 
