@@ -1,4 +1,6 @@
-""" Facial feature extraction class and methods """
+"""Detect and identify faces in a video file.
+Extract facial features such as landmarks and action units.
+"""
 
 import cv2
 import feat
@@ -8,16 +10,39 @@ from facenet_pytorch import InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from spectralcluster import SpectralClusterer
+from tqdm import tqdm
 
 
 class FaceExtractor:
-    device = 'cpu'
+    """Combine steps to extract features from faces in a video file.
+    """
 
     def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
-        self._mtcnn = MTCNN(device=self.device, keep_all=True)
+        """Create a class instance for extracting facial features from a video.
+
+        Parameters
+        ----------
+        au_model: {'JAANET', 'svm', 'logistic'}
+            The name of the pretrained model for detecting action units. Default is ``JAANET``.
+        landmark_model: {'PFLD', 'MobileFaceNet', 'MobileNet'}
+            The name of the pretrained model for detecting facial landmarks. Default is ``PFLD``.
+        **clargs: dict, optional
+            Additional arguments that are passed to the `spectralcluster.SpectralClusterer` class instance.
+
+        Returns
+        -------
+        A ``FaceExtractor`` class instance that can be used to extract facial features from a video file.
+
+        Notes
+        -----
+        For details on the available ``au_model`` and ``landmark_model`` arguments, see the documentation of [`pyfeat`](https://py-feat.org/pages/models.html).
+        The pretrained action unit models return different outputs: ``JAANET`` returns intensities (0-1) for 12 action units,
+        whereas ``svm`` and ``logistic`` return presence/absence (1/0) values for 20 action units.
+
+        """
+        self._mtcnn = MTCNN(keep_all=True)
         self._resnet = InceptionResnetV1(
-            pretrained='vggface2',
-            device=self.device
+            pretrained='vggface2'
         ).eval()
         self._cluster = SpectralClusterer(**clargs)
         self._pyfeat = feat.detector.Detector(
@@ -27,6 +52,24 @@ class FaceExtractor:
 
 
     def detect(self, frame):
+        """Detect faces in an image array.
+
+        Parameters
+        ----------
+        frame: numpy.ndarray
+            Array containing the RGB values of a video frame with dimensions (H, W, 3).
+
+        Returns
+        -------
+        faces: torch.tensor
+            Tensor containing the N cropped face images from the frame with dimensions (N, 3, 160, 160).
+        boxes: numpy.ndarray
+            Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with dimensions (N, 4).
+        probs: numpy.ndarray
+            Probabilities of the detected faces.
+
+        """
+
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
         boxes, probs = self._mtcnn.detect(img, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
@@ -37,18 +80,64 @@ class FaceExtractor:
 
 
     def encode(self, faces):
-        embeddings = self._resnet(faces)
+        """Compute embeddings for face images.
+
+        Parameters
+        ----------
+        faces: torch.tensor
+            Tensor containing N face images with dimensions (N, 3, H, W). H and W must at least be 80 for the encoding to work.
+
+        Returns
+        -------
+        numpy.ndarray
+            Array containing embeddings of the N face images with dimensions (N, 512).
+
+        """
+        embeddings = self._resnet(faces).numpy()
 
         return embeddings
 
 
     def identify(self, embeddings):
-        labels = self._cluster.predict(embeddings.squeeze())
+        """Cluster faces based on their embeddings.
+
+        Parameters
+        ----------
+        embeddings: numpy.ndarray
+            Array containing embeddings of the N face images with dimensions (N, E) where E is the length of the embedding vector.
+
+        Returns
+        -------
+        numpy.ndarray
+            Cluster indices for the N face embeddings.
+
+        """
+        labels = np.full((embeddings.shape[0]), np.nan)
+        label_finite = np.all(np.isfinite(embeddings), 1)
+        labels[label_finite] = self._cluster.predict(embeddings[label_finite, :])
 
         return labels
 
 
     def extract(self, frame, boxes):
+        """Detect facial action units and landmarks.
+
+        Parameters
+        ----------
+        frame: numpy.ndarray
+            Array containing the RGB values of a video frame with dimensions (H, W, 3).
+        boxes: numpy.ndarray
+            Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with dimensions (N, 4).
+
+        Returns
+        -------
+        landmarks: numpy.ndarray
+            Array containg facial landmarks for N detected faces as (x, y) coordinates with dimensions (N, 68, 2).
+        aus: numpy.ndarray
+            Array containing action units for N detected faces with dimensions (N, U).
+            The number of detected actions units U varies across ``au_model`` specifications.
+
+        """
         if frame.ndim == 3:
             frame = np.expand_dims(frame, 0) # convert to 4d
 
@@ -62,11 +151,41 @@ class FaceExtractor:
         else:
             aus = self._pyfeat.detect_aus(frame, landmarks)
 
-        return landmarks, aus
+        landmarks_np = np.array(landmarks).squeeze()
+
+        return landmarks_np, aus
 
 
-    def apply(self, filepath): # pylint: disable=too-many-locals
-        with VideoFileClip(filepath, audio=False) as clip:
+    def apply(self, filepath, skip_frames=1, process_subclip=(0, None), show_progress=True): # pylint: disable=too-many-locals
+        """Apply multiple steps to extract features from faces in a video file.
+
+        This method subsequently calls other methods for each frame of a video file to detect and cluster faces.
+        It also extracts the facial landmarks and action units.
+
+        Parameters
+        ----------
+        filepath: str
+            Path to the video file.
+        skip_frames: int, default=1
+            Forces extractor to only process every nth frame.
+        show_progress: bool, default=True
+            Enables the display of a progress bar.
+
+        Returns
+        -------
+        dict
+            A dictionary with keys-value pairs:
+            - `frame`: List of `int` frame indices.
+            - `time`: List of `float` timestamps.
+            - `face_box`: List of `numpy.ndarray` bounding boxes of detected faces.
+            - `face_prob`: List of probabilities of detected faces.
+            - `face_landmarks`: List of `numpy.ndarray` facial landmarks.
+            - `face_aus`: List of `numpy.ndarray` facial actions units.
+            - `face_id`: List of `int` cluster labels of detected faces.
+
+        """
+        with VideoFileClip(filepath, audio=False, verbose=False) as clip:
+            subclip = clip.subclip(process_subclip[0], process_subclip[1])
             features = {
                 'frame': [],
                 'time': [],
@@ -78,28 +197,34 @@ class FaceExtractor:
 
             embeddings = [] # Embeddings are separate because they won't be returned
 
-            frame_idx = 0
-            for t, frame in clip.iter_frames(with_times=True):
+            for i, (t, frame) in tqdm(enumerate(subclip.iter_frames(with_times=True)), disable=not show_progress):
+                if i % skip_frames == 0:
 
-                faces, boxes, probs = self.detect(frame)
+                    faces, boxes, probs = self.detect(frame)
 
-                if faces is not None:
-                    embs = self.encode(faces).numpy() # Embeddings per frame
-                    landmarks, aus = self.extract(frame, boxes)
-                    landmarks_np = np.array(landmarks).squeeze()
-
-                    for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks_np, aus):
-                        features['frame'].append(frame_idx)
+                    if faces is None:
+                        features['frame'].append(i)
                         features['time'].append(t)
-                        features['face_box'].append(box)
-                        features['face_prob'].append(prob)
-                        features['face_landmarks'].append(landmark)
-                        features['face_aus'].append(au)
+                        features['face_box'].append(np.nan)
+                        features['face_prob'].append(np.nan)
+                        features['face_landmarks'].append(np.nan)
+                        features['face_aus'].append(np.nan)
 
-                        embeddings.append(emb)
+                        embeddings.append(np.full((self._resnet.last_bn.num_features), np.nan))
+                    else:
+                        embs = self.encode(faces) # Embeddings per frame
+                        landmarks, aus = self.extract(frame, boxes)
 
-                frame_idx += 1
+                        for box, prob, emb, landmark, au in zip(boxes, probs, embs, landmarks, aus):
+                            features['frame'].append(i)
+                            features['time'].append(t)
+                            features['face_box'].append(box)
+                            features['face_prob'].append(prob)
+                            features['face_landmarks'].append(landmark)
+                            features['face_aus'].append(au)
 
-            features['face_id'] = self.identify(np.array(embeddings)).tolist()
+                            embeddings.append(emb)
+
+            features['face_id'] = self.identify(np.array(embeddings).squeeze()).tolist()
 
             return features

@@ -2,8 +2,9 @@
 
 import json
 import os
-from mexca.text.transcription import AudioTextIntegrator
-from mexca.text.transcription import AudioTranscriber
+import pytest
+from mexca.core.exceptions import TimeStepError
+from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber
 
 
 class TestAudioTextIntegration:
@@ -24,3 +25,8 @@ class TestAudioTextIntegration:
         assert [token in ['', 'maak', 'en', 'er', 'groen', 'als'] for token in out['text_token']]
         assert all(out['text_token_start'] == self.text_audio_transcription['text_token_start'])
         assert all(out['text_token_end'] == self.text_audio_transcription['text_token_end'])
+
+
+    def test_apply_error(self):
+        with pytest.raises(TimeStepError):
+            self.audio_text_integrator.apply(self.filepath, time=None)

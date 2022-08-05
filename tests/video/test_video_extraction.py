@@ -3,6 +3,8 @@
 import json
 import os
 import numpy as np
+import platform
+import pytest
 from moviepy.editor import VideoFileClip
 from mexca.video.extraction import FaceExtractor
 
@@ -39,7 +41,7 @@ class TestFaceExtractor:
             embeddings = []
             for frame in clip.iter_frames():
                 faces, _, _ = self.extractor.detect(frame)
-                embs = self.extractor.encode(faces).numpy()
+                embs = self.extractor.encode(faces)
 
                 for emb in embs:
                     embeddings.append(emb)
@@ -67,6 +69,10 @@ class TestFaceExtractor:
             assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
+    @pytest.mark.skipif(
+        platform.system() == 'Windows',
+        reason='VMs run out of memory on windows'
+    )
     def test_apply(self): # Tests JAANET AU model
         features = self.extractor.apply(self.filepath)
         assert features['frame'] == self.features['frame']
@@ -78,15 +84,23 @@ class TestFaceExtractor:
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
+    @pytest.mark.skipif(
+        platform.system() == 'Windows',
+        reason='VMs run out of memory on windows'
+    )
     def test_pyfeat_svm(self): # Tests SVM AU model
         svm_extractor = FaceExtractor(au_model='svm')
         features = svm_extractor.apply(self.filepath)
 
-        assert np.array(features['face_aus']).shape == np.array(self.features['aus_svm']).shape
+        assert np.array(features['face_aus']).shape == np.array(self.features['face_aus_svm']).shape
 
 
+    @pytest.mark.skipif(
+        platform.system() == 'Windows',
+        reason='VMs run out of memory on windows'
+    )
     def test_pyfeat_logistic(self): # Tests logistic AU model
         svm_extractor = FaceExtractor(au_model='logistic')
         features = svm_extractor.apply(self.filepath)
 
-        assert np.array(features['face_aus']).shape == np.array(self.features['aus_logistic']).shape
+        assert np.array(features['face_aus']).shape == np.array(self.features['face_aus_logistic']).shape

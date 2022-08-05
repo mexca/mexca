@@ -11,10 +11,10 @@ from mexca.audio.identification import SpeakerIdentifier
 class TestSpeakerIdentifier:
     speaker_identifier = SpeakerIdentifier()
     filepath = os.path.join(
-        'tests', 'test_files', 'test_audio_5_seconds.wav'
+        'tests', 'test_files', 'test_eng_5_seconds.wav'
     )
     with open(os.path.join(
-            'tests', 'reference_files', 'reference_audio_5_seconds.json'
+            'tests', 'reference_files', 'annotation_eng_5_seconds.json'
         ), 'r', encoding="utf-8") as file:
         ref_speakers = Annotation.from_json(json.loads(file.read()))
 
