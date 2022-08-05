@@ -68,12 +68,12 @@ The video submodule supports the extraction of facial features (e.g., facial lan
 - Landmark detection (6.41$for Feat-PFLD; 6.00 for Feat-MobileFaceNet; 5.23 for Feat-MobileNet; all RMSE on 300W dataset).
 - Action unit detection (0.22 for Feat-JaaNET; 0.52 for Feat-Logistic; 0.57 for Feat-SVM; all average F1 on DisfaPlus dataset; Feat-RF is currently not available).
 
-The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth)[^3] for voice pitch analysis, and on [pyannote.audio](https://github.com/pyannote/pyannote-audio) for speaker diarization[^3]. It includes the following components:
+The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth)[^3] for voice pitch analysis, and on [pyannote.audio](https://github.com/pyannote/pyannote-audio) for speaker diarization[^4]. It includes the following components:
 
 - Voice pitch as fundamental frequency (F0).
 - Speaker diarization with ECAPA-TDNN model (supervised: 2.65 with known # of speakers; 3.01 with estimated # of speakers; unsupervised: 18.2 with estimated # of speakers; all DER on AMI Mix-Headset only words test dataset).
 
-The text module supports text transcriptions for Dutch and English audio files. It relies on a pre-trained model made available by [HuggingSound](https://github.com/jonatasgrosman/huggingsound) that is the wav2vec-large model[^4] fine-tuned on Dutch (WER = 15.7; CER = 5.4 on Common Voice nl test set) and English (WER = 19.1; CER = 7.7 on Common Voice en test set).
+The text module supports text transcriptions for Dutch and English audio files. It relies on a pre-trained model made available by [HuggingSound](https://github.com/jonatasgrosman/huggingsound) that is the wav2vec-large model[^5] fine-tuned on Dutch (WER = 15.7; CER = 5.4 on Common Voice nl test set) and English (WER = 19.1; CER = 7.7 on Common Voice en test set).
 
 ## Installation
 
@@ -118,6 +118,6 @@ This package was created with [Cookiecutter](https://github.com/audreyr/cookiecu
 
 [^3]: Jadoul, Y., Thompson, B., & de Boer, B. (2018). Introducing Parselmouth: A Python interface to Praat. Journal of Phonetics, 71, 1-15. https://doi.org/10.1016/j.wocn.2018.07.001
 
-[^3]: Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. *arXiv*. https://doi.org/10.48550/arXiv.2104.04045
+[^4]: Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. *arXiv*. https://doi.org/10.48550/arXiv.2104.04045
 
-[^4]: Schneider, S., Baevski, A., Collobert, R., & Auli, M. (2019). wav2vec: Unsupervised pre-training for speech recognition. *arXiv*. https://doi.org/10.48550/arXiv.1904.05862
+[^5]: Schneider, S., Baevski, A., Collobert, R., & Auli, M. (2019). wav2vec: Unsupervised pre-training for speech recognition. *arXiv*. https://doi.org/10.48550/arXiv.1904.05862
