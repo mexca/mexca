@@ -18,29 +18,15 @@
 <img src="mexca_logo.png">
 </div>
 
-## How to use mexca
+## How To Use Mexca
 
-If you’d like to learn how to use Mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. 
-Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts. 
-
-Currently, mexca includes three independent modules (video, audio and text) which are integrated into a *core* module. The core module is responsible for running a single pipeline which calls in turn all the other sub-modules.
-
-The video submodule supports the extraction of facial features (e.g., facial landmarks, action units). It relies on [pyfeat](https://py-feat.org/pages/intro.html) and it includes the following components [1]:
-
-- Face detection with Multi-task Convolutional Neural Network (MTCNN). F1 score = 0.54
-- Landmark detection with PFLD model. RMSE = 6.41
-- Action unit detection with Jaa-Net neural network model. F1 score = .22
-
-The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth) for pitch analysis, and on [pyannote.audio](https://github.com/pyannote/pyannote-audio) for speaker diarization [2]. It includes the following components:
-
-- Pitch's fundamental frequency (F0)
-- Speaker diarization with ECAPA-TDNN model. DER = 3.01
-
-The text module supports text transcriptions for Dutch and English audio files. It relies on a pre-trained model made available by [hugging sound](https://github.com/jonatasgrosman/huggingsound) that is the wav2vec-large model [3] fine-tuned on Dutch and English. WER = 5.10. 
+Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts.  
 
 Please cite mexca if you use it for scientific or commercial purposes.
 
 ## Getting Started
+
+If you would like to learn how to use mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. 
 
 Emotion expression features can be extracted with mexca using the following lines of code:
 
@@ -68,14 +54,26 @@ This is what the output looks like:
 
 |      |   frame |   time | face_box                                          |   face_prob | face_landmarks                | face_aus                                                               |   face_id |   pitchF0 |   segment_id |   segment_start |   segment_end | track   | speaker_id   |   text_token_id | text_token               |   text_token_start |   text_token_end |   match_id |
 |-----:|--------:|-------:|:--------------------------------------------------|------------:|:------------------------------|:-----------------------------------------------------------------------|----------:|----------:|-------------:|----------------:|--------------:|:--------|:-------------|----------------:|:-------------------------|-------------------:|-----------------:|-----------:|
-|   0 |      0 |   0.52 | [254.80342   52.627777 339.73337  162.48317 ]     |    0.999263 | [253.81114993 106.13823438]   | [1.7722143e-01 9.6993530e-01 3.4657875e-03 5.7775569e-01 7.8125650e-01 |         7 |  nan      |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |                          |               0    |             0    |          0 |
-|      |         |        |                                                   |             |                               |  6.8736470e-01 9.7945237e-01 6.4704597e-01 2.7061898e-01 1.1658277e-03 |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
-|      |         |        |                                                   |             |                               |  1.8453683e-03 1.5043484e-05]                                          |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
-|   1 |      1 |   0.56 | [255.26508  52.85576 339.82748 162.45255]         |    0.999143 | [254.09605609 106.21201348]   | [1.7896292e-01 9.6784592e-01 3.4994783e-03 5.6765985e-01 7.8207129e-01 |         7 |  nan      |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |                          |               0    |             0    |          0 |
-|      |         |        |                                                   |             |                               |  6.6663665e-01 9.7949558e-01 6.4933497e-01 2.6935115e-01 1.1610943e-03 |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
-|      |         |        |                                                   |             |                               |  1.6607261e-03 1.5213599e-05]                                          |           |           |              |                 |               |         |              |                 |                          |                    |                  |            |
+|   0 |      0 |   0.52 | [254.80342   52.627777 339.73337  162.48317]     |    0.999263 | [253.81114993 106.13823438]   | [1.7722143e-01 9.6993530e-01 3.4657875e-03 5.7775569e-01 7.8125650e-01 6.8736470e-01 9.7945237e-01 6.4704597e-01 2.7061898e-01 1.1658277e-03 1.8453683e-03 1.5043484e-05] |         7 |  114.05050 |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |       is                  |               0.52    |             0.60    |          1 |
+|   1 |      1 |   0.56 | [255.26508  52.85576 339.82748 162.45255]         |    0.999143 | [254.09605609 106.21201348]   | [1.7896292e-01 9.6784592e-01 3.4994783e-03 5.6765985e-01 7.8207129e-01 6.6663665e-01 9.7949558e-01 6.4933497e-01 2.6935115e-01 1.1610943e-03 1.6607261e-03 1.5213599e-05] |         7 |  117.58867 |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |       is                  |               0.52    |             0.60    |          1 |
 
+## Structure and Performance
 
+Currently, mexca includes three independent submodules (video, audio and text). The `core` module is responsible for running a single pipeline which calls in turn all the other submodules.
+
+The video submodule supports the extraction of facial features (e.g., facial landmarks, action units). It relies on [pyfeat](https://py-feat.org/pages/intro.html)[^1] and [facenet-pytorch](https://github.com/timesler/facenet-pytorch)[^2]. It includes the following components:
+
+- Face detection with Multi-task Convolutional Neural Network (MTCNN; 0.95 on FDDB; 0.85 on WIDER FACE easy, 0.82 on medium, 0.61 on hard data subset; all AUC).
+- Face identification with Inception ResNet v1 (supervised: Acc = 0.9965 on LFW dataset when trained on VGGFace2).
+- Landmark detection (6.41$for Feat-PFLD; 6.00 for Feat-MobileFaceNet; 5.23 for Feat-MobileNet; all RMSE on 300W dataset).
+- Action unit detection (0.22 for Feat-JaaNET; 0.52 for Feat-Logistic; 0.57 for Feat-SVM; all average F1 on DisfaPlus dataset; Feat-RF is currently not available).
+
+The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth)[^3] for voice pitch analysis, and on [pyannote.audio](https://github.com/pyannote/pyannote-audio) for speaker diarization[^3]. It includes the following components:
+
+- Voice pitch as fundamental frequency (F0).
+- Speaker diarization with ECAPA-TDNN model (supervised: 2.65 with known # of speakers; 3.01 with estimated # of speakers; unsupervised: 18.2 with estimated # of speakers; all DER on AMI Mix-Headset only words test dataset).
+
+The text module supports text transcriptions for Dutch and English audio files. It relies on a pre-trained model made available by [HuggingSound](https://github.com/jonatasgrosman/huggingsound) that is the wav2vec-large model[^4] fine-tuned on Dutch (WER = 15.7; CER = 5.4 on Common Voice nl test set) and English (WER = 19.1; CER = 7.7 on Common Voice en test set).
 
 ## Installation
 
@@ -114,8 +112,12 @@ Mexca is being developed by the [Netherlands eScience Center](https://www.escien
 This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [NLeSC/python-template](https://github.com/NLeSC/python-template).
 
 ## References
-[1] Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. arXiv preprint arXiv:2104.03509.
+[^1]: Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. *arXiv*. https://doi.org/10.48550/arXiv.2104.03509
 
-[2] Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. arXiv preprint arXiv:2104.04045.
+[^2]: Schroff, F., Kalenichenko, D., & Philbin, J. (2015). FaceNet: A unified embedding for face recognition and clustering. *arXiv*. https://doi.org/10.48550/arXiv.1503.03832
 
-[3] Schneider, S., Baevski, A., Collobert, R., & Auli, M. (2019). wav2vec: Unsupervised pre-training for speech recognition. arXiv preprint arXiv:1904.05862.
+[^3]: Jadoul, Y., Thompson, B., & de Boer, B. (2018). Introducing Parselmouth: A Python interface to Praat. Journal of Phonetics, 71, 1-15. https://doi.org/10.1016/j.wocn.2018.07.001
+
+[^3]: Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. *arXiv*. https://doi.org/10.48550/arXiv.2104.04045
+
+[^4]: Schneider, S., Baevski, A., Collobert, R., & Auli, M. (2019). wav2vec: Unsupervised pre-training for speech recognition. *arXiv*. https://doi.org/10.48550/arXiv.1904.05862
