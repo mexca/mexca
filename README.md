@@ -1,7 +1,9 @@
 
 # Multimodal Emotion Expression Capture Amsterdam
 
-![](mexca_logo.png)
+<div align="center">
+<img src="mexca_logo.png">
+</div>
 
 [![github license badge](https://img.shields.io/github/license/mexca/mexca)](https://github.com/mexca/mexca)
 [![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://www.research-software.nl/software/mexca)
