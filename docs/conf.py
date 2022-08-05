@@ -36,15 +36,15 @@ if sphinx.__version__ == '5.1.0':
 # -- Project information -----------------------------------------------------
 
 project = u"mexca"
-copyright = u"2022, Netherlands eScience Center"
-author = u"Malte Luken"
+copyright = u"2022, Netherlands eScience Center and Hot Politics Lab, University of Amsterdam"
+author = u"Malte Lüken and Eva Viviani"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
 # built documents.
 #
 # The short X.Y version.
-version = "0.1.0"
+version = "1.0.0"
 # The full version, including alpha/beta/rc tags.
 release = version
 
@@ -98,8 +98,8 @@ html_theme = "sphinx_rtd_theme"
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        # Commonly used libraries, uncomment when used in package
-                       # 'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-                       # 'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
+                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
+                       'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
                        # 'scikit-learn': ('https://scikit-learn.org/stable/', None),
                        # 'matplotlib': ('https://matplotlib.org/stable/', None),
                        # 'pandas': ('http://pandas.pydata.org/docs/', None),

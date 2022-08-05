@@ -1,7 +1,7 @@
 # YAML 1.2
 ---
 cff-version: "1.0.0"
-title: "mexca"
+title: "mexca: Capture emotion expressions from multiple modalities in videos"
 authors:
   -
     family-names: Lüken

@@ -68,7 +68,7 @@ class Pipeline:
         ----------
         voice: {'low', 'high'} or str, default='low'
             The expected frequency spectrum of the voices in the video.
-        language {'english', 'dutch'}:
+        language: {'english', 'dutch'}
             The language of the speech in the video. Currently available are English and Dutch.
 
         Returns
@@ -121,7 +121,7 @@ class Pipeline:
             Path to the video file.
         skip_frames: int, default=1
             Forces the video component to only process every nth frame.
-        process_subclip: tuple(float or None, float or None)
+        process_subclip: tuple, default=(0, None)
             Process only a part of the video clip.
             See `moviepy.editor.VideoFileClip
             <https://moviepy.readthedocs.io/en/latest/ref/VideoClip/VideoClip.html#videofileclip>`_ for details.

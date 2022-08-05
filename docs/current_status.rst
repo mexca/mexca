@@ -1,23 +1,24 @@
-Current status
+Current Status
 ==============
 
-**Mexca** is currently under development and its latest release is **0.1**. This release is suitable for prototyping and learning to work with Mexca.
+The current release of **mexca** is **1.0.0**. 
 
-The current release includes the necessary steps to (i) identify individuals' (ii) classify their facial expressions (iii) record if, when and how long they speak (iv) extract pitch range (if speaking) and (v) transcribe speech content. Languages available at the moment are Dutch and English. 
+The current release includes the necessary steps to (i) identify faces and speakers (ii) extract facial expressions and voice features, and (iii) transcribe speech content. Languages for transcription that are available at the moment are Dutch and English.
 
-We report the features that Mexca currenlty extracts below. We are going to update this list with future realeases. 
+We report the features that Mexca currenlty extracts below. Future realease will likely include additional features and more accurate feature extraction.
 
 Video:
 
-* facial muscle movements (i.e., action units)
-* facial landmarks coordinates (x and y coordinates) 
-* face labels
+* Face labels
+* Facial landmarks coordinates (x and y coordinates)
+* Facial muscle movements (i.e., facial action units, presence or intensity)
 
 Audio:
 
-* speech segments
-* speaker labels
+* Speech segments
+* Speaker labels
+* Voice pitch (computed as fundamental frequency F0)
 
 Text:
 
-* speech-to-text transcriptions
+* Speech-to-text transcription
