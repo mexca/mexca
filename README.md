@@ -18,11 +18,47 @@
 <img src="mexca_logo.png">
 </div>
 
+Mexca is an open-source Python package which aims to capture emotion expression cues in human faces and speech by combining visual and auditory modalities (video/audio). 
+
 ## How To Use Mexca
 
-Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts.  
+Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and dialogue/spoken text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts.  
 
 Please cite mexca if you use it for scientific or commercial purposes.
+
+- Lüken, Malte, & Viviani, Eva. (2022). mexca (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6962473
+
+
+## Installation
+
+Mexca supports Python >=3.7 and Python <= 3.9.
+We recommend to install mexca in a new virtual environment, e.g., using `venv`:
+
+```console
+python3 -m venv env
+env/bin/activate
+```
+
+Alternatively, if you use conda:
+
+```console
+conda create -n env
+conda activate env
+```
+
+Once you have activated your virtual environment you can then install mexca from PyPi:
+
+```console
+python3 -m pip install mexca
+```
+
+To install mexca from the GitHub repository, do:
+
+```console
+git clone https://github.com/mexca/mexca.git
+cd mexca
+python3 -m pip install .
+```
 
 ## Getting Started
 
@@ -75,22 +111,6 @@ The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/
 
 The text module supports text transcriptions for Dutch and English audio files. It relies on a pre-trained model made available by [HuggingSound](https://github.com/jonatasgrosman/huggingsound) that is the wav2vec-large model[^5] fine-tuned on Dutch (WER = 15.7; CER = 5.4 on Common Voice nl test set) and English (WER = 19.1; CER = 7.7 on Common Voice en test set).
 
-## Installation
-
-We recommend to install mexca in a new virtual environment, e.g., using `venv`:
-
-```console
-python3 -m venv env
-env/bin/activate
-```
-
-To install mexca from the GitHub repository, do:
-
-```console
-git clone https://github.com/mexca/mexca.git
-cd mexca
-python3 -m pip install .
-```
 
 ## Documentation
 
