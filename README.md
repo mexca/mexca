@@ -87,6 +87,19 @@ python3 -m venv env
 env/bin/activate
 ```
 
+Alternatively, if you use conda:
+
+```console
+conda create -n env
+conda activate env
+```
+
+Once you have activated your virtual environment you can then install mexca from PyPi:
+
+```console
+python3 -m pip install mexca
+```
+
 To install mexca from the GitHub repository, do:
 
 ```console
