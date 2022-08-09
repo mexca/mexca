@@ -25,7 +25,8 @@ Mexca is an open-source Python package which aims to capture emotion expression 
 Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and dialogue/spoken text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts.  
 
 Please cite mexca if you use it for scientific or commercial purposes.
-Lüken, Malte, & Viviani, Eva. (2022). mexca (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6962473
+[^1]: Lüken, Malte, & Viviani, Eva. (2022). mexca (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6962473
+
 
 ## Getting Started
 
