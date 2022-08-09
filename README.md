@@ -18,7 +18,7 @@
 <img src="mexca_logo.png">
 </div>
 
-Mexca is an open-source Python package which aims to capture human emotion expression cues by combining visual and auditory modalities (video/audio). In its current release mexca uses pre-trained deep neural networks to extracts (i) facial features (e.g., facial landmarks, action units), (ii) acoustic properties of speech (e.g., voice pitch) and (iii) the transcribed speech. The output is a 2-dimensional dataframe which contains these features on a fine-grained temporal scale (i.e, frame-by-frame) that can be exported in a .csv format.
+Mexca is an open-source Python package which aims to capture emotion expression cues in human faces and speech by combining visual and auditory modalities (video/audio). 
 
 ## How To Use Mexca
 
