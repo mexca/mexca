@@ -26,7 +26,7 @@ Mexca provides a customizable yet easy-to-use pipeline for extracting emotion ex
 
 Please cite mexca if you use it for scientific or commercial purposes.
 
-- Lüken, Malte, & Viviani, Eva. (2022). mexca (1.0.0). Zenodo. https://doi.org/10.5281/zenodo.6962473
+- Lüken, M., & Viviani, E. (2022). mexca: Capture emotion expressions from multiple modalities in videos (Version 1.0.0) [Computer software]. https://doi.org/<10.5281/zenodo.6962473e>
 
 
 ## Installation
