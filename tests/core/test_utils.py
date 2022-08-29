@@ -14,4 +14,4 @@ def test_create_time_var_from_step():
     assert all(time_var_int == np.array([0, 1, 2, 3, 4]))
 
     with pytest.warns(TimeStepWarning):
-        time_var_warn = create_time_var_from_step(0.04, 0.21)
+        create_time_var_from_step(0.04, 0.21)
