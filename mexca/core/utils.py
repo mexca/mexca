@@ -1,13 +1,13 @@
 """Utility functions.
 """
 
-from decimal import Decimal
 import warnings
+from decimal import Decimal
 import numpy as np
 from mexca.core.exceptions import TimeStepWarning
 
 
-def create_time_var_from_step(time_step, end_time):
+def create_time_var_from_step(time_step, end_time, min_remainder=1e-6):
     """Create a time variable from a step and duration.
 
     This function creates a time variable if none is available from video processing.
@@ -18,6 +18,8 @@ def create_time_var_from_step(time_step, end_time):
         The interval between time points.
     end_time: float
         The maximum time of the time variable. Should match the length of the video/audio file.
+    min_remainder: float, default=1-6
+        The remainder of the float division `end_time`/`time_step` that will be ignored.
 
     Returns
     -------
@@ -28,7 +30,7 @@ def create_time_var_from_step(time_step, end_time):
     # Use 'Decimal' to avoid issues with float representation
     not_processed = Decimal(end_time)%Decimal(time_step)
 
-    if not_processed > 0.0:
+    if not_processed > min_remainder:
         warnings.warn(
             f'Length of file is not a multiple of "time_step": {Decimal(not_processed)} at the end of the file will not be processed',
             TimeStepWarning
