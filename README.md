@@ -35,15 +35,15 @@ Mexca supports Python >=3.7 and Python <= 3.9.
 We recommend to install mexca in a new virtual environment, e.g., using `venv`:
 
 ```console
-python3 -m venv env
+python3 -m venv mexca-env
 env/bin/activate
 ```
 
 Alternatively, if you use conda:
 
 ```console
-conda create -n env
-conda activate env
+conda create -n mexca-env
+conda activate mexca-env
 ```
 
 Once you have activated your virtual environment you can then install mexca from PyPi:
@@ -58,6 +58,12 @@ To install mexca from the GitHub repository, do:
 git clone https://github.com/mexca/mexca.git
 cd mexca
 python3 -m pip install .
+```
+
+Or via:
+
+```console
+python3 -m pip install git+https://github.com/mexca/mexca.git
 ```
 
 ## Getting Started
@@ -131,7 +137,6 @@ Mexca is being developed by the [Netherlands eScience Center](https://www.escien
 
 This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [NLeSC/python-template](https://github.com/NLeSC/python-template).
 
-## References
 [^1]: Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. *arXiv*. https://doi.org/10.48550/arXiv.2104.03509
 
 [^2]: Schroff, F., Kalenichenko, D., & Philbin, J. (2015). FaceNet: A unified embedding for face recognition and clustering. *arXiv*. https://doi.org/10.48550/arXiv.1503.03832
