@@ -201,7 +201,11 @@ class FaceExtractor:
 
             embeddings = [] # Embeddings are separate because they won't be returned
 
-            for i, (t, frame) in tqdm(enumerate(subclip.iter_frames(with_times=True)), disable=not show_progress):
+            for i, (t, frame) in tqdm(
+                enumerate(subclip.iter_frames(with_times=True)),
+                total=int(subclip.duration*subclip.fps),
+                disable=not show_progress
+            ):
                 if i % skip_frames == 0:
 
                     faces, boxes, probs = self.detect(frame)

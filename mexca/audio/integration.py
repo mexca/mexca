@@ -59,7 +59,11 @@ class AudioIntegrator:
 
         seg_idx = 1
 
-        for seg, track, spk in tqdm(annotation.itertracks(yield_label=True), disable=not show_progress):
+        for seg, track, spk in tqdm(
+            annotation.itertracks(yield_label=True),
+            total=len(annotation),
+            disable=not show_progress
+        ):
             is_segment = np.logical_and(
                 np.less(time, seg.end), np.greater(time, seg.start)
             )
