@@ -31,7 +31,11 @@ class TestPipeline:
                 audio_transcriber=AudioTranscriber(language='english')
             )
         )
-        pipeline_result = pipeline.apply(self.filepath)
+        pipeline_result = pipeline.apply(
+            self.filepath,
+            show_video_progress=False,
+            show_audio_progress=False
+        )
         # Only test if pipeline completes because the features are covered elsewhere
         assert isinstance(pipeline_result, Multimodal)
 
@@ -50,7 +54,11 @@ class TestPipeline:
         pipeline_video = Pipeline(
             video=FaceExtractor(min_clusters=1, max_clusters=3)
         )
-        pipeline_result = pipeline_video.apply(self.filepath)
+        pipeline_result = pipeline_video.apply(
+            self.filepath,
+            show_video_progress=False,
+            show_audio_progress=False
+        )
         assert isinstance(pipeline_result, Multimodal)
 
 
@@ -65,7 +73,11 @@ class TestPipeline:
                 VoiceExtractor(time_step=0.08)
             )
         )
-        pipeline_result = pipeline_audio.apply(self.filepath)
+        pipeline_result = pipeline_audio.apply(
+            self.filepath,
+            show_video_progress=False,
+            show_audio_progress=False
+        )
         assert isinstance(pipeline_result, Multimodal)
 
 
@@ -80,5 +92,9 @@ class TestPipeline:
                 time_step=0.08
             )
         )
-        pipeline_result = pipeline_text.apply(self.filepath)
+        pipeline_result = pipeline_text.apply(
+            self.filepath,
+            show_video_progress=False,
+            show_audio_progress=False
+        )
         assert isinstance(pipeline_result, Multimodal)
