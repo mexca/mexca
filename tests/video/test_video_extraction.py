@@ -69,10 +69,10 @@ class TestFaceExtractor:
             assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
-    @pytest.mark.skipif(
-        platform.system() == 'Windows',
-        reason='VMs run out of memory on windows'
-    )
+    # @pytest.mark.skipif(
+    #    platform.system() == 'Windows',
+    #    reason='VMs run out of memory on windows'
+    # )
     def test_apply(self): # Tests JAANET AU model
         features = self.extractor.apply(self.filepath, show_progress=False)
         assert features['frame'] == self.features['frame']
@@ -84,10 +84,10 @@ class TestFaceExtractor:
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
-    @pytest.mark.skipif(
-        platform.system() == 'Windows',
-        reason='VMs run out of memory on windows'
-    )
+    # @pytest.mark.skipif(
+    #     platform.system() == 'Windows',
+    #     reason='VMs run out of memory on windows'
+    # )
     def test_pyfeat_svm(self): # Tests SVM AU model
         svm_extractor = FaceExtractor(au_model='svm')
         features = svm_extractor.apply(self.filepath, show_progress=False)
@@ -95,10 +95,10 @@ class TestFaceExtractor:
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus_svm']).shape
 
 
-    @pytest.mark.skipif(
-        platform.system() == 'Windows',
-        reason='VMs run out of memory on windows'
-    )
+    # @pytest.mark.skipif(
+    #     platform.system() == 'Windows',
+    #     reason='VMs run out of memory on windows'
+    # )
     def test_pyfeat_logistic(self): # Tests logistic AU model
         svm_extractor = FaceExtractor(au_model='logistic')
         features = svm_extractor.apply(self.filepath, show_progress=False)
