@@ -69,7 +69,7 @@ class TestPipeline:
     def test_pipeline_audio(self):
         pipeline_audio = Pipeline(
             audio=AudioIntegrator(
-                SpeakerIdentifier(),
+                SpeakerIdentifier(num_speakers=2),
                 VoiceExtractor(time_step=0.08)
             )
         )
