@@ -35,15 +35,15 @@ Mexca supports Python >=3.7 and Python <= 3.9.
 We recommend to install mexca in a new virtual environment, e.g., using `venv`:
 
 ```console
-python3 -m venv mexca-env
+python3 -m venv mexca-venv
 env/bin/activate
 ```
 
 Alternatively, if you use conda:
 
 ```console
-conda create -n mexca-env
-conda activate mexca-env
+conda create -n mexca-venv
+conda activate mexca-venv
 ```
 
 Once you have activated your virtual environment you can then install mexca from PyPi:
