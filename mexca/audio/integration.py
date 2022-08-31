@@ -78,7 +78,7 @@ class AudioIntegrator:
         return annotated_features
 
 
-    def apply(self, filepath, time, num_speakers, show_progress=True):
+    def apply(self, filepath, time, show_progress=True):
         """Apply speech and speaker identification, voice feature extraction, and integration after each other.
 
         Parameters
@@ -96,7 +96,7 @@ class AudioIntegrator:
             A dictionary with annotated voice features. See ``integrate`` method for details.
 
         """
-        annotation = self.identifier.apply(filepath, num_speakers)
+        annotation = self.identifier.apply(filepath)
         voice_features = self.extractor.extract_features(filepath, time)
         annotated_features = self.integrate(voice_features, annotation, show_progress)
 

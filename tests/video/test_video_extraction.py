@@ -3,8 +3,6 @@
 import json
 import os
 import numpy as np
-import platform
-import pytest
 from moviepy.editor import VideoFileClip
 from mexca.video.extraction import FaceExtractor
 
