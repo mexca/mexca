@@ -3,7 +3,6 @@
 import json
 import os
 import pytest
-from mexca.core.exceptions import ModelTranscriberInitError
 from mexca.text.transcription import AudioTranscriber
 
 
@@ -26,8 +25,8 @@ class TestAudioTranscriptionDutch:
         # assert pytest.approx(transcription['probabilities'], rel = 1e-2) == self.ref_transcription['probabilities']
 
 
-    def test_model_transcriber_init_error(self):
-        with pytest.raises(ModelTranscriberInitError):
+    def test_model_language_error(self):
+        with pytest.raises(ValueError):
             AudioTranscriber(language=None)
 
 
