@@ -117,11 +117,11 @@ class Pipeline:
         """
 
         if voice == 'low':
-            features = {'pitchF0': FeaturePitchF0(pitch_floor=75, pitch_ceiling=300)}
+            features = {'pitchF0': FeaturePitchF0(pitch_floor=75.0, pitch_ceiling=300.0)}
         elif voice == 'high':
-            features = {'pitchF0': FeaturePitchF0(pitch_floor=100, pitch_ceiling=500)}
+            features = {'pitchF0': FeaturePitchF0(pitch_floor=100.0, pitch_ceiling=500.0)}
         else:
-            features = {'pitchF0': FeaturePitchF0(pitch_floor=75, pitch_ceiling=600)}
+            features = {'pitchF0': FeaturePitchF0(pitch_floor=75.0, pitch_ceiling=600.0)}
 
         return cls(
             video=FaceExtractor(min_clusters=1),
