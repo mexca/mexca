@@ -2,17 +2,17 @@
 Extract facial features such as landmarks and action units.
 """
 
+import os
 import cv2
 import feat
-import os
 import numpy as np
 from facenet_pytorch import MTCNN
 from facenet_pytorch import InceptionResnetV1
-from mexca.core.exceptions import SkipFramesError
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from spectralcluster import SpectralClusterer
 from tqdm import tqdm
+from mexca.core.exceptions import SkipFramesError
 
 
 class FaceExtractor:
@@ -127,7 +127,7 @@ class FaceExtractor:
 
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-        boxes, probs = self.mtcnn.detect(img, landmarks=False)  # pylint: disable=unbalanced-tuple-unpacking
+        boxes, probs = self.mtcnn.detect(img, landmarks=False)
 
         faces = self.mtcnn.extract(frame, boxes, save_path=None)
 
