@@ -25,9 +25,9 @@ class TimeStepWarning(Warning):
         super().__init__(message)
 
 
-class ModelTranscriberInitError(Exception):
-    """A language name that is not available is chosen for transcription.
+class SkipFramesError(Exception):
+    """More frames are skipped than exist in a video.
     """
-    def __init__(self, message) -> 'ModelTranscriberInitError':
+    def __init__(self, message) -> 'SkipFramesError':
         self.message = message
         super().__init__(message)

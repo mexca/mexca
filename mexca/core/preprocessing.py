@@ -8,22 +8,16 @@ from mexca.core.exceptions import AudioClipError
 
 class Video2AudioConverter(VideoFileClip):
     """Write the audio signal from a video to a (temporary) file.
+
+    Parameters
+    ----------
+    filepath: str or path
+        Path to the video file.
+    **kwargs: dict, optional
+        Additional arguments to construct the ``moviepy.editor.VideoFileClip`` class.
+
     """
     def __init__(self, filepath, **kwargs) -> 'Video2AudioConverter':
-        """Create a class to write the audio signal from a video to a file.
-
-        Parameters
-        ----------
-        filepath: str or path
-            Path to the video file.
-        **kwargs: dict, optional
-            Additional arguments to construct the ```moviepy.editor.VideoFileClip`` class.
-
-        Returns
-        -------
-        A ``Video2AudioConverter`` class instance.
-
-        """
         self.filepath = filepath
         super().__init__(filepath, **kwargs)
 

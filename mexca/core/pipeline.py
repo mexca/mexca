@@ -15,48 +15,82 @@ from mexca.video.extraction import FaceExtractor
 
 class Pipeline:
     """Build a pipeline to extract emotion expression features from a video file.
+
+    Parameters
+    ----------
+    video: optional, default=None
+        A class instance that processes the frames of the video file.
+    audio: optional, default=None
+        A class instance that process the audio signal of the video file.
+    text: optional, default=None
+        A class instance that transcribes the speech in the audio signal
+        and matches the transcription to frames.
+
+    Examples
+    --------
+    >>> from mexca.audio.extraction import VoiceExtractor
+    >>> from mexca.audio.identification import SpeakerIdentifier
+    >>> from mexca.audio.integration import AudioIntegrator
+    >>> from mexca.core.pipeline import Pipeline
+    >>> from mexca.text.transcription import AudioTextIntegrator
+    >>> from mexca.text.transcription import AudioTranscriber
+    >>> from mexca.video.extraction import FaceExtractor
+    >>> pipeline = Pipeline(
+    ...     video=FaceExtractor(),
+    ...     audio=AudioIntegrator(
+    ...         SpeakerIdentifier(),
+    ...         VoiceExtractor()
+    ...     ),
+    ...     text=AudioTextIntegrator(
+    ...         audio_transcriber=AudioTranscriber('english')
+    ...     )
+    ... )
+
     """
     def __init__(self, video=None, audio=None, text=None) -> 'Pipeline':
-        """Create a class instance containing the pipeline.
-
-        Parameters
-        ----------
-        video: optional, default=None
-            A class instance that processes the frames of the video file.
-        audio: optional, default=None
-            A class instance that process the audio signal of the video file.
-        text: optional, default=None
-            A class instance that transcribes the speech in the audio signal
-            and matches the transcription to frames.
-
-        Returns
-        -------
-        A ``Pipeline`` class instance.
-
-        Examples
-        --------
-        >>> from mexca.audio.extraction import VoiceExtractor
-        >>> from mexca.audio.identification import SpeakerIdentifier
-        >>> from mexca.audio.integration import AudioIntegrator
-        >>> from mexca.core.pipeline import Pipeline
-        >>> from mexca.text.transcription import AudioTextIntegrator
-        >>> from mexca.text.transcription import AudioTranscriber
-        >>> from mexca.video.extraction import FaceExtractor
-        >>> pipeline = Pipeline(
-        ...     video=FaceExtractor(),
-        ...     audio=AudioIntegrator(
-        ...         SpeakerIdentifier(),
-        ...         VoiceExtractor()
-        ...     ),
-        ...     text=AudioTextIntegrator(
-        ...         audio_transcriber=AudioTranscriber('english')
-        ...     )
-        ... )
-
-        """
         self.video = video
         self.audio = audio
         self.text = text
+
+
+    @property
+    def video(self):
+        return self._video
+
+
+    @video.setter
+    def video(self, new_video):
+        if isinstance(new_video, FaceExtractor) or new_video is None:
+            self._video = new_video
+        else:
+            raise ValueError('Can only set "video" to an instance of "FaceExtractor" class or None')
+
+
+    @property
+    def audio(self):
+        return self._audio
+
+
+    @audio.setter
+    def audio(self, new_audio):
+        if isinstance(new_audio, AudioIntegrator) or new_audio is None:
+            self._audio = new_audio
+        else:
+            raise ValueError('Can only set "audio" to an instance of "AudioIntegrator" class or None')
+
+
+    @property
+    def text(self):
+        return self._text
+
+
+    @text.setter
+    def text(self, new_text):
+        if isinstance(new_text, AudioTextIntegrator) or new_text is None:
+            self._text = new_text
+        else:
+            raise ValueError('Can only set "text" to an instance of "AudioTextIntegrator" class or None')
+
 
     @classmethod
     def from_default(cls, voice='low', language='english'):
