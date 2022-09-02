@@ -13,6 +13,7 @@
 [![cffconvert](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml)
 [![markdown-link-check](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6962473.svg)](https://doi.org/10.5281/zenodo.6962473)
+[![docker build badge](https://img.shields.io/docker/cloud/build/mluken/mexca?style=plastic)](https://hub.docker.com/repository/docker/mluken/mexca)
 
 <div align="center">
 <img src="mexca_logo.png">
