@@ -12,6 +12,8 @@ jobs:
   build-documentation:
     name: Build documentation
     runs-on: ubuntu-latest
+    env:
+      HDF5_DISABLE_VERSION_CHECK: 1
     strategy:
       fail-fast: false
     steps:
