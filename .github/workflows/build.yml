@@ -9,10 +9,11 @@ on:
     - main
 
 jobs:
-
   build:
     name: Build for (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      HDF5_DISABLE_VERSION_CHECK: 1
     strategy:
       fail-fast: false
       matrix:
