@@ -212,6 +212,15 @@ class FaceExtractor:
         return landmarks_np, aus
 
 
+    @staticmethod
+    def check_skip_frames(skip_frames):
+        if isinstance(skip_frames, int):
+            if skip_frames < 1:
+                raise ValueError('Argument "skip_frames" must be >= 1')
+        else:
+            raise ValueError('Argument "skip_frames" must be int')
+
+
     def apply(self, filepath, skip_frames=1, process_subclip=(0, None), show_progress=True):  # pylint: disable=too-many-locals
         """Apply multiple steps to extract features from faces in a video file.
 
@@ -247,11 +256,7 @@ class FaceExtractor:
         if not os.path.exists(filepath):
             raise ValueError('Argument "filepath" must be str or path')
 
-        if isinstance(skip_frames, int):
-            if skip_frames < 1:
-                raise ValueError('Argument "skip_frames" must be >= 1')
-        else:
-            raise ValueError('Argument "skip_frames" must be int')
+        self.check_skip_frames()
 
         with VideoFileClip(filepath, audio=False, verbose=False) as clip:
             subclip = clip.subclip(process_subclip[0], process_subclip[1])
