@@ -256,7 +256,7 @@ class FaceExtractor:
         if not os.path.exists(filepath):
             raise ValueError('Argument "filepath" must be str or path')
 
-        self.check_skip_frames()
+        self.check_skip_frames(skip_frames)
 
         with VideoFileClip(filepath, audio=False, verbose=False) as clip:
             subclip = clip.subclip(process_subclip[0], process_subclip[1])
