@@ -147,7 +147,7 @@ class FaceExtractor:
             Array containing embeddings of the N face images with dimensions (N, 512).
 
         """
-        embeddings = self.resnet(faces).numpy()
+        embeddings = self.resnet(faces).numpy() # pylint: disable=not-callable
 
         return embeddings
 
@@ -198,7 +198,7 @@ class FaceExtractor:
 
         boxes_list = boxes.reshape(1, -1, 4).tolist()
         landmarks = self.pyfeat.detect_landmarks(frame, boxes_list)
-        if self.pyfeat['au_model'].lower() in ['svm', 'logistic']:
+        if self.pyfeat['au_model'].lower() in ['svm', 'logistic']: # pylint: disable=unsubscriptable-object
             hog, new_landmarks = self.pyfeat._batch_hog(  # pylint: disable=protected-access
                 frames=frame, detected_faces=boxes_list, landmarks=landmarks
             )
