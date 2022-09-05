@@ -15,7 +15,7 @@ class SpeakerIdentifier:
 
     """
     def __init__(self, num_speakers=None) -> 'SpeakerIdentifier':
-        self.num_speakers=num_speakers
+        self.num_speakers = num_speakers
         self.pyannote_audio = Pipeline.from_pretrained("pyannote/speaker-diarization")
 
 
@@ -33,7 +33,7 @@ class SpeakerIdentifier:
                 else:
                     raise ValueError('Argument "num_speakers" must be >= 2 for speaker identification')
             else:
-                raise ValueError('Can only set "num_speakers" to float or int')
+                raise TypeError('Can only set "num_speakers" to float or int')
         else:
             self._num_speakers = new_num_speakers
 
@@ -48,7 +48,7 @@ class SpeakerIdentifier:
         if isinstance(new_pyannote_audio, Pipeline):
             self._pyannote_audio = new_pyannote_audio
         else:
-            raise ValueError('Can only set "pyannote_audio" to instance of "Pipeline" class')
+            raise TypeError('Can only set "pyannote_audio" to instance of "Pipeline" class')
 
 
     def apply(self, filepath):

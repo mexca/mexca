@@ -17,6 +17,18 @@ class TestVoiceExtractor:
               'r', encoding="utf-8") as file:
         reference_features = json.loads(file.read())
 
+
+    def test_properties(self):
+        with pytest.raises(ValueError):
+            self.extractor.time_step = -1.0
+
+        with pytest.raises(TypeError):
+            self.extractor.time_step = 'k'
+
+        with pytest.raises(TypeError):
+            self.extractor.features = ['a']
+
+
     def test_extract_features(self):
         audio_features = self.extractor.extract_features(
             self.filepath,

@@ -46,7 +46,7 @@ class FeaturePitchF0:
                 else:
                     raise ValueError('Can only set "time_step" to values >= zero')
             else:
-                raise ValueError('Can only set "time_step" to float, int, or None')
+                raise TypeError('Can only set "time_step" to float, int, or None')
         else:
             self._time_step = new_time_step
 
@@ -64,7 +64,7 @@ class FeaturePitchF0:
             else:
                 raise ValueError('Can only set "pitch_floor" to values >= zero')
         else:
-            raise ValueError('Can only set "pitch_floor" to float')
+            raise TypeError('Can only set "pitch_floor" to float')
 
 
     @property
@@ -80,7 +80,7 @@ class FeaturePitchF0:
             else:
                 raise ValueError('Can only set "pitch_ceiling" to values >= zero')
         else:
-            raise ValueError('Can only set "pitch_ceiling" to float')
+            raise TypeError('Can only set "pitch_ceiling" to float')
 
 
     def extract(self, snd, time):

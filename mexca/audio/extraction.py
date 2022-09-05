@@ -52,7 +52,7 @@ class VoiceExtractor:
                 else:
                     raise ValueError('Can only set "time_step" to values >= zero')
             else:
-                raise ValueError('Can only set "time_step" to float, int, or None')
+                raise TypeError('Can only set "time_step" to float, int, or None')
         else:
             self._time_step = new_time_step
 
@@ -67,7 +67,7 @@ class VoiceExtractor:
         if isinstance(new_features, dict):
             self._features = new_features
         else:
-            raise ValueError('Can only set "features" to dict class instances')
+            raise TypeError('Can only set "features" to dict class instances')
 
 
     def set_default_features(self) -> None:

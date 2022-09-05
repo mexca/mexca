@@ -29,7 +29,7 @@ class Multimodal:
 
         """
         if not isinstance(replace, bool):
-            raise ValueError('Argument "replace" must be bool')
+            raise TypeError('Argument "replace" must be bool')
 
         if feature_dict:
             if isinstance(feature_dict, dict):
@@ -37,7 +37,7 @@ class Multimodal:
                     if key not in self.features or replace:
                         self.features[key] = val
             else:
-                raise ValueError('Argument "feature_dict" must be dict')
+                raise TypeError('Argument "feature_dict" must be dict')
 
 
     def match_faces_speakers(
@@ -63,13 +63,13 @@ class Multimodal:
 
         """
         if not isinstance(face_label, str):
-            raise ValueError('Argument "face_label" must be str')
+            raise TypeError('Argument "face_label" must be str')
 
         if not isinstance(speaker_label, str):
-            raise ValueError('Argument "speaker_label" must be str')
+            raise TypeError('Argument "speaker_label" must be str')
 
         if not isinstance(id_label, str):
-            raise ValueError('Argument "id_label" must be str')
+            raise TypeError('Argument "id_label" must be str')
 
         if 'time' not in self.features:
             raise KeyError('The "feature" attribute must have a "time" key to match faces to speakers')

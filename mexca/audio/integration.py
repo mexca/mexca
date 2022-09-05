@@ -1,7 +1,6 @@
 """Integrate output about speech segments, speakers, and voice features.
 """
 
-import os
 import numpy as np
 from tqdm import tqdm
 from mexca.audio.extraction import VoiceExtractor
@@ -34,7 +33,7 @@ class AudioIntegrator:
         if isinstance(new_identifier, SpeakerIdentifier):
             self._identifier = new_identifier
         else:
-            raise ValueError('Can only set "identifier" to instance of "SpeakerIdentifier" class')
+            raise TypeError('Can only set "identifier" to instance of "SpeakerIdentifier" class')
 
 
     @property
@@ -47,7 +46,7 @@ class AudioIntegrator:
         if isinstance(new_extractor, VoiceExtractor):
             self._extractor = new_extractor
         else:
-            raise ValueError('Can only set "extractor" to instance of "VoiceExtractor" class')
+            raise TypeError('Can only set "extractor" to instance of "VoiceExtractor" class')
 
 
     def integrate(self, audio_features, annotation, show_progress=True):
@@ -119,14 +118,11 @@ class AudioIntegrator:
             A dictionary with annotated voice features. See ``integrate`` method for details.
 
         """
-        if not os.path.exists(filepath):
-            raise ValueError('Argument "filepath" must be str or path')
-
         if time and not isinstance(time, (list, np.ndarray)):
-            raise ValueError('Argument "time" must be list or numpy.ndarray')
+            raise TypeError('Argument "time" must be list or numpy.ndarray')
 
         if not isinstance(show_progress, bool):
-            raise ValueError('Argument "show_progress" must be bool')
+            raise TypeError('Argument "show_progress" must be bool')
 
         annotation = self.identifier.apply(filepath)
         voice_features = self.extractor.extract_features(filepath, time)

@@ -2,8 +2,10 @@
 
 import json
 import os
+import pytest
 import numpy as np
 from moviepy.editor import VideoFileClip
+from mexca.core.exceptions import SkipFramesError
 from mexca.video.extraction import FaceExtractor
 
 
@@ -16,6 +18,20 @@ class TestFaceExtractor:
             'tests', 'reference_files', 'features_video_multi_5_frames.json'
         ), 'r', encoding="utf-8") as file:
         features = json.loads(file.read())
+
+
+    def test_properties(self):
+        with pytest.raises(TypeError):
+            self.extractor.mtcnn = 3.0
+
+        with pytest.raises(TypeError):
+            self.extractor.resnet = 3.0
+
+        with pytest.raises(TypeError):
+            self.extractor.pyfeat = False
+
+        with pytest.raises(TypeError):
+            self.extractor.cluster = 'k'
 
 
     def test_detect(self):
@@ -67,11 +83,25 @@ class TestFaceExtractor:
             assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
+    def test_check_skip_frames(self):
+        with pytest.raises(ValueError):
+            self.extractor.check_skip_frames(-1)
+
+        with pytest.raises(TypeError):
+            self.extractor.check_skip_frames('k')
+
+
     # @pytest.mark.skipif(
     #    platform.system() == 'Windows',
     #    reason='VMs run out of memory on windows'
     # )
     def test_apply(self): # Tests JAANET AU model
+        with pytest.raises(TypeError):
+            features = self.extractor.apply(self.filepath, show_progress='k')
+
+        with pytest.raises(SkipFramesError):
+            features = self.extractor.apply(self.filepath, skip_frames=10, show_progress=False)
+
         features = self.extractor.apply(self.filepath, show_progress=False)
         assert features['frame'] == self.features['frame']
         assert features['time'] == self.features['time']

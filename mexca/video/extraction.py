@@ -2,7 +2,6 @@
 Extract facial features such as landmarks and action units.
 """
 
-import os
 import cv2
 import feat
 import numpy as np
@@ -64,7 +63,7 @@ class FaceExtractor:
         if isinstance(new_mtcnn, MTCNN):
             self._mtcnn = new_mtcnn
         else:
-            raise ValueError('Can only set "mtcnn" to instances of the "MTCNN" class')
+            raise TypeError('Can only set "mtcnn" to instances of the "MTCNN" class')
 
 
     @property
@@ -77,7 +76,7 @@ class FaceExtractor:
         if isinstance(new_resnet, InceptionResnetV1):
             self._resnet = new_resnet
         else:
-            raise ValueError('Can only set "resnet" to instances of the "InceptionResnetV1" class')
+            raise TypeError('Can only set "resnet" to instances of the "InceptionResnetV1" class')
 
 
     @property
@@ -90,7 +89,7 @@ class FaceExtractor:
         if isinstance(new_cluster, SpectralClusterer):
             self._cluster = new_cluster
         else:
-            raise ValueError('Can only set "cluster" to instances of the "SpectralClusterer" class')
+            raise TypeError('Can only set "cluster" to instances of the "SpectralClusterer" class')
 
 
     @property
@@ -103,7 +102,7 @@ class FaceExtractor:
         if isinstance(new_pyfeat, feat.detector.Detector):
             self._pyfeat = new_pyfeat
         else:
-            raise ValueError('Can only set "pyfeat" to instances of the "Detector" class')
+            raise TypeError('Can only set "pyfeat" to instances of the "Detector" class')
 
 
     def detect(self, frame):
@@ -218,7 +217,7 @@ class FaceExtractor:
             if skip_frames < 1:
                 raise ValueError('Argument "skip_frames" must be >= 1')
         else:
-            raise ValueError('Argument "skip_frames" must be int')
+            raise TypeError('Argument "skip_frames" must be int')
 
 
     def apply(self, filepath, skip_frames=1, process_subclip=(0, None), show_progress=True):  # pylint: disable=too-many-locals
@@ -253,8 +252,8 @@ class FaceExtractor:
             - `face_id`: List of `int` cluster labels of detected faces.
 
         """
-        if not os.path.exists(filepath):
-            raise ValueError('Argument "filepath" must be str or path')
+        if not isinstance(show_progress, bool):
+            raise TypeError('Argument "show_progress" must be bool')
 
         self.check_skip_frames(skip_frames)
 

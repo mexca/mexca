@@ -1,7 +1,6 @@
 """Transcribe speech from audio to text.
 """
 
-import os
 import numpy as np
 from huggingsound import SpeechRecognitionModel
 from parselmouth import Sound
@@ -41,7 +40,7 @@ class AudioTranscriber:
             else:
                 raise ValueError('Please specify a valid, available language, either "english" or "dutch"')
         else:
-            raise ValueError('Can only set "language" to str')
+            raise TypeError('Can only set "language" to str')
 
 
     @property
@@ -54,7 +53,7 @@ class AudioTranscriber:
         if isinstance(new_hugging_sound, SpeechRecognitionModel):
             self._hugging_sound = new_hugging_sound
         else:
-            raise ValueError('Can only set "hugging_sound" to "SpeechRecognitionModel"')
+            raise TypeError('Can only set "hugging_sound" to "SpeechRecognitionModel"')
 
 
     def apply(self, filepath):
@@ -107,7 +106,7 @@ class AudioTextIntegrator:
         if isinstance(new_audio_transcriber, AudioTranscriber):
             self._audio_transcriber = new_audio_transcriber
         else:
-            raise ValueError('Can only set "audio_transcriber" to instance of AudioTranscriber class')
+            raise TypeError('Can only set "audio_transcriber" to instance of AudioTranscriber class')
 
 
     @property
@@ -124,7 +123,7 @@ class AudioTextIntegrator:
                 else:
                     raise ValueError('Can only set "time_step" to values >= zero')
             else:
-                raise ValueError('Can only set "time_step" to float, int, or None')
+                raise TypeError('Can only set "time_step" to float, int, or None')
         else:
             self._time_step = new_time_step
 
@@ -147,11 +146,8 @@ class AudioTextIntegrator:
             See the ``add_transcription`` method for details.
 
         """
-        if not os.path.exists(filepath):
-            raise ValueError('Argument "filepath" must be str or path')
-
         if time and not isinstance(time, (list, np.ndarray)):
-            raise ValueError('Argument "time" must be list or numpy.ndarray')
+            raise TypeError('Argument "time" must be list or numpy.ndarray')
 
         transcription = self.audio_transcriber.apply(filepath)
 
