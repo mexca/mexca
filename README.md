@@ -4,7 +4,7 @@
 
 
 [![github license badge](https://img.shields.io/github/license/mexca/mexca)](https://github.com/mexca/mexca)
-[![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://www.research-software.nl/software/mexca)
+[![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://research-software-directory.org/software/mexca)
 [![read the docs badge](https://readthedocs.org/projects/pip/badge/)](https://mexca.readthedocs.io/en/latest/index.html)
 [![fair-software badge](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 [![workflow scq badge](https://sonarcloud.io/api/project_badges/measure?project=mexca_mexca&metric=alert_status)](https://sonarcloud.io/dashboard?id=mexca_mexca)
@@ -13,7 +13,7 @@
 [![cffconvert](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml)
 [![markdown-link-check](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6962473.svg)](https://doi.org/10.5281/zenodo.6962473)
-[![docker build badge](https://img.shields.io/docker/cloud/build/mluken/mexca?style=plastic)](https://hub.docker.com/repository/docker/mluken/mexca)
+[![docker build badge](https://img.shields.io/static/v1?label=docker&message=mexca&color=blue&style=flat&logo=docker)](https://hub.docker.com/repository/docker/mluken/mexca)
 
 <div align="center">
 <img src="mexca_logo.png">
