@@ -215,7 +215,8 @@ class FaceExtractor:
         else:
             aus = self.pyfeat.detect_aus(frame, landmarks)
 
-        landmarks_np = np.array(landmarks).squeeze()
+        # Remove first redundant dimension from landmarks array; new first dim = # of detected faces
+        landmarks_np = np.array(landmarks).reshape(-1, 68, 2)
 
         return landmarks_np, aus
 
