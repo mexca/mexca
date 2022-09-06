@@ -17,8 +17,7 @@ Output extracted from faces displayed in the video has the prefix `face_`. A fra
 - `face_box`: The bounding box for a single detected face. The box has four coordinates (x1, y1, x2, y2).
 - `face_prob`: The probability with which the face was detected. 
 - `face_landmarks`: The landmark coordinates for the detected face. The array contains 68 coordinate pairs (x, y).
-- `face_aus`: The action unit (AU) activations for the detected face. The output differs between AU detection models: `JAANET` returns intensities (0-1) for 12 action units,
-    whereas `svm` and `logistic` return presence/absence (1/0) values for 20 action units.
+- `face_aus`: The action unit (AU) activations for the detected face. The output differs between AU detection models: `JAANET` returns intensities (0-1) for 12 action units, whereas `svm` and `logistic` return presence/absence (1/0) values for 20 action units.
 - `face_id`: The ID of the detected face returned by the clustering of the face embeddings (starting at zero).
 
 Voice
