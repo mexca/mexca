@@ -26,9 +26,12 @@ class FaceExtractor:
     **clargs: dict, optional
         Additional arguments that are passed to the ``spectralcluster.SpectralClusterer`` class instance.
 
-    Attributes:
+    Attributes
+    ----------
     mtcnn
     resnet
+    cluster
+    pyfeat
 
     Notes
     -----
@@ -53,7 +56,7 @@ class FaceExtractor:
 
     @property
     def mtcnn(self):
-        """The MTCNN model for face detection and extraction. See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
+        """The MTCNN model for face detection and extraction. Must be instance of ``MTCNN`` class. See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
         """
         return self._mtcnn
 
@@ -68,6 +71,8 @@ class FaceExtractor:
 
     @property
     def resnet(self):
+        """The ResnetV1 model for computing face embeddings. Uses the pretrained 'vggface2' version by default. Must be instance of ``InceptionResnetV1`` class. See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
+        """
         return self._resnet
 
 
@@ -81,6 +86,8 @@ class FaceExtractor:
 
     @property
     def cluster(self):
+        """The spectral clustering model for identifying faces based on embeddings. Must be instance of ``SpectralClusterer`` class. See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
+        """
         return self._cluster
 
 
@@ -94,6 +101,8 @@ class FaceExtractor:
 
     @property
     def pyfeat(self):
+        """The model for extracting facial landmarks and action units. Must be instance of ``Detector`` class See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
+        """
         return self._pyfeat
 
 
@@ -147,7 +156,7 @@ class FaceExtractor:
             Array containing embeddings of the N face images with dimensions (N, 512).
 
         """
-        embeddings = self.resnet(faces).numpy() # pylint: disable=not-callable
+        embeddings = self.resnet(faces).numpy()
 
         return embeddings
 
@@ -198,7 +207,7 @@ class FaceExtractor:
 
         boxes_list = boxes.reshape(1, -1, 4).tolist()
         landmarks = self.pyfeat.detect_landmarks(frame, boxes_list)
-        if self.pyfeat['au_model'].lower() in ['svm', 'logistic']: # pylint: disable=unsubscriptable-object
+        if self.pyfeat['au_model'].lower() in ['svm', 'logistic']:
             hog, new_landmarks = self.pyfeat._batch_hog(  # pylint: disable=protected-access
                 frames=frame, detected_faces=boxes_list, landmarks=landmarks
             )
@@ -242,14 +251,7 @@ class FaceExtractor:
         Returns
         -------
         dict
-            A dictionary with keys-value pairs:
-            - `frame`: List of `int` frame indices.
-            - `time`: List of `float` timestamps.
-            - `face_box`: List of `numpy.ndarray` bounding boxes of detected faces.
-            - `face_prob`: List of probabilities of detected faces.
-            - `face_landmarks`: List of `numpy.ndarray` facial landmarks.
-            - `face_aus`: List of `numpy.ndarray` facial actions units.
-            - `face_id`: List of `int` cluster labels of detected faces.
+            A dictionary with extracted facial features.
 
         """
         if not isinstance(show_progress, bool):

@@ -13,6 +13,10 @@ class SpeakerIdentifier:
         The number of speakers to which speech segments will be assigned during the clustering
         (oracle speakers). If `None`, the number of speakers is estimated from the audio signal.
 
+    Attributes
+    ----------
+    pyannote_audio
+
     """
     def __init__(self, num_speakers=None) -> 'SpeakerIdentifier':
         self.num_speakers = num_speakers
@@ -40,6 +44,8 @@ class SpeakerIdentifier:
 
     @property
     def pyannote_audio(self):
+        """The pyannote speaker diarization pipeline. Must be instance of `Pipeline` class. See `pyanote.audio <https://github.com/pyannote/pyannote-audio>`_ for details.
+        """
         return self._pyannote_audio
 
 

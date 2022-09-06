@@ -62,12 +62,7 @@ class AudioIntegrator:
         Returns
         -------
         dict
-            A dictionary with key-value pairs:
-            - ``segment_id``: An int array indexing detected speech segments.
-            - ``segment_start``: A float array with start times of detected speech segments.
-            - ``segment_end``: A float array with end times of detected speech segments.
-            - ``track`: A str array with labels of detected speech tracks.
-            - ``speaker_id``: A str array with labels of detected speakers.
+            A dictionary with extracted voice features.
 
         """
         time = audio_features['time']

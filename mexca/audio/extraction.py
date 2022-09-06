@@ -18,14 +18,19 @@ class VoiceExtractor:
     features: dict or None, default=None
         A dictionary of features with keys as the features names for the output and values as feature class instances.
 
+    Attributes
+    ----------
+    time_step
+    features
+
     See Also
     --------
     mexca.audio.features.PitchF0 : Extract the voice pitch as the fundamental frequency F0.
 
     Notes
     -----
-    If `features=None` (the default), the class will be initiated to extract default voice features using the ``set_default_features`` method.
-    Currently, only a class for extracting the voice pitch as the fundamental frequency F0 is available as ``mexca.audio.features.PitchF0``.
+    If `features=None` (the default), the class will be initiated to extract default voice features using the `set_default_features` method.
+    Currently, only a class for extracting the voice pitch as the fundamental frequency F0 is available as `mexca.audio.features.PitchF0`.
     A tutorial on how to create a custom feature class will follow soon (TODO).
 
     """
@@ -40,6 +45,8 @@ class VoiceExtractor:
 
     @property
     def time_step(self):
+        """Interval between time points at which voice features are extracted. Must be `float`.
+        """
         return self._time_step
 
 
@@ -59,6 +66,8 @@ class VoiceExtractor:
 
     @property
     def features(self):
+        """Voice features to be extracted. Must be `dict`.
+        """
         return self._features
 
 
@@ -72,7 +81,7 @@ class VoiceExtractor:
 
     def set_default_features(self) -> None:
         """Set `feature` attribute to the default feature classes.
-        Currently, this only includes ``mexca.audio.features.PitchF0``.
+        Currently, this only includes `mexca.audio.features.PitchF0`.
         """
         self.features = {
             'pitchF0': mexca.audio.features.FeaturePitchF0()

@@ -17,6 +17,10 @@ class AudioTranscriber:
             The name of the language that is transcribed from the audio file.
             Currently, only English and Dutch are available.
 
+    Attributes
+    ----------
+    hugging_sound
+
     """
     def __init__(self, language) -> 'AudioTranscriber':
         self.language = language
@@ -45,6 +49,8 @@ class AudioTranscriber:
 
     @property
     def hugging_sound(self):
+        """The HuggingSound model for speech recognition. Must be instance of `SpeechRecognitionModel` class. See `huggingsound <https://github.com/jonatasgrosman/huggingsound>`_ for details.
+        """
         return self._hugging_sound
 
 
@@ -67,11 +73,7 @@ class AudioTranscriber:
         Returns
         -------
         dict
-            A dictionary with key-value pairs:
-            - `transcription`: A string with the audio transcription.
-            - `start_timestamps`: A list of ints containing the start times of each character (in ms).
-            - `end_timestamps`: A list of ints containing the end times of each character (in ms).
-            - `probabilities`: A list of floats containing the probabilities of each character.
+            A dictionary with extracted text features.
 
         """
         transcription = self.hugging_sound.transcribe([filepath]) # Requires list input!
@@ -85,10 +87,10 @@ class AudioTextIntegrator:
     Parameters
     ----------
     audio_transcriber: AudioTranscriber
-        An instance of the ``AudioTranscriber`` class.
+        An instance of the `AudioTranscriber` class.
     time_step: float or None, default=None
         The interval at which transcribed text is matched to audio frames.
-        Only used if the ``apply`` method has `time=None`.
+        Only used if the `apply` method has `time=None`.
 
     """
     def __init__(self, audio_transcriber, time_step=None) -> 'AudioTextIntegrator':
@@ -143,7 +145,7 @@ class AudioTextIntegrator:
         -------
         dict
             A dictionary with audio and text features.
-            See the ``add_transcription`` method for details.
+            See the `add_transcription` method for details.
 
         """
         if time and not isinstance(time, (list, np.ndarray)):
@@ -170,18 +172,14 @@ class AudioTextIntegrator:
         Parameters
         ----------
         transcription: dict
-            The result of ``AudioTranscriber.apply``.
+            The result of `AudioTranscriber.apply`.
         time: list or numpy.ndarray
             A list of floats or array containing time points to which the transcribed text is matched.
 
         Returns
         -------
         dict
-            A dictionary with key-value pairs:
-            - `text_token_id`: An array indexing the token (word) in the transcription.
-            - `text_token`: An array with the tokens of the transcription
-            - `text_token_start`: An array with the start times of tokens.
-            - `text_token_end`: An array with the end times of tokens.
+            A dictionary with extracted text features.
 
         """
         # Split transcription into words (tokens)
