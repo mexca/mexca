@@ -17,6 +17,8 @@ Contents:
 
   introduction
   installation
+  docker
+  command_line
   features
   output
 
