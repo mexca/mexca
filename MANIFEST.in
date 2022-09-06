@@ -2,3 +2,4 @@ include CITATION.cff
 include LICENSE
 include NOTICE
 include README.md
+include bin/*

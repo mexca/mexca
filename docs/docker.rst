@@ -9,22 +9,22 @@ The pipeline can be used via the command line:
 
 .. code-block:: console
 
-  docker run -t -v absolute/path/to/video_file:/mexca mexca:stable -f video_file -o output.json
+  docker run -t -v absolute/path/to/video/folder:/test mexca:stable -f test/video_file -o test/output.json
 
-This command pulls the image with the latest release of **mexca**, executes a script to run the pipeline on a video file, and save the output on the computer.
+This command pulls the image with the latest release of **mexca**, executes a script to run the pipeline on a video file, and save the output on the computer in the same folder as the video file.
 
 *Explanation of the command*: 
 
 - The `-t` flag indicates that a specific tag of the mexca Docker image should be run. Currently, two tags are avaiable, 'stable' (the latest release version) and 'devel' (the development version). It is also possible to run the image with the latest tag using `mexca:latest`. 
-- With the `-v` flag, a folder from the host system is mounted onto the container. Here, the absolute path to the folder that should be mounted must be supplied as well as the destination folder in the container (here `/mexca`). 
+- With the `-v` flag, a folder from the host system is mounted onto the container. Here, the absolute path to the folder that should be mounted must be supplied as well as the destination folder in the container (here `/test`). 
   This allows the container to access the video file to which the pipeline will be applied to and write the output on the host system. 
 - This is followed by the name of the image and the tag (`mexca:stable`).
-- By default, the container runs the `bin/pipeline.py` script, so the command line arguments for the script must be given after all `docker run` options. For details on the arguments, see the documentation of the `pipeline.py` script.
+- By default, the container runs the `bin/pipeline.py` script, so the command line arguments for the script must be given after all `docker run` options. For details on the arguments, see the documentation of the `command line <https://mexca.readthedocs.io/en/latest/command_line.html>`_ script.
 
 Building an Image
 -----------------
 
-The **mexca** image can be build using the command line:
+The **mexca** image can be build using the command line (requires Git and Docker Desktop):
 
 .. code-block:: console
 
@@ -38,4 +38,4 @@ First, the GitHub repository is cloned to provide the files that are necessary f
 
   docker build --build-arg version=devel . -t mexca:devel
 
-For details on the build, see the `Dockerfile` in the **mexca** repository.
+For details on the build, see the Dockerfile in the **mexca** repository.
