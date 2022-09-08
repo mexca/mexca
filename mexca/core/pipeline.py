@@ -168,7 +168,7 @@ class Pipeline:
 
         Returns
         -------
-        A ``Multimodal`` class instance that contains the extracted features in the `features` attribute.
+        A ``Multimodal`` class instance that contains the extracted features in the `features` attribute. See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_ section for details.
 
         See Also
         --------

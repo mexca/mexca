@@ -9,9 +9,9 @@ The pipeline can be used via the command line:
 
 .. code-block:: console
 
-  docker run -t -v absolute/path/to/video/folder:/test mexca:stable -f test/video_file -o test/output.json
+  docker run -t -v absolute/path/to/video/folder:/test mluken/mexca:latest -f /test/video_file -o /test/output.json
 
-This command pulls the image with the latest release of **mexca**, executes a script to run the pipeline on a video file, and save the output on the computer in the same folder as the video file.
+This command pulls the image with the latest version of **mexca**, executes a script to run the pipeline on a video file, and save the output on the computer in the same folder as the video file.
 
 *Explanation of the command*: 
 

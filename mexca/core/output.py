@@ -6,7 +6,7 @@ from scipy.optimize import linear_sum_assignment
 
 
 class Multimodal:
-    """Store the pipeline output.
+    """Store the pipeline output. See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_ section for details.
     """
     def __init__(self) -> 'Multimodal':
         self._features = {}
