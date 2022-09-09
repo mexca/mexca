@@ -5,7 +5,7 @@ Running a Container
 -------------------
 
 The **mexca** pipeline is available as a `Docker image <https://hub.docker.com/repository/docker/mluken/mexca>`_. To run the pipeline via Docker, `Docker Desktop <https://www.docker.com/products/docker-desktop/>`_ needs to be installed on the computer and active.
-The pipeline can be used via the command line:
+The pipeline can be used via the command line (note that this command requires a stable internet connection and that the container is > 10 GB):
 
 .. code-block:: console
 
