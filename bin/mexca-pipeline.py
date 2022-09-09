@@ -17,13 +17,6 @@ from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
 from mexca.video.extraction import FaceExtractor
 
-class NumpyArrayEncoder(JSONEncoder):
-    def default(self, o):
-        if isinstance(o, (np.ndarray, np.float32, np.chararray)):
-            return o.tolist()
-        return JSONEncoder.default(self, o)
-
-
 parser = argparse.ArgumentParser(description='Apply the mexca pipeline to a video file.')
 parser.add_argument('-f', '--filepath', type=str, required=True, dest='filepath')
 parser.add_argument('-o', '--output', type=str, required=True, dest='output')
@@ -54,6 +47,15 @@ parser.add_argument('--no-text', action='store_true', default=False,
     help='Disables the text processing part of the pipeline.', dest='no_text')
 
 args = parser.parse_args()
+
+class NumpyArrayEncoder(JSONEncoder):
+    """Convert numpy arrays to lists to save as json format.
+    """
+    def default(self, o):
+        if isinstance(o, (np.ndarray, np.float32, np.chararray)):
+            return o.tolist()
+        return JSONEncoder.default(self, o)
+
 
 pipeline = Pipeline(
     video=None if args.no_video else FaceExtractor(
