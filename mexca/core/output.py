@@ -6,17 +6,15 @@ from scipy.optimize import linear_sum_assignment
 
 
 class Multimodal:
-    """Store the pipeline output.
+    """Store the pipeline output. See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_ section for details.
     """
     def __init__(self) -> 'Multimodal':
-        """Create a class instance to store the pipeline output.
+        self._features = {}
 
-        Returns
-        -------
-        A ``Multimodal`` class instance.
 
-        """
-        self.features = {}
+    @property
+    def features(self):
+        return self._features
 
 
     def add(self, feature_dict, replace=False):
@@ -30,10 +28,16 @@ class Multimodal:
             Whether existing features with the same names as in `feature_dict` should be replaced.
 
         """
+        if not isinstance(replace, bool):
+            raise TypeError('Argument "replace" must be bool')
+
         if feature_dict:
-            for key, val in feature_dict.items():
-                if key not in self.features or replace:
-                    self.features[key] = val
+            if isinstance(feature_dict, dict):
+                for key, val in feature_dict.items():
+                    if key not in self.features or replace:
+                        self.features[key] = val
+            else:
+                raise TypeError('Argument "feature_dict" must be dict')
 
 
     def match_faces_speakers(
@@ -46,7 +50,7 @@ class Multimodal:
 
         Performs a linear sum assignment using ``scipy.optimize.linear_sum_assignment`` by tallying
         the time overlap between faces and speakers. Matches face and speaker labels by maximum time overlap.
-        Modifies the `Multimodal.feature` attribute in place.
+        Modifies the `feature` attribute in place.
 
         Parameters
         ----------
@@ -58,6 +62,18 @@ class Multimodal:
             The feature name of the matched labels.
 
         """
+        if not isinstance(face_label, str):
+            raise TypeError('Argument "face_label" must be str')
+
+        if not isinstance(speaker_label, str):
+            raise TypeError('Argument "speaker_label" must be str')
+
+        if not isinstance(id_label, str):
+            raise TypeError('Argument "id_label" must be str')
+
+        if 'time' not in self.features:
+            raise KeyError('The "feature" attribute must have a "time" key to match faces to speakers')
+
         time = self.features['time']
         spks = list(set(self.features[speaker_label]))
         faces = list(set(self.features[face_label]))
@@ -82,4 +98,6 @@ class Multimodal:
                 np.equal(np.array(self.features[face_label]), faces[match[1]])
             )] = i + 1
 
-        self.features[id_label] = face_speaker_id
+        id_dict = {}
+        id_dict[id_label] = face_speaker_id
+        self.add(id_dict, replace=True)

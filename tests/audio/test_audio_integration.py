@@ -2,6 +2,7 @@
 
 import json
 import os
+import pytest
 from mexca.audio.extraction import VoiceExtractor
 from mexca.audio.integration import AudioIntegrator
 from mexca.audio.identification import SpeakerIdentifier
@@ -19,6 +20,21 @@ class TestAudioIntegrator:
     ) as file:
         reference_features = json.loads(file.read())
 
+
+    def test_properties(self):
+        with pytest.raises(TypeError):
+            self.integrator.identifier = 3.0
+
+        with pytest.raises(TypeError):
+            self.integrator.extractor = 3.0
+
+
     def test_integrate(self):
+        with pytest.raises(TypeError):
+            annotated_features = self.integrator.apply(self.filepath, 'k')
+
+        with pytest.raises(TypeError):
+            annotated_features = self.integrator.apply(self.filepath, None, show_progress='k')
+
         annotated_features = self.integrator.apply(self.filepath, None)
         assert all(annotated_features['segment_id'] == self.reference_features['segment_id'])

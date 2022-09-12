@@ -3,7 +3,6 @@
 import json
 import os
 import pytest
-from mexca.core.exceptions import ModelTranscriberInitError
 from mexca.text.transcription import AudioTranscriber
 
 
@@ -16,6 +15,18 @@ class TestAudioTranscriptionDutch:
         'r', encoding="utf-8") as file:
         ref_transcription = json.loads(file.read())
 
+
+    def test_properties(self):
+        with pytest.raises(ValueError):
+            self.audio_transcriber.language = 'k'
+
+        with pytest.raises(TypeError):
+            self.audio_transcriber.language = 3.0
+
+        with pytest.raises(TypeError):
+            self.audio_transcriber.hugging_sound = 'k'
+
+
     def test_apply(self):
         transcription = self.audio_transcriber.apply(self.filepath)
         assert all(token in ['', 'maak', 'en', 'er', 'groen', 'als']
@@ -24,11 +35,6 @@ class TestAudioTranscriptionDutch:
         assert len(transcription['end_timestamps']) == len(self.ref_transcription['end_timestamps'])
         # Large difference between probabilities across different os
         # assert pytest.approx(transcription['probabilities'], rel = 1e-2) == self.ref_transcription['probabilities']
-
-
-    def test_model_transcriber_init_error(self):
-        with pytest.raises(ModelTranscriberInitError):
-            AudioTranscriber(language=None)
 
 
 class TestAudioTranscriptionEnglish:

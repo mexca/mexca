@@ -3,28 +3,50 @@
 
 import numpy as np
 from tqdm import tqdm
+from mexca.audio.extraction import VoiceExtractor
+from mexca.audio.identification import SpeakerIdentifier
 
 
 class AudioIntegrator:
     """Integrate output about speech segments, speakers, and voice features.
+
+    Parameters
+    ----------
+    identifier: mexca.audio.SpeakerIdentifier
+        An instance of the ``mexca.audio.SpeakerIdentifier`` class.
+    extractor: mexca.audio.VoiceExtractor
+        An instance of the ``mexca.audio.VoiceExtractor`` class.
+
     """
     def __init__(self, identifier, extractor) -> 'AudioIntegrator':
-        """Create a class instance to integrate output about speech segments, speakers, and voice features.
-
-        Parameters
-        ----------
-        identifier: mexca.audio.SpeakerIdentifier
-            An instance of the ``mexca.audio.SpeakerIdentifier`` class.
-        extractor: mexca.audio.VoiceExtractor
-            An instance of the ``mexca.audio.VoiceExtractor`` class.
-
-        Returns
-        -------
-        An ``AudioIntegrator`` class instance.
-
-        """
         self.identifier = identifier
         self.extractor = extractor
+
+
+    @property
+    def identifier(self):
+        return self._identifier
+
+
+    @identifier.setter
+    def identifier(self, new_identifier):
+        if isinstance(new_identifier, SpeakerIdentifier):
+            self._identifier = new_identifier
+        else:
+            raise TypeError('Can only set "identifier" to instance of "SpeakerIdentifier" class')
+
+
+    @property
+    def extractor(self):
+        return self._extractor
+
+
+    @extractor.setter
+    def extractor(self, new_extractor):
+        if isinstance(new_extractor, VoiceExtractor):
+            self._extractor = new_extractor
+        else:
+            raise TypeError('Can only set "extractor" to instance of "VoiceExtractor" class')
 
 
     def integrate(self, audio_features, annotation, show_progress=True):
@@ -40,12 +62,7 @@ class AudioIntegrator:
         Returns
         -------
         dict
-            A dictionary with key-value pairs:
-            - ``segment_id``: An int array indexing detected speech segments.
-            - ``segment_start``: A float array with start times of detected speech segments.
-            - ``segment_end``: A float array with end times of detected speech segments.
-            - ``track`: A str array with labels of detected speech tracks.
-            - ``speaker_id``: A str array with labels of detected speakers.
+            A dictionary with extracted voice features.
 
         """
         time = audio_features['time']
@@ -59,7 +76,11 @@ class AudioIntegrator:
 
         seg_idx = 1
 
-        for seg, track, spk in tqdm(annotation.itertracks(yield_label=True), disable=not show_progress):
+        for seg, track, spk in tqdm(
+            annotation.itertracks(yield_label=True),
+            total=len(annotation),
+            disable=not show_progress
+        ):
             is_segment = np.logical_and(
                 np.less(time, seg.end), np.greater(time, seg.start)
             )
@@ -81,7 +102,7 @@ class AudioIntegrator:
         ----------
         filepath: str or path
             Path to the audio file.
-        time: List or numpy.ndarray
+        time: List or numpy.ndarray or None
             List or array with time points for with voice features should be extracted.
         show_progress bool, default=True:
             Enables a progress bar.
@@ -92,7 +113,13 @@ class AudioIntegrator:
             A dictionary with annotated voice features. See ``integrate`` method for details.
 
         """
-        annotation = self.identifier.apply(filepath, show_progress)
+        if time and not isinstance(time, (list, np.ndarray)):
+            raise TypeError('Argument "time" must be list or numpy.ndarray')
+
+        if not isinstance(show_progress, bool):
+            raise TypeError('Argument "show_progress" must be bool')
+
+        annotation = self.identifier.apply(filepath)
         voice_features = self.extractor.extract_features(filepath, time)
         annotated_features = self.integrate(voice_features, annotation, show_progress)
 

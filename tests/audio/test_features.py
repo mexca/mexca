@@ -22,6 +22,27 @@ class TestFeaturePitchF0:
     ) as file:
         reference = json.loads(file.read())['pitchF0']
 
+
+    def test_properties(self):
+        with pytest.raises(ValueError):
+            self.feature.time_step = -1.0
+
+        with pytest.raises(TypeError):
+            self.feature.time_step = 'k'
+
+        with pytest.raises(ValueError):
+            self.feature.pitch_floor = -1.0
+
+        with pytest.raises(TypeError):
+            self.feature.pitch_floor = 'k'
+
+        with pytest.raises(ValueError):
+            self.feature.pitch_ceiling = -1.0
+
+        with pytest.raises(TypeError):
+            self.feature.pitch_ceiling = 'k'
+
+
     def test_extract(self):
         pitch = self.feature.extract(self.snd, self.time)
         assert pytest.approx(pitch, nan_ok=True) == np.array(self.reference)

@@ -9,10 +9,11 @@ on:
     - main
 
 jobs:
-
   build:
     name: Build for (${{ matrix.python-version }}, ${{ matrix.os }})
     runs-on: ${{ matrix.os }}
+    env:
+      HDF5_DISABLE_VERSION_CHECK: 1
     strategy:
       fail-fast: false
       matrix:
@@ -37,7 +38,7 @@ jobs:
           python3 -m pip install --upgrade pip setuptools
           python3 -m pip install .[dev,publishing]
       - name: Run unit tests
-        run: pytest -v
+        run: pytest -vv
       - name: Verify that we can build the package
         run: python3 setup.py sdist bdist_wheel
 

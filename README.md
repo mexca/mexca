@@ -4,7 +4,7 @@
 
 
 [![github license badge](https://img.shields.io/github/license/mexca/mexca)](https://github.com/mexca/mexca)
-[![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://www.research-software.nl/software/mexca)
+[![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://research-software-directory.org/software/mexca)
 [![read the docs badge](https://readthedocs.org/projects/pip/badge/)](https://mexca.readthedocs.io/en/latest/index.html)
 [![fair-software badge](https://img.shields.io/badge/fair--software.eu-%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8F%20%20%E2%97%8B-yellow)](https://fair-software.eu)
 [![workflow scq badge](https://sonarcloud.io/api/project_badges/measure?project=mexca_mexca&metric=alert_status)](https://sonarcloud.io/dashboard?id=mexca_mexca)
@@ -13,6 +13,7 @@
 [![cffconvert](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml)
 [![markdown-link-check](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6962473.svg)](https://doi.org/10.5281/zenodo.6962473)
+[![docker build badge](https://img.shields.io/static/v1?label=docker&message=mexca&color=blue&style=flat&logo=docker)](https://hub.docker.com/repository/docker/mluken/mexca)
 
 <div align="center">
 <img src="mexca_logo.png">
@@ -26,7 +27,7 @@ Mexca provides a customizable yet easy-to-use pipeline for extracting emotion ex
 
 Please cite mexca if you use it for scientific or commercial purposes.
 
-- Lüken, M., & Viviani, E. (2022). mexca: Capture emotion expressions from multiple modalities in videos (Version 1.0.0) [Computer software]. https://doi.org/<10.5281/zenodo.6962473e>
+- Lüken, M., & Viviani, E. (2022). mexca: Capture emotion expressions from multiple modalities in videos (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.6962473
 
 
 ## Installation
@@ -35,15 +36,15 @@ Mexca supports Python >=3.7 and Python <= 3.9.
 We recommend to install mexca in a new virtual environment, e.g., using `venv`:
 
 ```console
-python3 -m venv env
+python3 -m venv mexca-venv
 env/bin/activate
 ```
 
 Alternatively, if you use conda:
 
 ```console
-conda create -n env
-conda activate env
+conda create -n mexca-venv
+conda activate mexca-venv
 ```
 
 Once you have activated your virtual environment you can then install mexca from PyPi:
@@ -58,6 +59,12 @@ To install mexca from the GitHub repository, do:
 git clone https://github.com/mexca/mexca.git
 cd mexca
 python3 -m pip install .
+```
+
+Or via:
+
+```console
+python3 -m pip install git+https://github.com/mexca/mexca.git
 ```
 
 ## Getting Started
@@ -131,7 +138,6 @@ Mexca is being developed by the [Netherlands eScience Center](https://www.escien
 
 This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [NLeSC/python-template](https://github.com/NLeSC/python-template).
 
-## References
 [^1]: Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. *arXiv*. https://doi.org/10.48550/arXiv.2104.03509
 
 [^2]: Schroff, F., Kalenichenko, D., & Philbin, J. (2015). FaceNet: A unified embedding for face recognition and clustering. *arXiv*. https://doi.org/10.48550/arXiv.1503.03832

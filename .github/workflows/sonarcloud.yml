@@ -14,6 +14,8 @@ jobs:
   sonarcloud:
     name: SonarCloud
     runs-on: ubuntu-latest
+    env:
+      HDF5_DISABLE_VERSION_CHECK: 1
     steps:
       - uses: actions/checkout@v3
         with:

@@ -19,7 +19,22 @@ class TestAudioTextIntegration:
         'r', encoding="utf-8") as file:
         text_audio_transcription = json.loads(file.read())
 
+
+    def test_properties(self):
+        with pytest.raises(TypeError):
+            self.audio_text_integrator.audio_transcriber = 'k'
+
+        with pytest.raises(ValueError):
+            self.audio_text_integrator.time_step = -2.0
+
+        with pytest.raises(TypeError):
+            self.audio_text_integrator.time_step = 'k'
+
+
     def test_apply(self):
+        with pytest.raises(TypeError):
+            out  = self.audio_text_integrator.apply(self.filepath, 'k')
+
         out  = self.audio_text_integrator.apply(self.filepath, self.text_audio_transcription['time'])
         assert all(out['text_token_id'] == self.text_audio_transcription['text_token_id'])
         assert [token in ['', 'maak', 'en', 'er', 'groen', 'als'] for token in out['text_token']]

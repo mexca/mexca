@@ -18,6 +18,18 @@ class TestSpeakerIdentifier:
         ), 'r', encoding="utf-8") as file:
         ref_speakers = Annotation.from_json(json.loads(file.read()))
 
+
+    def test_properties(self):
+        with pytest.raises(TypeError):
+            self.speaker_identifier.pyannote_audio = 3.0
+
+        with pytest.raises(ValueError):
+            self.speaker_identifier.num_speakers = -1
+
+        with pytest.raises(TypeError):
+            self.speaker_identifier.num_speakers = 'k'
+
+
     def test_apply(self):
         speakers = self.speaker_identifier.apply(self.filepath)
         track_pairs = itertools.zip_longest(
