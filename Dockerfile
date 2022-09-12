@@ -13,4 +13,4 @@ RUN if [ "$version" = "devel" ]; then pip install .; else pip install mexca; fi
 # Download pretrained models to prevent download every time the container starts
 RUN python docker/download_models.py
 EXPOSE 8000
-ENTRYPOINT [ "python", "bin/mexca-pipeline.py" ]
+ENTRYPOINT [ "mexca-pipeline" ]

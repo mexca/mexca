@@ -5,14 +5,14 @@ The **mexca** pipeline can be run via the command line after installing the pack
 
 .. code-block:: console
 
-  python mexca-pipeline.py -f path/to/video_file -o output.json
+  mexca-pipeline -f path/to/video_file -o output.json
 
 Note, that if **mexca** has been installed in a virtual environment, the command might need to be executed from a specific location depending on the environment.
 For example, when using `venv`:
 
 .. code-block:: console
 
-  python bin/mexca-pipeline.py -f path/to/video_file -o output.json
+  ./bin/mexca-pipeline -f path/to/video_file -o output.json
 
 The `mexca-pipeline` command requires two arguments: The path to the video file to be processed and the name of a .json file in which the output is stored (here called output.json as an example). **Note**: Currently, the output file must be .json format.
 Furthermore, the script can be run with additional arguments (run the scirpt with the `-h` or `--help` argument):
