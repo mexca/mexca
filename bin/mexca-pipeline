@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+
 """Apply the mexca pipeline to a video file from the command line.
 
 This script is used by the docker container.
