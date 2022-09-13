@@ -4,12 +4,14 @@ import json
 import os
 import pytest
 from mexca.core.exceptions import TimeStepError
-from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber
+from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber, TextRestaurator, SentimentExtractor
 
 
 class TestAudioTextIntegration:
     audio_text_integrator = AudioTextIntegrator(
-        audio_transcriber=AudioTranscriber(language='dutch')
+        audio_transcriber=AudioTranscriber(language='dutch'),
+        text_restaurator=TextRestaurator(),
+        sentiment_extractor=SentimentExtractor()
     )
     filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
 
