@@ -8,8 +8,8 @@ from mexca.audio.identification import SpeakerIdentifier
 from mexca.audio.integration import AudioIntegrator
 from mexca.core.output import Multimodal
 from mexca.core.pipeline import Pipeline
-from mexca.text.transcription import AudioTextIntegrator
-from mexca.text.transcription import AudioTranscriber
+from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber, TextRestaurator
+from mexca.text.sentiment import SentimentExtractor
 from mexca.video.extraction import FaceExtractor
 
 
@@ -28,7 +28,9 @@ class TestPipeline:
                 VoiceExtractor()
             ),
             text=AudioTextIntegrator(
-                audio_transcriber=AudioTranscriber(language='english')
+                audio_transcriber=AudioTranscriber(language='english'),
+                text_restaurator=TextRestaurator(),
+                sentiment_extractor=SentimentExtractor()
             )
         )
         pipeline_result = pipeline.apply(
@@ -88,6 +90,8 @@ class TestPipeline:
         pipeline_text = Pipeline(
             text=AudioTextIntegrator(
                 audio_transcriber=AudioTranscriber(language='english'),
+                text_restaurator=TextRestaurator(),
+                sentiment_extractor=SentimentExtractor(),
                 time_step=0.08
             )
         )

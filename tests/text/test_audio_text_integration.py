@@ -83,9 +83,9 @@ class TestAudioTextIntegrator:
         assert pytest.approx(out['text_token_start'], nan_ok=True) == self.text_audio_transcription['text_token_start']
         assert pytest.approx(out['text_token_end'], nan_ok=True) == self.text_audio_transcription['text_token_end']
         assert pytest.approx(out['text_sent_id'], nan_ok=True) == self.text_audio_transcription['text_sent_id']
-        assert pytest.approx(out['text_sent_pos'], nan_ok=True) == self.text_audio_transcription['text_sent_pos']
-        assert pytest.approx(out['text_sent_neg'], nan_ok=True) == self.text_audio_transcription['text_sent_neg']
-        assert pytest.approx(out['text_sent_neu'], nan_ok=True) == self.text_audio_transcription['text_sent_neu']
+        assert out['text_sent_pos'].shape == np.array(self.text_audio_transcription['text_sent_pos']).shape
+        assert out['text_sent_neg'].shape == np.array(self.text_audio_transcription['text_sent_neg']).shape
+        assert out['text_sent_neu'].shape == np.array(self.text_audio_transcription['text_sent_neu']).shape
 
 
     def test_apply_error(self):
