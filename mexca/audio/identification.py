@@ -44,7 +44,8 @@ class SpeakerIdentifier:
 
     @property
     def pyannote_audio(self):
-        """The pyannote speaker diarization pipeline. Must be instance of `Pipeline` class. See `pyanote.audio <https://github.com/pyannote/pyannote-audio>`_ for details.
+        """The pyannote speaker diarization pipeline. Must be instance of `Pipeline` class.
+        See `pyanote.audio <https://github.com/pyannote/pyannote-audio>`_ for details.
         """
         return self._pyannote_audio
 

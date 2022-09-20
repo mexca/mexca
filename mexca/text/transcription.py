@@ -105,6 +105,7 @@ class TextRestaurator:
         self.punctuator = PunctuationModel(self.model)
         self.sentencizer = Language(Vocab())
         self.sentencizer.add_pipe('sentencizer')
+        self.set_token_extensions()
 
 
     @property
@@ -153,8 +154,8 @@ class TextRestaurator:
         Sets custom token attributes `time_start` and `time_end`.
 
         """
-        Token.set_extension('time_start')
-        Token.set_extension('time_end')
+        Token.set_extension('time_start', default=np.nan, force=True)
+        Token.set_extension('time_end', default=np.nan, force=True)
 
 
     def apply(self, text):
