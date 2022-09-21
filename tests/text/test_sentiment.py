@@ -12,9 +12,10 @@ from mexca.text.sentiment import SequenceClassifier, SentimentExtractor
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestSequenceClassifier:
-    classifier = SequenceClassifier("cardiffnlp/twitter-xlm-roberta-base-sentiment")
-    text = 'Today was a good day!'
-    reference = [0.01545323, 0.06419527, 0.9203513]
+    if platform.system() not in ['Windows', 'Linux']:
+        classifier = SequenceClassifier("cardiffnlp/twitter-xlm-roberta-base-sentiment")
+        text = 'Today was a good day!'
+        reference = [0.01545323, 0.06419527, 0.9203513]
 
     def test_properties(self):
         with pytest.raises(TypeError):
@@ -37,14 +38,15 @@ class TestSequenceClassifier:
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestSentimentExtractor:
-    extractor = SentimentExtractor()
-    doc = Doc(
-        Vocab(),
-        words=['Today', 'was', 'a', 'good', 'day', '!'],
-        spaces=[True, True, True, True, False, False],
-        sent_starts=[True, False, False, False, False, False]
-    )
-    reference = [0.01545323, 0.06419527, 0.9203513]
+    if platform.system() not in ['Windows', 'Linux']:
+        extractor = SentimentExtractor()
+        doc = Doc(
+            Vocab(),
+            words=['Today', 'was', 'a', 'good', 'day', '!'],
+            spaces=[True, True, True, True, False, False],
+            sent_starts=[True, False, False, False, False, False]
+        )
+        reference = [0.01545323, 0.06419527, 0.9203513]
 
     def test_properties(self):
         with pytest.raises(TypeError):

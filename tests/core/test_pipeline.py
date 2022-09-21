@@ -83,8 +83,8 @@ class TestPipeline:
 
 
     @pytest.mark.skipif(
-        platform.system() == 'Windows',
-        reason='VMs run out of memory on windows'
+        platform.system() in ['Windows', 'Linux'],
+        reason='VMs run out of memory on windows and linux'
     )
     def test_pipeline_text(self):
         pipeline_text = Pipeline(

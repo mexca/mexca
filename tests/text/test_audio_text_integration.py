@@ -17,7 +17,7 @@ from mexca.text.transcription import (
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestTextRestaurator:
-    if platform.system() in ['Windows', 'Linux']:
+    if platform.system() not in ['Windows', 'Linux']:
         restaurator = TextRestaurator()
 
     def test_properties(self):
