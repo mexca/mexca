@@ -17,7 +17,8 @@ from mexca.text.transcription import (
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestTextRestaurator:
-    restaurator = TextRestaurator()
+    if platform.system() in ['Windows', 'Linux']:
+        restaurator = TextRestaurator()
 
     def test_properties(self):
         with pytest.raises(TypeError):
@@ -51,18 +52,19 @@ class TestTextRestaurator:
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestAudioTextIntegrator:
-    audio_text_integrator = AudioTextIntegrator(
-        audio_transcriber=AudioTranscriber(language='dutch'),
-        text_restaurator=TextRestaurator(),
-        sentiment_extractor=SentimentExtractor()
-    )
-    filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
+    if platform.system() not in ['Windows', 'Linux']:
+        audio_text_integrator = AudioTextIntegrator(
+            audio_transcriber=AudioTranscriber(language='dutch'),
+            text_restaurator=TextRestaurator(),
+            sentiment_extractor=SentimentExtractor()
+        )
+        filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
 
-    # reference output
-    with open(
-        os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
-        'r', encoding="utf-8") as file:
-        text_audio_transcription = json.loads(file.read())
+        # reference output
+        with open(
+            os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
+            'r', encoding="utf-8") as file:
+            text_audio_transcription = json.loads(file.read())
 
 
     def test_properties(self):
