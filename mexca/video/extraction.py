@@ -44,12 +44,12 @@ class FaceExtractor:
 
 
     def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
-        self._mtcnn = MTCNN(keep_all=True)
-        self._resnet = InceptionResnetV1(
+        self.mtcnn = MTCNN(keep_all=True)
+        self.resnet = InceptionResnetV1(
             pretrained='vggface2'
         ).eval()
-        self._cluster = SpectralClusterer(**clargs)
-        self._pyfeat = feat.detector.Detector(
+        self.cluster = SpectralClusterer(**clargs)
+        self.pyfeat = feat.detector.Detector(
             au_model=au_model,
             landmark_model=landmark_model
         )
