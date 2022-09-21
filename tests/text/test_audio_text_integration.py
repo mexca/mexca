@@ -2,6 +2,7 @@
 
 import json
 import os
+import platform
 import pytest
 import numpy as np
 from spacy.tokens import Doc
@@ -11,6 +12,10 @@ from mexca.text.transcription import (
     TextRestaurator, SentimentExtractor
 )
 
+@pytest.mark.skipif(
+    platform.system() in ['Windows', 'Linux'],
+    reason='VMs run out of memory on Windows and Linux'
+)
 class TestTextRestaurator:
     restaurator = TextRestaurator()
 
@@ -41,6 +46,10 @@ class TestTextRestaurator:
         assert hasattr(text_restored, 'sents')
 
 
+@pytest.mark.skipif(
+    platform.system() in ['Windows', 'Linux'],
+    reason='VMs run out of memory on Windows and Linux'
+)
 class TestAudioTextIntegrator:
     audio_text_integrator = AudioTextIntegrator(
         audio_transcriber=AudioTranscriber(language='dutch'),

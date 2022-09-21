@@ -1,11 +1,16 @@
 """ Test audio sentiment extraction classes and methods """
 
+import platform
 import pytest
 from spacy.language import Vocab
 from spacy.tokens import Doc
 from mexca.text.sentiment import SequenceClassifier, SentimentExtractor
 
 
+@pytest.mark.skipif(
+    platform.system() in ['Windows', 'Linux'],
+    reason='VMs run out of memory on Windows and Linux'
+)
 class TestSequenceClassifier:
     classifier = SequenceClassifier("cardiffnlp/twitter-xlm-roberta-base-sentiment")
     text = 'Today was a good day!'
@@ -27,6 +32,10 @@ class TestSequenceClassifier:
         assert pytest.approx(scores[0].tolist()) == self.reference
 
 
+@pytest.mark.skipif(
+    platform.system() in ['Windows', 'Linux'],
+    reason='VMs run out of memory on Windows and Linux'
+)
 class TestSentimentExtractor:
     extractor = SentimentExtractor()
     doc = Doc(
