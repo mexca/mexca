@@ -6,9 +6,11 @@
 Welcome to mexca's Documentation!
 =================================
 
-**Mexca** is an open-source Python package which aims to capture human emotion expressions in videos. It uses pre-trained deep neural networks to identify faces and speakers in videos, and it extracts (i) facial features (e.g., `action units <https://en.wikipedia.org/wiki/Facial_Action_Coding_System#Codes_for_action_units>`_), (ii) acoustic properties of speech (e.g., voice pitch) and (iii) the transcribed speech. The output is a 2-dimensional dataset which contains these features on a fine-grained temporal scale (i.e, frame-by-frame) that can be exported in a csv format. 
+**Mexca** is an open-source Python package which aims to capture human emotion expressions from videos in a single pipeline.
 
-If you would like to learn how to use **mexca**, the best place to start is our `demo <https://github.com/mexca/mexca/tree/main/examples>`_ tutorial.
+Check out our `features <https://mexca.readthedocs.io/en/latest/features.html>`_ page to get information on how **mexca** extracts emotion expressions and our `output <https://mexca.readthedocs.io/en/latest/output.html>`_ page on which features are captured.
+
+If you would like to learn how to use **mexca**, we recommend starting with one of our `examples <https://github.com/mexca/mexca/tree/main/examples>`_.
 
 Contents:
 

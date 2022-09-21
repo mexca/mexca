@@ -37,10 +37,14 @@ Text
 
 Output extracted from the spoken text processing has the prefix `text_`. The text is extracted as tokens (i.e, words) which usually change much slower than video and audio features. Therefore, tokens are repeated for rows where `time` matches their start and end to align the text with the other two modalities.
 
-- `text_token_id`: The ID of the text token (i.e., word, starting at zero).
+- `text_token_id`: The index of the text token (i.e., word, starting at zero).
 - `text_token`: The text string of the token.
 - `text_token_start`: The time stamp where the token starts (in seconds).
 - `text_token_end`: The time stamp where the token ends (in seconds).
+- `text_sent_id`: The index of the sentence the token belongs to.
+- `text_sent_pos`: The positive sentiment score of the sentence the token belongs to.
+- `text_sent_neg`: The negative sentiment score of the sentence the token belongs to.
+- `text_sent_neu`: The neutral sentiment score of the sentence the token belongs to.
 
 Other
 -----
