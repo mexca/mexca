@@ -144,7 +144,7 @@ class FaceExtractor:
 
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-        boxes, probs = self.mtcnn.detect(img, landmarks=False)
+        boxes, probs = self.mtcnn.detect(img, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
 
         faces = self.mtcnn.extract(frame, boxes, save_path=None)
 
