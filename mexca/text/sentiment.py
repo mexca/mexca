@@ -2,9 +2,13 @@
 """
 
 import numpy as np
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from transformers import PreTrainedTokenizer, PreTrainedTokenizerFast, PreTrainedModel
 from scipy.special import softmax
+from transformers import AutoModelForSequenceClassification
+from transformers import AutoTokenizer
+from transformers import PreTrainedModel
+from transformers import PreTrainedTokenizer
+from transformers import PreTrainedTokenizerFast
+
 
 class SequenceClassifier:
     """A classifier for text sequences.

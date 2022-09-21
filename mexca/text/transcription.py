@@ -13,7 +13,6 @@ from mexca.core.utils import create_time_var_from_step
 from mexca.text.sentiment import SentimentExtractor
 
 
-
 class AudioTranscriber:
     """Transcribe speech from audio to text.
 
