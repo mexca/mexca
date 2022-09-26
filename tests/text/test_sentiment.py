@@ -12,6 +12,7 @@ from mexca.text.sentiment import SequenceClassifier, SentimentExtractor
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestSequenceClassifier:
+    # Inititating the object causes memory issues on Windows and Linux
     if platform.system() not in ['Windows', 'Linux']:
         classifier = SequenceClassifier("cardiffnlp/twitter-xlm-roberta-base-sentiment")
         text = 'Today was a good day!'
@@ -38,6 +39,7 @@ class TestSequenceClassifier:
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestSentimentExtractor:
+    # Inititating the object causes memory issues on Windows and Linux
     if platform.system() not in ['Windows', 'Linux']:
         extractor = SentimentExtractor()
         doc = Doc(

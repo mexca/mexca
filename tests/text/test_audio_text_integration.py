@@ -17,6 +17,7 @@ from mexca.text.transcription import (
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestTextRestaurator:
+    # Inititating the object causes memory issues on Windows and Linux
     if platform.system() not in ['Windows', 'Linux']:
         restaurator = TextRestaurator()
 
@@ -52,6 +53,7 @@ class TestTextRestaurator:
     reason='VMs run out of memory on Windows and Linux'
 )
 class TestAudioTextIntegrator:
+    # Inititating the object causes memory issues on Windows and Linux
     if platform.system() not in ['Windows', 'Linux']:
         audio_text_integrator = AudioTextIntegrator(
             audio_transcriber=AudioTranscriber(language='dutch'),

@@ -86,9 +86,8 @@ class SequenceClassifier:
         tokens = self.tokenizer(text, return_tensors='pt')
         output = self.classifier(**tokens)
         logits = output.logits.detach().numpy()
-        scores = softmax(logits)
 
-        return scores
+        return softmax(logits)
 
 
 class SentimentExtractor:
