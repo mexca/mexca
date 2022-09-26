@@ -13,15 +13,15 @@ jobs:
 
   sonarcloud:
     name: SonarCloud
-    runs-on: macos-latest
-    # env:
-    #   HDF5_DISABLE_VERSION_CHECK: 1
+    runs-on: ubuntu-latest
+    env:
+      HDF5_DISABLE_VERSION_CHECK: 1
     steps:
       - uses: actions/checkout@v3
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
-      # - name: Download libsndfile
-      #  run: sudo apt-get install libsndfile1
+      - name: Download libsndfile
+        run: sudo apt-get install libsndfile1
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
