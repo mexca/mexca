@@ -2,7 +2,6 @@
 
 import json
 import os
-import platform
 import pytest
 import numpy as np
 from spacy.tokens import Doc
@@ -12,27 +11,28 @@ from mexca.text.transcription import (
     TextRestaurator, SentimentExtractor
 )
 
-@pytest.mark.skipif(
-    platform.system() in ['Windows', 'Linux'],
-    reason='VMs run out of memory on Windows and Linux'
-)
+# Skip tests on GitHub actions runner for Windows and Linux but
+# allow local runs
+@pytest.mark.skip_env('runner')
+@pytest.mark.skip_os(['Windows', 'Linux'])
 class TestTextRestaurator:
-    # Inititating the object causes memory issues on Windows and Linux
-    if platform.system() not in ['Windows', 'Linux']:
-        restaurator = TextRestaurator()
 
-    def test_properties(self):
-        with pytest.raises(TypeError):
-            self.restaurator.model = -1
+    @pytest.fixture
+    def restaurator(self):
+        return TextRestaurator()
 
+    def test_properties(self, restaurator):
         with pytest.raises(TypeError):
-            self.restaurator.punctuator = 'k'
+            restaurator.model = -1
 
         with pytest.raises(TypeError):
-            self.restaurator.sentencizer = 'k'
+            restaurator.punctuator = 'k'
+
+        with pytest.raises(TypeError):
+            restaurator.sentencizer = 'k'
 
 
-    def test_apply(self):
+    def test_apply(self, restaurator):
         text = 'today is a good day yesterday was not a good day'
 
         transcription = {
@@ -41,56 +41,57 @@ class TestTextRestaurator:
             'end_timestamps': np.arange(len(text))
         }
 
-        text_restored = self.restaurator.apply(transcription)
+        text_restored = restaurator.apply(transcription)
 
         assert text_restored.text == 'today is a good day. yesterday was not a good day.'
         assert isinstance(text_restored, Doc)
         assert hasattr(text_restored, 'sents')
 
 
-@pytest.mark.skipif(
-    platform.system() in ['Windows', 'Linux'],
-    reason='VMs run out of memory on Windows and Linux'
-)
+# Skip tests on GitHub actions runner for Windows and Linux but
+# allow local runs
+@pytest.mark.skip_env('runner')
+@pytest.mark.skip_os(['Windows', 'Linux'])
 class TestAudioTextIntegrator:
-    # Inititating the object causes memory issues on Windows and Linux
-    if platform.system() not in ['Windows', 'Linux']:
-        audio_text_integrator = AudioTextIntegrator(
+    filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
+
+    # reference output
+    with open(
+        os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
+        'r', encoding="utf-8") as file:
+        text_audio_transcription = json.loads(file.read())
+
+    @pytest.fixture
+    def audio_text_integrator(self):
+        return AudioTextIntegrator(
             audio_transcriber=AudioTranscriber(language='dutch'),
             text_restaurator=TextRestaurator(),
             sentiment_extractor=SentimentExtractor()
         )
-        filepath = os.path.join('tests', 'test_files', 'test_dutch_5_seconds.wav')
-
-        # reference output
-        with open(
-            os.path.join('tests', 'reference_files', 'reference_dutch_5_seconds.json'),
-            'r', encoding="utf-8") as file:
-            text_audio_transcription = json.loads(file.read())
 
 
-    def test_properties(self):
+    def test_properties(self, audio_text_integrator):
         with pytest.raises(TypeError):
-            self.audio_text_integrator.audio_transcriber = 'k'
+            audio_text_integrator.audio_transcriber = 'k'
 
         with pytest.raises(TypeError):
-            self.audio_text_integrator.text_restaurator = 'k'
+            audio_text_integrator.text_restaurator = 'k'
 
         with pytest.raises(TypeError):
-            self.audio_text_integrator.sentiment_extractor = 'k'
+            audio_text_integrator.sentiment_extractor = 'k'
 
         with pytest.raises(ValueError):
-            self.audio_text_integrator.time_step = -2.0
+            audio_text_integrator.time_step = -2.0
 
         with pytest.raises(TypeError):
-            self.audio_text_integrator.time_step = 'k'
+            audio_text_integrator.time_step = 'k'
 
 
-    def test_apply(self):
+    def test_apply(self, audio_text_integrator):
         with pytest.raises(TypeError):
-            out  = self.audio_text_integrator.apply(self.filepath, 'k')
+            out  = audio_text_integrator.apply(self.filepath, 'k')
 
-        out  = self.audio_text_integrator.apply(self.filepath, self.text_audio_transcription['time'])
+        out  = audio_text_integrator.apply(self.filepath, self.text_audio_transcription['time'])
         assert pytest.approx(out['text_token_id'], nan_ok=True) == self.text_audio_transcription['text_token_id']
         assert [token in ['', 'maak', 'en', 'er', 'groen', 'als'] for token in out['text_token']]
         assert pytest.approx(out['text_token_start'], nan_ok=True) == self.text_audio_transcription['text_token_start']
@@ -101,6 +102,6 @@ class TestAudioTextIntegrator:
         assert out['text_sent_neu'].shape == np.array(self.text_audio_transcription['text_sent_neu']).shape
 
 
-    def test_apply_error(self):
+    def test_apply_error(self, audio_text_integrator):
         with pytest.raises(TimeStepError):
-            self.audio_text_integrator.apply(self.filepath, time=None)
+            audio_text_integrator.apply(self.filepath, time=None)

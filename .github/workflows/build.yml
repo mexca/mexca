@@ -38,7 +38,7 @@ jobs:
           python3 -m pip install --upgrade pip setuptools
           python3 -m pip install .[dev,publishing]
       - name: Run unit tests
-        run: pytest -vv
+        run: pytest -vv -E runner
       - name: Verify that we can build the package
         run: python3 setup.py sdist bdist_wheel
 
