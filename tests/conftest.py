@@ -36,3 +36,11 @@ def pytest_runtest_setup(item):
     if envnames and osnames:
         if item.config.getoption("-E") in envnames and platform.system() in osnames[0]:
             pytest.skip(f"Test skipped because env in {envnames} and os in {osnames[0]}")
+
+    elif envnames:
+        if item.config.getoption("-E") in envnames:
+            pytest.skip(f"Test skipped because env in {envnames}")
+
+    elif osnames:
+        if platform.system() in osnames[0]:
+            pytest.skip(f"Test skipped because os in {osnames[0]}")

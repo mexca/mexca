@@ -1,6 +1,5 @@
 """ Test audio sentiment extraction classes and methods """
 
-import platform
 import pytest
 from spacy.language import Vocab
 from spacy.tokens import Doc

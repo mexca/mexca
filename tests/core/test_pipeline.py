@@ -1,7 +1,6 @@
 """ Test pipeline class and methods """
 
 import os
-import platform
 import pytest
 from mexca.audio.extraction import VoiceExtractor
 from mexca.audio.identification import SpeakerIdentifier
