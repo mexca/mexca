@@ -35,7 +35,8 @@ class FaceExtractor:
 
     Notes
     -----
-    For details on the available `au_model` and `landmark_model` arguments, see the documentation of `py-feat <https://py-feat.org/pages/models.html>`_.
+    For details on the available `au_model` and `landmark_model` arguments,
+    see the documentation of `py-feat <https://py-feat.org/pages/models.html>`_.
     The pretrained action unit models return different outputs: `JAANET` returns intensities (0-1) for 12 action units,
     whereas `svm` and `logistic` return presence/absence (1/0) values for 20 action units.
 
@@ -43,12 +44,12 @@ class FaceExtractor:
 
 
     def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
-        self._mtcnn = MTCNN(keep_all=True)
-        self._resnet = InceptionResnetV1(
+        self.mtcnn = MTCNN(keep_all=True)
+        self.resnet = InceptionResnetV1(
             pretrained='vggface2'
         ).eval()
-        self._cluster = SpectralClusterer(**clargs)
-        self._pyfeat = feat.detector.Detector(
+        self.cluster = SpectralClusterer(**clargs)
+        self.pyfeat = feat.detector.Detector(
             au_model=au_model,
             landmark_model=landmark_model
         )
@@ -56,7 +57,9 @@ class FaceExtractor:
 
     @property
     def mtcnn(self):
-        """The MTCNN model for face detection and extraction. Must be instance of ``MTCNN`` class. See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
+        """The MTCNN model for face detection and extraction.
+        Must be instance of ``MTCNN`` class.
+        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
         """
         return self._mtcnn
 
@@ -71,7 +74,9 @@ class FaceExtractor:
 
     @property
     def resnet(self):
-        """The ResnetV1 model for computing face embeddings. Uses the pretrained 'vggface2' version by default. Must be instance of ``InceptionResnetV1`` class. See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
+        """The ResnetV1 model for computing face embeddings. Uses the pretrained 'vggface2' version by default.
+        Must be instance of ``InceptionResnetV1`` class.
+        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
         """
         return self._resnet
 
@@ -86,7 +91,9 @@ class FaceExtractor:
 
     @property
     def cluster(self):
-        """The spectral clustering model for identifying faces based on embeddings. Must be instance of ``SpectralClusterer`` class. See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
+        """The spectral clustering model for identifying faces based on embeddings.
+        Must be instance of ``SpectralClusterer`` class.
+        See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
         """
         return self._cluster
 
@@ -101,7 +108,8 @@ class FaceExtractor:
 
     @property
     def pyfeat(self):
-        """The model for extracting facial landmarks and action units. Must be instance of ``Detector`` class See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
+        """The model for extracting facial landmarks and action units. Must be instance of ``Detector`` class.
+        See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
         """
         return self._pyfeat
 
@@ -127,7 +135,8 @@ class FaceExtractor:
         faces: torch.tensor
             Tensor containing the N cropped face images from the frame with dimensions (N, 3, 160, 160).
         boxes: numpy.ndarray
-            Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with dimensions (N, 4).
+            Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with
+            dimensions (N, 4).
         probs: numpy.ndarray
             Probabilities of the detected faces.
 
@@ -135,7 +144,7 @@ class FaceExtractor:
 
         img = Image.fromarray(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
 
-        boxes, probs = self.mtcnn.detect(img, landmarks=False)
+        boxes, probs = self.mtcnn.detect(img, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
 
         faces = self.mtcnn.extract(frame, boxes, save_path=None)
 
@@ -148,7 +157,8 @@ class FaceExtractor:
         Parameters
         ----------
         faces: torch.tensor
-            Tensor containing N face images with dimensions (N, 3, H, W). H and W must at least be 80 for the encoding to work.
+            Tensor containing N face images with dimensions (N, 3, H, W). H and W must at least be 80 for
+            the encoding to work.
 
         Returns
         -------
@@ -167,7 +177,8 @@ class FaceExtractor:
         Parameters
         ----------
         embeddings: numpy.ndarray
-            Array containing embeddings of the N face images with dimensions (N, E) where E is the length of the embedding vector.
+            Array containing embeddings of the N face images with dimensions (N, E) where E is the length
+            of the embedding vector.
 
         Returns
         -------
@@ -191,7 +202,8 @@ class FaceExtractor:
         frame: numpy.ndarray
             Array containing the RGB values of a video frame with dimensions (H, W, 3).
         boxes: numpy.ndarray
-            Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with dimensions (N, 4).
+            Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates
+            with dimensions (N, 4).
 
         Returns
         -------
@@ -216,7 +228,7 @@ class FaceExtractor:
             aus = self.pyfeat.detect_aus(frame, landmarks)
 
         # Remove first redundant dimension from landmarks array; new first dim = # of detected faces
-        landmarks_np = np.array(landmarks).reshape(-1, 68, 2)
+        landmarks_np = np.array(landmarks).reshape((-1, 68, 2))
 
         return landmarks_np, aus
 

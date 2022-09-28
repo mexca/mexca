@@ -8,8 +8,10 @@ from mexca.audio.identification import SpeakerIdentifier
 from mexca.audio.integration import AudioIntegrator
 from mexca.core.output import Multimodal
 from mexca.core.preprocessing import Video2AudioConverter
+from mexca.text.sentiment import SentimentExtractor
 from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
+from mexca.text.transcription import TextRestaurator
 from mexca.video.extraction import FaceExtractor
 
 
@@ -42,7 +44,8 @@ class Pipeline:
     ...         VoiceExtractor()
     ...     ),
     ...     text=AudioTextIntegrator(
-    ...         audio_transcriber=AudioTranscriber('english')
+    ...         audio_transcriber=AudioTranscriber('english'),
+    ...         sentiment_extractor=SentimentExtractor()
     ...     )
     ... )
 
@@ -130,7 +133,9 @@ class Pipeline:
                 VoiceExtractor(features=features)
             ),
             text=AudioTextIntegrator(
-                audio_transcriber=AudioTranscriber(language)
+                audio_transcriber=AudioTranscriber(language),
+                text_restaurator=TextRestaurator(),
+                sentiment_extractor=SentimentExtractor()
             )
         )
 
@@ -168,7 +173,8 @@ class Pipeline:
 
         Returns
         -------
-        A ``Multimodal`` class instance that contains the extracted features in the `features` attribute. See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_ section for details.
+        A ``Multimodal`` class instance that contains the extracted features in the `features` attribute.
+        See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_ section for details.
 
         See Also
         --------
