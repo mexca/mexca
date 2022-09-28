@@ -1,5 +1,0 @@
-# Omit files in coverage for which tests are skipped on GitHub action runners
-[run]
-omit =
-    mexca/core/pipeline.py
-    mexca/text/*
