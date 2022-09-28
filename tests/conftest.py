@@ -1,4 +1,5 @@
-"""Configure custom pytest markers for skipping tests on specific platforms and environments (e.g., GitHub action runners).
+"""Configure custom pytest markers for skipping tests on specific
+platforms and environments (e.g., GitHub action runners).
 """
 
 import platform

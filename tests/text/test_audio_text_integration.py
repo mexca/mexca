@@ -17,6 +17,7 @@ from mexca.text.transcription import (
 @pytest.mark.skip_os(['Windows', 'Linux'])
 class TestTextRestaurator:
 
+    # Use fixture to prevent class from being initialized when tests are skipped
     @pytest.fixture
     def restaurator(self):
         return TextRestaurator()
@@ -48,8 +49,6 @@ class TestTextRestaurator:
         assert hasattr(text_restored, 'sents')
 
 
-# Skip tests on GitHub actions runner for Windows and Linux but
-# allow local runs
 @pytest.mark.skip_env('runner')
 @pytest.mark.skip_os(['Windows', 'Linux'])
 class TestAudioTextIntegrator:

@@ -14,12 +14,16 @@ from mexca.video.extraction import FaceExtractor
 
 
 class TestPipeline:
+    """VMs run out of memory when running pipeline on example.
+    We cannot choose a smaller example because pipeline requires sufficient frames.
+    """
+
     filepath = os.path.join(
         'tests', 'test_files', 'test_video_audio_5_seconds.mp4'
     )
 
-    @pytest.mark.skip(reason="""VMs run out of memory when running pipeline on example.
-    We cannot choose a smaller example because pipeline requires sufficient frames.""")
+    # Skip tests on GitHub actions runner but allow local runs
+    @pytest.mark.skip_env('runner')
     def test_apply(self):
         pipeline = Pipeline(
             video=FaceExtractor(min_clusters=1, max_clusters=3),
@@ -41,16 +45,14 @@ class TestPipeline:
         # Only test if pipeline completes because the features are covered elsewhere
         assert isinstance(pipeline_result, Multimodal)
 
-    @pytest.mark.skip(reason="""VMs run out of memory when initiating default pipeline.""")
+    @pytest.mark.skip_env('runner')
     def test_from_default(self):
         pipeline = Pipeline().from_default()
         assert isinstance(pipeline, Pipeline)
 
 
-    @pytest.mark.skipif(
-        platform.system() == 'Windows',
-        reason='VMs run out of memory on windows'
-    )
+    @pytest.mark.skip_env('runner')
+    @pytest.mark.skip_os(['Windows'])
     def test_pipeline_video(self):
         pipeline_video = Pipeline(
             video=FaceExtractor(min_clusters=1, max_clusters=3)
@@ -63,10 +65,8 @@ class TestPipeline:
         assert isinstance(pipeline_result, Multimodal)
 
 
-    @pytest.mark.skipif(
-        platform.system() == 'Windows',
-        reason='VMs run out of memory on windows'
-    )
+    @pytest.mark.skip_env('runner')
+    @pytest.mark.skip_os(['Windows'])
     def test_pipeline_audio(self):
         pipeline_audio = Pipeline(
             audio=AudioIntegrator(
@@ -82,10 +82,8 @@ class TestPipeline:
         assert isinstance(pipeline_result, Multimodal)
 
 
-    @pytest.mark.skipif(
-        platform.system() in ['Windows', 'Linux'],
-        reason='VMs run out of memory on windows and linux'
-    )
+    @pytest.mark.skip_env('runner')
+    @pytest.mark.skip_os(['Windows', 'Linux'])
     def test_pipeline_text(self):
         pipeline_text = Pipeline(
             text=AudioTextIntegrator(
