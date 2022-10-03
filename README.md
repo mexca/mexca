@@ -115,8 +115,11 @@ OSError: cannot load library '...venv/lib/python3.9/site-packages/_soundfile_dat
 ```
 
 To fix this:
+
 (1) Make sure that you have installed libsndfile via brew, if not [install it](https://formulae.brew.sh/formula/libsndfile). 
+
 (2) copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘ 
+
 (3) Restart the kernel
 
 - OSError cannot load libllvmlite.dylib (Github issue [#650](https://github.com/numba/llvmlite/issues/650)):
