@@ -31,9 +31,10 @@ Please cite mexca if you use it for scientific or commercial purposes.
 
 
 ## Installation
+Mexca supports Python >=3.7 and Python <= 3.9. We recommend installing mexca via the terminal/command prompt.
 
-Mexca supports Python >=3.7 and Python <= 3.9.
-We recommend to install mexca in a new virtual environment, e.g., using `venv`:
+### Installation steps on Windows
+Open the terminal/command prompt (right-clicking the Windows icon in the bottom-left corner of your screen, or with the keyboard shortcut Windows Key + X). We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following within the terminal:
 
 ```console
 python3 -m venv mexca-venv
@@ -46,8 +47,7 @@ Alternatively, if you use conda:
 conda create -n mexca-venv
 conda activate mexca-venv
 ```
-
-Once you have activated your virtual environment you can then install mexca from PyPi:
+Once you have activated your virtual environment (mexca-venv) you can then install mexca from PyPi:
 
 ```console
 python3 -m pip install mexca
@@ -67,9 +67,80 @@ Or via:
 python3 -m pip install git+https://github.com/mexca/mexca.git
 ```
 
+### Installation steps on Unix/macOS
+Open the terminal (Click the Launchpad icon in the Dock, type Terminal in the search field, then click Terminal. Otherwise, you can use the keyboard shortcut Command + Space, and type in “Terminal”).
+
+We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following within the terminal:
+
+```console
+python3 -m venv mexca-venv
+source env/bin/activate
+```
+
+Alternatively, if you use conda:
+
+```console
+conda create -n mexca-venv
+conda activate mexca-venv
+```
+
+Once you have activated your virtual environment (mexca-venv) you can then install mexca from PyPi:
+
+```console
+python3 -m pip install mexca
+```
+
+To install mexca from the GitHub repository, do:
+
+```console
+git clone https://github.com/mexca/mexca.git
+cd mexca
+python3 -m pip install .
+```
+
+Or via:
+
+```console
+python3 -m pip install git+https://github.com/mexca/mexca.git
+```
+
+#### Issues installing mexca for M1 Macbook users
+
+Many ML libraries (that we import in Mexca) do not fully support Apple M1 yet, which leads to several issues in installing mexca. We provide below few workarounds for the most common issues. Note that the following fixes have been tested on python 3.9.0 in a conda environment, and they are dated back to 3rd of October 2022.
+
+- OSError cannot load libsndfile.dylib (Github issue [#311](https://github.com/bastibe/python-soundfile/pull/311)):
+
+```console
+OSError: cannot load library '...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib': dlopen(...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib, 2): image not found
+```
+
+To fix this:
+(1) Make sure that you have installed libsndfile via brew, if not [install it](https://formulae.brew.sh/formula/libsndfile). 
+(2) copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘ 
+(3) Restart the kernel
+
+- OSError cannot load libllvmlite.dylib (Github issue [#650](https://github.com/numba/llvmlite/issues/650)):
+
+```console
+OSError: Could not load shared object file: libllvmlite.dylib
+```
+
+To fix this,
+
+(1) type in the terminal:
+
+```console
+conda install -c numba numba
+conda install -c numba llvmlite
+```
+
+(2) Restart the kernel
+
+*TIP:* Make sure to run those fixes in the terminal, or in the jupyter notebook in a cell preceded by the symbol '!'. Make sure that the activated environment you're running the fixes is the one where you are attempting to install mexca (i.e., if you followed the installation steps above, it will be 'mexca-venv').
+
 ## Getting Started
 
-If you would like to learn how to use mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. 
+If you would like to learn how to use mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. Note that the demo runs in a [jupyter notebook](https://jupyter.org/). Jupyter lets users easily combine markdown text with executable Python code on a canvas called 'notebook'. For installing jupyter, and using the notebook please refer to the [official installation guide](https://docs.jupyter.org/en/latest/install/notebook-classic.html).
 
 Emotion expression features can be extracted with mexca using the following lines of code:
 
