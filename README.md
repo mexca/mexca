@@ -108,6 +108,8 @@ python3 -m pip install git+https://github.com/mexca/mexca.git
 
 Many ML libraries (that we import in Mexca) do not fully support Apple M1 yet, which leads to several issues in installing mexca. We provide below few workarounds for the most common issues. Note that the following fixes have been tested on python 3.9.0 in a conda environment, and they are dated back to 3rd of October 2022.
 
+Error n. 1: 
+
 - OSError cannot load libsndfile.dylib (Github issue [#311](https://github.com/bastibe/python-soundfile/pull/311)):
 
 ```console
@@ -121,6 +123,8 @@ To fix this:
 (2) copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘ 
 
 (3) Restart the kernel
+
+Error n. 2: 
 
 - OSError cannot load libllvmlite.dylib (Github issue [#650](https://github.com/numba/llvmlite/issues/650)):
 
