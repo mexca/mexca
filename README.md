@@ -68,7 +68,7 @@ python3 -m pip install git+https://github.com/mexca/mexca.git
 ```
 
 ### Installation Steps on Unix/macOS
-Open the terminal (Click the Launchpad icon in the Dock, type Terminal in the search field, then click Terminal. Otherwise, you can use the keyboard shortcut Command + Space, and type in “Terminal”).
+Open the terminal (click the Launchpad icon in the Dock, type “Terminal” in the search field; otherwise, you can use the keyboard shortcut `Command` + `Space`, and type in “Terminal”).
 
 We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following within the terminal:
 
