@@ -130,7 +130,7 @@ Error n. 2:
 OSError: Could not load shared object file: libllvmlite.dylib
 ```
 
-To fix this,
+To fix this:
 
 1. Type in the terminal:
 
