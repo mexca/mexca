@@ -139,7 +139,7 @@ conda install -c numba numba
 conda install -c numba llvmlite
 ```
 
-(2) Restart the kernel
+2. Restart the kernel.
 
 *TIP:* Make sure to run those fixes in the terminal, or in the jupyter notebook in a cell preceded by the symbol '!'. Make sure that the activated environment you're running the fixes is the one where you are attempting to install mexca (i.e., if you followed the installation steps above, it will be 'mexca-venv').
 
