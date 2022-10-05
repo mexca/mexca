@@ -33,8 +33,8 @@ Please cite mexca if you use it for scientific or commercial purposes.
 ## Installation
 Mexca supports Python >=3.7 and Python <= 3.9. We recommend installing mexca via the terminal/command prompt.
 
-### Installation steps on Windows
-Open the terminal/command prompt (right-clicking the Windows icon in the bottom-left corner of your screen, or with the keyboard shortcut Windows Key + X). We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following within the terminal:
+### Installation Steps on Windows
+Open the terminal/command prompt (by right-clicking the Windows icon in the bottom-left corner of your screen, or with the keyboard shortcut `Windows Key` + `X`). We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following in the terminal:
 
 ```console
 python3 -m venv mexca-venv
