@@ -132,7 +132,7 @@ OSError: Could not load shared object file: libllvmlite.dylib
 
 To fix this,
 
-(1) type in the terminal:
+1. Type in the terminal:
 
 ```console
 conda install -c numba numba
