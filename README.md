@@ -106,7 +106,7 @@ python3 -m pip install git+https://github.com/mexca/mexca.git
 
 #### Issues installing mexca for M1 Macbook users
 
-Many ML libraries (that we import in Mexca) do not fully support Apple M1 yet, which leads to several issues in installing mexca. We provide below few workarounds for the most common issues. Note that the following fixes have been tested on python 3.9.0 in a conda environment, and they are dated back to 3rd of October 2022.
+Many deep learning libraries that we import in mexca do not fully support the Apple M1 yet, which can lead to several issues when installing mexca. We provide few workarounds for the most common issues. They have been tested on Python 3.9.0 in a conda environment (last update 3/10/2022).
 
 Error n. 1: 
 
