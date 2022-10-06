@@ -87,6 +87,7 @@ Error n. 1:
 - OSError cannot load libsndfile.dylib (Github issue [#311](https://github.com/bastibe/python-soundfile/pull/311)):
 
 .. code-block:: console
+  
   OSError: cannot load library '...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib': dlopen(...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib, 2): image not found
 
 To fix this:
@@ -100,6 +101,7 @@ Error n. 2:
 - OSError cannot load libllvmlite.dylib (Github issue [#650](https://github.com/numba/llvmlite/issues/650)):
 
 .. code-block:: console
+
   OSError: Could not load shared object file: libllvmlite.dylib
 
 To fix this:
@@ -107,6 +109,7 @@ To fix this:
 1. Type in the terminal:
 
 .. code-block:: console
+
   conda install -c numba numba
   conda install -c numba llvmlite
 
