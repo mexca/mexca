@@ -48,12 +48,14 @@ Open the terminal (click the Launchpad icon in the Dock, type “Terminal” in 
 We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following within the terminal:
 
 .. code-block:: console
+
   python3 -m venv mexca-venv
   source env/bin/activate
 
 Alternatively, if you use conda:
 
 .. code-block:: console
+
   conda create -n mexca-venv
   conda activate mexca-venv
 
