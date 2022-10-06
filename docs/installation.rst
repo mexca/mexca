@@ -3,7 +3,9 @@ Installation
 
 **Mexca** supports Python >=3.7 and Python <= 3.9. We recommend installing mexca via the terminal/command prompt.
 
-## Installation Steps on Windows
+Installation Steps on Windows
+-----------------------------
+
 Open the terminal/command prompt (by right-clicking the Windows icon in the bottom-left corner of your screen, or with the keyboard shortcut `Windows Key` + `X`). We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following in the terminal:
 
 .. code-block:: console
@@ -38,7 +40,8 @@ Or via:
 
   python3 -m pip install git+https://github.com/mexca/mexca.git
 
-## Installation Steps on Unix/macOS
+Installation Steps on Unix/macOS
+--------------------------------
 
 Open the terminal (click the Launchpad icon in the Dock, type “Terminal” in the search field; otherwise, you can use the keyboard shortcut `Command` + `Space`, and type in “Terminal”).
 
@@ -74,7 +77,8 @@ Or via:
 
   python3 -m pip install git+https://github.com/mexca/mexca.git
 
-### Issues installing mexca for M1 Macbook users
+Issues installing mexca for M1 Macbook users
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Many deep learning libraries that we import in mexca do not fully support the Apple M1 yet, which can lead to several issues when installing mexca. We provide few workarounds for the most common issues. They have been tested on Python 3.9.0 in a conda environment (last update 3/10/2022).
 
