@@ -92,7 +92,7 @@ Error n. 1:
 
 To fix this:
 
-1. Make sure that you have installed libsndfile via brew, if not [install it](https://formulae.brew.sh/formula/libsndfile). 
+1. Make sure that you have installed libsndfile via brew, if not `install it <https://formulae.brew.sh/formula/libsndfile>`_. 
 2. Copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘ 
 3. Restart the kernel.
 
