@@ -84,10 +84,10 @@ Many deep learning libraries that we import in mexca do not fully support the Ap
 
 Error n. 1: 
 
-- OSError cannot load libsndfile.dylib (Github issue [#311](https://github.com/bastibe/python-soundfile/pull/311)):
+- OSError cannot load libsndfile.dylib (Github issue `#311 <https://github.com/bastibe/python-soundfile/pull/311>`_):
 
 .. code-block:: console
-  
+
   OSError: cannot load library '...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib': dlopen(...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib, 2): image not found
 
 To fix this:
@@ -98,7 +98,7 @@ To fix this:
 
 Error n. 2: 
 
-- OSError cannot load libllvmlite.dylib (Github issue [#650](https://github.com/numba/llvmlite/issues/650)):
+- OSError cannot load libllvmlite.dylib (Github issue `#650 <https://github.com/numba/llvmlite/issues/650>`_):
 
 .. code-block:: console
 
