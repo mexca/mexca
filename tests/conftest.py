@@ -4,6 +4,7 @@ platforms and environments (e.g., GitHub action runners).
 
 import platform
 import pytest
+from huggingface_hub import HfApi
 
 
 def pytest_addoption(parser):
@@ -13,6 +14,14 @@ def pytest_addoption(parser):
         "-E",
         action="store",
         metavar="NAME",
+        help="Only run tests matching the environment NAME",
+    )
+
+    parser.addoption(
+        "-T",
+        action="store",
+        metavar="HF_TOKEN",
+        type=str,
         help="Only run tests matching the environment NAME",
     )
 
@@ -26,6 +35,9 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "skip_os(name): mark test to run only on named os"
     )
+    auth_token = config.getoption("-T")
+    api = HfApi()
+    api.set_access_token(auth_token)
 
 
 def pytest_runtest_setup(item):
