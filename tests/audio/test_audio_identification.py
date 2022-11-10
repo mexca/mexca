@@ -9,7 +9,7 @@ from mexca.audio.identification import SpeakerIdentifier
 
 
 class TestSpeakerIdentifier:
-    speaker_identifier = SpeakerIdentifier()
+    speaker_identifier = SpeakerIdentifier(use_auth_token=os.environ["HF_TOKEN"])
     filepath = os.path.join(
         'tests', 'test_files', 'test_eng_5_seconds.wav'
     )
