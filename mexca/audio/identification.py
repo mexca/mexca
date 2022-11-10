@@ -18,7 +18,6 @@ class SpeakerIdentifier:
     pyannote_audio
 
     """
-<<<<<<< Updated upstream
     def __init__(self, num_speakers=None) -> 'SpeakerIdentifier':
         self.num_speakers = num_speakers
         self.pyannote_audio = Pipeline.from_pretrained("pyannote/speaker-diarization")
@@ -57,7 +56,6 @@ class SpeakerIdentifier:
             self._pyannote_audio = new_pyannote_audio
         else:
             raise TypeError('Can only set "pyannote_audio" to instance of "Pipeline" class')
-=======
     def __init__(self, use_auth_token=True) -> 'SpeakerIdentifier':
         """Create a class instance to apply speaker diarization.
 
@@ -80,7 +78,6 @@ class SpeakerIdentifier:
 
         """
         self._pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=use_auth_token)
->>>>>>> Stashed changes
 
 
     def apply(self, filepath):
