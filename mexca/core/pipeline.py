@@ -96,7 +96,7 @@ class Pipeline:
 
 
     @classmethod
-    def from_default(cls, voice='low', language='english'):
+    def from_default(cls, voice='low', language='english', use_auth_token=True):
         """Constructor method to create a pipeline with default components and settings.
 
         This method is a convenience wrapper for creating a standard pipeline.
@@ -107,6 +107,10 @@ class Pipeline:
             The expected frequency spectrum of the voices in the video.
         language: {'english', 'dutch'}
             The language of the speech in the video. Currently available are English and Dutch.
+        use_auth_token: bool or str, default=True
+            Whether to use the HuggingFace authentication token stored on the machine (if bool) or
+            a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``
+            and ``pyannote/segmentation`` (if str).
 
         Returns
         -------
@@ -129,7 +133,7 @@ class Pipeline:
         return cls(
             video=FaceExtractor(min_clusters=1),
             audio=AudioIntegrator(
-                SpeakerIdentifier(),
+                SpeakerIdentifier(use_auth_token=use_auth_token),
                 VoiceExtractor(features=features)
             ),
             text=AudioTextIntegrator(
