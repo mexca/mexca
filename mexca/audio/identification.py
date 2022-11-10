@@ -18,9 +18,28 @@ class SpeakerIdentifier:
     pyannote_audio
 
     """
-    def __init__(self, num_speakers=None) -> 'SpeakerIdentifier':
-        self.num_speakers = num_speakers
-        self.pyannote_audio = Pipeline.from_pretrained("pyannote/speaker-diarization")
+    def __init__(self, use_auth_token=True) -> 'SpeakerIdentifier':
+        """Create a class instance to apply speaker diarization.
+
+        Parameters
+        ----------
+        use_auth_token: bool or str, default=True
+            Whether to use the HuggingFace authentication token stored on the machine (if bool) or
+            a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``
+            and ``pyannote/segmentation`` (if str).
+
+        Returns
+        -------
+        A ``SpeakerIdentifier`` class instance.
+
+        Notes
+        -----
+        This class requires pretrained models for speaker diarization and segmentation from HuggingFace.
+        To download the models accept the user conditions on `<hf.co/pyannote/speaker-diarization>`_ and
+        `<hf.co/pyannote/segmentation>`_. Then generate an authentication token on `<hf.co/settings/tokens>`_.
+
+        """
+        self._pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=use_auth_token)
 
 
     @property
@@ -56,28 +75,6 @@ class SpeakerIdentifier:
             self._pyannote_audio = new_pyannote_audio
         else:
             raise TypeError('Can only set "pyannote_audio" to instance of "Pipeline" class')
-    def __init__(self, use_auth_token=True) -> 'SpeakerIdentifier':
-        """Create a class instance to apply speaker diarization.
-
-        Parameters
-        ----------
-        use_auth_token: bool or str, default=True
-            Whether to use the HuggingFace authentication token stored on the machine (if bool) or
-            a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``
-            and ``pyannote/segmentation`` (if str).
-
-        Returns
-        -------
-        A ``SpeakerIdentifier`` class instance.
-
-        Notes
-        -----
-        This class requires pretrained models for speaker diarization and segmentation from HuggingFace.
-        To download the models accept the user conditions on `<hf.co/pyannote/speaker-diarization>`_ and
-        `<hf.co/pyannote/segmentation>`_. Then generate an authentication token on `<hf.co/settings/tokens>`_.
-
-        """
-        self._pipeline = Pipeline.from_pretrained("pyannote/speaker-diarization@2.1", use_auth_token=use_auth_token)
 
 
     def apply(self, filepath):
