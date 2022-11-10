@@ -35,7 +35,10 @@ def pytest_configure(config):
     config.addinivalue_line(
         "markers", "skip_os(name): mark test to run only on named os"
     )
-    auth_token = config.getoption("-T")
+
+
+def pytest_sessionstart(session):
+    auth_token = session.config.getoption("-T")
     api = HfApi()
     api.set_access_token(auth_token)
 
