@@ -147,6 +147,8 @@ conda install -c numba llvmlite
 
 If you would like to learn how to use mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. Note that the demo runs in a [jupyter notebook](https://jupyter.org/). Jupyter lets users easily combine markdown text with executable Python code on a canvas called 'notebook'. For installing jupyter, and using the notebook please refer to the [official installation guide](https://docs.jupyter.org/en/latest/install/notebook-classic.html).
 
+*Note*: mexca builds on pretrained models from the pyannote.audio package. Since release 2.1.1, downloading the pretrained models requires the user to accept two user agreements on Hugging Face hub and generate an authentication token. Therefore, to run the mexca pipeline, please accept the user agreements on [here](https://huggingface.co/pyannote/speaker-diarization) and [here](https://huggingface.co/pyannote/segmentation). Then, generate an authentication token [here](https://huggingface.co/settings/tokens). Use this token to login to Hugging Face hub by running `notebook_login()` (from a jupyter notebook) or `huggingface-cli login` (from the command line). You only need to login when running mexca for the first time. See this [link](https://huggingface.co/docs/hub/models-adding-libraries) for details.
+
 Emotion expression features can be extracted with mexca using the following lines of code:
 
 ```python
