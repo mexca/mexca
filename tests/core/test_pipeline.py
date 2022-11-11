@@ -17,6 +17,8 @@ class TestPipeline:
     We cannot choose a smaller example because pipeline requires sufficient frames.
     """
 
+    use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
+
     filepath = os.path.join(
         'tests', 'test_files', 'test_video_audio_5_seconds.mp4'
     )
@@ -27,7 +29,7 @@ class TestPipeline:
         pipeline = Pipeline(
             video=FaceExtractor(min_clusters=1, max_clusters=3),
             audio=AudioIntegrator(
-                SpeakerIdentifier(),
+                SpeakerIdentifier(use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True),
                 VoiceExtractor()
             ),
             text=AudioTextIntegrator(
@@ -46,7 +48,7 @@ class TestPipeline:
 
     @pytest.mark.skip_env('runner')
     def test_from_default(self):
-        pipeline = Pipeline().from_default()
+        pipeline = Pipeline().from_default(use_auth_token=self.use_auth_token)
         assert isinstance(pipeline, Pipeline)
 
 
@@ -69,7 +71,7 @@ class TestPipeline:
     def test_pipeline_audio(self):
         pipeline_audio = Pipeline(
             audio=AudioIntegrator(
-                SpeakerIdentifier(num_speakers=2),
+                SpeakerIdentifier(num_speakers=2, use_auth_token=self.use_auth_token),
                 VoiceExtractor(time_step=0.08)
             )
         )
