@@ -9,8 +9,9 @@ from mexca.audio.identification import SpeakerIdentifier
 
 
 class TestAudioIntegrator:
+    use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
     integrator = AudioIntegrator(
-        SpeakerIdentifier(),
+        SpeakerIdentifier(use_auth_token=use_auth_token),
         VoiceExtractor(time_step=0.04)
     )
     filepath = os.path.join('tests', 'test_files', 'test_eng_5_seconds.wav')
