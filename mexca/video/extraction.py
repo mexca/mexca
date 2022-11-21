@@ -267,7 +267,7 @@ class FaceExtractor:
 
         # compute centroids:
         centroids = [] # list of centroid
-        cluster_label_mapping = {} # maps the cluster label to the intex of the centroid list
+        cluster_label_mapping = {} # maps the cluster label to the index of the centroid list
 
         for i,label in enumerate(unique_labels):
             # extract embeddings that have given label
@@ -399,4 +399,4 @@ class FaceExtractor:
                 np.array(embeddings).squeeze()).tolist()
 
             features['confidence'] = self.compute_confidence(np.asarray(embeddings), np.asarray(features['face_id']))
-            return features
+            return features, embeddings
