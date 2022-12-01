@@ -11,7 +11,6 @@ from mexca.core.preprocessing import Video2AudioConverter
 from mexca.text.sentiment import SentimentExtractor
 from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
-from mexca.text.transcription import TextRestaurator
 from mexca.video.extraction import FaceExtractor
 
 
@@ -44,7 +43,7 @@ class Pipeline:
     ...         VoiceExtractor()
     ...     ),
     ...     text=AudioTextIntegrator(
-    ...         audio_transcriber=AudioTranscriber('english'),
+    ...         audio_transcriber=AudioTranscriber(),
     ...         sentiment_extractor=SentimentExtractor()
     ...     )
     ... )
@@ -96,7 +95,7 @@ class Pipeline:
 
 
     @classmethod
-    def from_default(cls, voice='low', language='english', use_auth_token=True):
+    def from_default(cls, voice='low', use_auth_token=True):
         """Constructor method to create a pipeline with default components and settings.
 
         This method is a convenience wrapper for creating a standard pipeline.
@@ -105,8 +104,6 @@ class Pipeline:
         ----------
         voice: {'low', 'high'} or str, default='low'
             The expected frequency spectrum of the voices in the video.
-        language: {'english', 'dutch'}
-            The language of the speech in the video. Currently available are English and Dutch.
         use_auth_token: bool or str, default=True
             Whether to use the HuggingFace authentication token stored on the machine (if bool) or
             a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``
@@ -125,7 +122,7 @@ class Pipeline:
         Examples
         --------
         >>> from mexca.core.pipeline import Pipeline
-        >>> pipeline = Pipeline().from_default(language='english')
+        >>> pipeline = Pipeline().from_default()
 
         """
 
@@ -139,25 +136,25 @@ class Pipeline:
         return cls(
             video=FaceExtractor(min_clusters=1),
             audio=AudioIntegrator(
-                SpeakerIdentifier(use_auth_token),
+                SpeakerIdentifier(num_speakers=2, use_auth_token=use_auth_token),
                 VoiceExtractor(features=features)
             ),
             text=AudioTextIntegrator(
-                audio_transcriber=AudioTranscriber(language),
-                text_restaurator=TextRestaurator(),
+                audio_transcriber=AudioTranscriber(),
                 sentiment_extractor=SentimentExtractor()
             )
         )
 
 
-    def apply( # pylint: disable=too-many-arguments
+    def apply( # pylint: disable=too-many-arguments, disable=too-many-locals
             self,
             filepath,
             skip_frames=1,
             process_subclip=(0, None),
             keep_audiofile=False,
             show_video_progress=True,
-            show_audio_progress=True
+            show_audio_progress=True,
+            show_text_progress=True
         ) -> 'Multimodal':
         """
         Extract emotion expression features from a video file.
@@ -215,7 +212,7 @@ class Pipeline:
         else:
             time = None
 
-        if self.audio or self.text:
+        if self.audio:
             with Video2AudioConverter(filepath) as clip:
                 audio_path = clip.create_audiofile_path()
                 # Use subclip if `process_subclip` is provided (default uses entire clip)
@@ -223,15 +220,15 @@ class Pipeline:
 
             if self.audio:
                 print('Analyzing audio ...')
-                audio_result = self.audio.apply(audio_path, time, show_audio_progress)
+                audio_annotation, audio_result = self.audio.apply(audio_path, time, show_audio_progress)
                 pipeline_result.add(audio_result)
                 print('Audio done')
 
-            if self.text:
-                print('Analyzing text ...')
-                text_result = self.text.apply(audio_path, time)
-                pipeline_result.add(text_result)
-                print('Text done')
+                if self.text:
+                    print('Analyzing text ...')
+                    text_result = self.text.apply(audio_path, audio_annotation, time, None, show_text_progress)
+                    pipeline_result.add(text_result)
+                    print('Text done')
 
             if not keep_audiofile:
                 os.remove(audio_path)
