@@ -3,6 +3,7 @@
 import json
 import os
 import pytest
+from pyannote.core import Annotation
 from mexca.audio.extraction import VoiceExtractor
 from mexca.audio.integration import AudioIntegrator
 from mexca.audio.identification import SpeakerIdentifier
@@ -32,10 +33,11 @@ class TestAudioIntegrator:
 
     def test_integrate(self):
         with pytest.raises(TypeError):
-            annotated_features = self.integrator.apply(self.filepath, 'k')
+            _, annotated_features = self.integrator.apply(self.filepath, 'k')
 
         with pytest.raises(TypeError):
-            annotated_features = self.integrator.apply(self.filepath, None, show_progress='k')
+            _, annotated_features = self.integrator.apply(self.filepath, None, show_progress='k')
 
-        annotated_features = self.integrator.apply(self.filepath, None)
+        annotation, annotated_features = self.integrator.apply(self.filepath, None)
         assert all(annotated_features['segment_id'] == self.reference_features['segment_id'])
+        assert isinstance(annotation, Annotation) # make sure that integrate outputs annotation object
