@@ -274,11 +274,11 @@ class FaceExtractor:
             label_embeddings = embeddings[labels==label]
             # compute centroid of label_emeddings (vector mean)
             centroid = np.nanmean(label_embeddings,axis=0)
-            # appends do centroid list
+            # appends centroid list
             centroids.append(centroid)
             cluster_label_mapping[label] = i
 
-        # create empty array with same lenght as labels.
+        # create empty array with same lenght as labels
         confidence = np.empty_like(labels)
 
         # cycle over frames
@@ -398,5 +398,5 @@ class FaceExtractor:
             features['face_id'] = self.identify(
                 np.array(embeddings).squeeze()).tolist()
 
-            features['confidence'] = self.compute_confidence(np.asarray(embeddings), np.asarray(features['face_id']))
-            return features, embeddings
+            features['face_id_confidence'] = self.compute_confidence(np.asarray(embeddings), np.asarray(features['face_id']))
+            return features
