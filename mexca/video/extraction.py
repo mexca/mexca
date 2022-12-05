@@ -246,7 +246,7 @@ class FaceExtractor:
 
         Parameters
         ----------
-        embs: list
+        embs: numpy.ndarray
             embeddings
         labels_unique: list
             face labels
