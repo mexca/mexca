@@ -95,6 +95,7 @@ class TestFaceExtractor:
     #    platform.system() == 'Windows',
     #    reason='VMs run out of memory on windows'
     # )
+
     def test_apply(self): # Tests JAANET AU model
         with pytest.raises(TypeError):
             features = self.extractor.apply(self.filepath, show_progress='k')
@@ -110,7 +111,6 @@ class TestFaceExtractor:
         assert features['face_id'] == self.features['face_id']
         assert np.array(features['face_landmarks']).shape == np.array(self.features['face_landmarks']).shape
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
-
 
     @pytest.mark.skip(
         reason='pyfeat currently does not support this model'
@@ -130,3 +130,48 @@ class TestFaceExtractor:
         features = svm_extractor.apply(self.filepath, show_progress=False)
 
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus_logistic']).shape
+
+    def test_compute_centroids(self):
+        # create two array embeddings
+        v1 = np.random.uniform(size=10)
+        v2 = np.random.uniform(size=10)
+
+        embeddings = np.vstack([v1, v1, v2, -v2])
+
+        labels = np.asarray([0, 0, 1, 1])
+        centroids, cluster_label_mapping = self.extractor.compute_centroids(embeddings, labels)
+        # test whether we got two unique labels
+        assert len(centroids) == 2
+        # the centroids of two arrays that are equal (i.e., v1) is equal to both of them
+        assert all(centroids[0] == v1)
+        # the centroud of two arrays that are opposite, is equal as all elements equal to 0
+        assert all(centroids[1] == 0)
+        # centroids must be a list
+        assert isinstance(centroids, list)
+        # cluster_label_mapping must be a dict
+        assert isinstance(cluster_label_mapping, dict)
+
+
+    def test_compute_confidence(self):
+        # create two array embeddings
+        v1 = np.random.uniform(low=-1, high=1, size=10)
+        v2 = np.random.uniform(low=-1, high=1, size=10)
+        v3 = (v2 + 1. * v1) / 2.
+
+        embeddings = np.vstack([v1, v1, v2, v3])
+
+        labels = [0., 0., 1., 1.]
+        confidence = self.extractor.compute_confidence(embeddings, labels)
+
+        # assert isistance confidence np.array
+        assert len(confidence) == len(labels)
+
+        # I expect first two instances to be equal to 1 as they are both V1
+        assert np.isclose(confidence[0], 1)
+        assert np.isclose(confidence[1], 1)
+
+        # I expect both V2 and V3 to be less than 1, no particular value
+        assert confidence[2] < 1.
+        assert confidence[3] < 1.
+        # I expect confidence of V3 to be less than V2, as this is more close to V1 than V2
+        assert confidence[3] < confidence[2]
