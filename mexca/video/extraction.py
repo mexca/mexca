@@ -311,6 +311,8 @@ class FaceExtractor:
                 # frame embedding is put in list becouse it is required by cosine distances API
                 # cosine distances returns a list of list, so [0] is taken to get correct shape
                 distances = cosine_distances([frame_embedding], centroids)[0]
+                # if len(distance) is <= 1, it means that there is only 1 face
+                # Clustering confidence is not useful in that case
                 if len(distances) <= 1:
                     c = np.nan
                 else:
@@ -319,9 +321,6 @@ class FaceExtractor:
 
                     # distance to the centroid of the cluster to which the frame belongs
                     d1 = distances[cluster_centroid_idx]
-                    print(distances)
-                    print(len(distances))
-                    print(cluster_centroid_idx)
                     # mimimum of all other distance
 
                     d2 = np.min(distances[np.arange(len(distances)) != cluster_centroid_idx])

@@ -142,9 +142,9 @@ class TestFaceExtractor:
         centroids, cluster_label_mapping = self.extractor.compute_centroids(embeddings, labels)
         # test whether we got two unique labels
         assert len(centroids) == 2
-        # the centroids of two arrays that are equal (i.e., v1) is equal to both of them
+        # the centroid of two arrays that are equal (i.e., v1) is equal to both of them
         assert all(centroids[0] == v1)
-        # the centroud of two arrays that are opposite, is equal as all elements equal to 0
+        # the centroid of two arrays that are opposite, is equal as all elements equal to 0
         assert all(centroids[1] == 0)
         # centroids must be a list
         assert isinstance(centroids, list)
@@ -173,5 +173,6 @@ class TestFaceExtractor:
         # I expect both V2 and V3 to be less than 1, no particular value
         assert confidence[2] < 1.
         assert confidence[3] < 1.
+
         # I expect confidence of V3 to be less than V2, as this is more close to V1 than V2
         assert confidence[3] < confidence[2]
