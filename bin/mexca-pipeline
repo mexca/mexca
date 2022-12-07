@@ -17,13 +17,12 @@ from mexca.audio.integration import AudioIntegrator
 from mexca.core.pipeline import Pipeline
 from mexca.text.transcription import AudioTextIntegrator
 from mexca.text.transcription import AudioTranscriber
+from mexca.text.transcription import SentimentExtractor
 from mexca.video.extraction import FaceExtractor
 
 parser = argparse.ArgumentParser(description='Apply the mexca pipeline to a video file.')
 parser.add_argument('-f', '--filepath', type=str, required=True, dest='filepath')
 parser.add_argument('-o', '--output', type=str, required=True, dest='output')
-parser.add_argument('-l', '--lang', type=str, default='english',
-    help='The language that is transcribed. Currently only Dutch and English are avaiable.', dest='language')
 parser.add_argument('--face-min', default=2,
     help='The minimum number of faces that should be identified.', dest='min_clusters')
 parser.add_argument('--face-max', default=None,
@@ -77,7 +76,8 @@ pipeline = Pipeline(
         )
     ),
     text=None if args.no_text else AudioTextIntegrator(
-        audio_transcriber=AudioTranscriber(args.language),
+        audio_transcriber=AudioTranscriber(),
+        sentiment_extractor=SentimentExtractor(),
         time_step=args.time_step
     )
 )
