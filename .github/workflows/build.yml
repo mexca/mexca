@@ -10,7 +10,7 @@ on:
 
 jobs:
   build:
-    name: Build for (${{ matrix.python-version }}, ${{ matrix.os }})
+    name: Build for (${{ matrix.python-version }}, ${{ matrix.os }}, ${{ matrix.module }})
     runs-on: ${{ matrix.os }}
     env:
       HDF5_DISABLE_VERSION_CHECK: 1
@@ -19,7 +19,7 @@ jobs:
       matrix:
         os: ['ubuntu-latest', 'macos-latest', 'windows-latest']
         python-version: ['3.7', '3.8', '3.9']
-        modules: ['core', 'audio', 'text', 'video']
+        module: ['core', 'audio', 'text', 'video']
     steps:
       - uses: actions/checkout@v3
       - name: Download libsndfile and ffmpeg
@@ -46,7 +46,7 @@ jobs:
       - name: Run unit tests
         env:
           HF_TOKEN: ${{secrets.HF_TOKEN }} # Needed for Hugging Face authentication to download pyannote.audio models
-        run: pytest -vv tests\${{ matrix.module }} -E runner
+        run: pytest -vv tests/${{ matrix.module }}/ -E runner
       - name: Verify that we can build the package
         run: python3 setup.py sdist bdist_wheel
 
