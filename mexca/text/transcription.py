@@ -1,17 +1,17 @@
 """Transcribe speech from audio to text.
 """
 
-from dataclasses import asdict, dataclass
-from typing import Optional, Union, List, Dict
 import re
+from dataclasses import asdict, dataclass
+from typing import Dict, List, Optional, Union
 import numpy as np
 import stable_whisper
 import torch
 import whisper
+from parselmouth import Sound
+from pyannote.core import Annotation, Segment
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from parselmouth import Sound
-from pyannote.core import Segment, Annotation
 from mexca.core.exceptions import TimeStepError
 from mexca.core.utils import create_time_var_from_step
 from mexca.text.sentiment import SentimentExtractor
@@ -105,7 +105,7 @@ class AudioTranscriber:
             self.sentence_rule = sentence_rule
 
 
-    def apply(self,
+    def apply(self, # pylint: disable=too-many-locals
         filepath: str,
         audio_annotation: Annotation,
         options: Optional[whisper.DecodingOptions] = None,
@@ -120,9 +120,10 @@ class AudioTranscriber:
         audio_annotation: pyannote.core.Annotation
             The audio annotation object returned by the pyannote.audio speaker diarization pipeline.
         options: whisper.DecodingOptions, optional
-            Options for transcribing the audio file. If `None`, transcription is done without timestamps
-            and with FP32 (single-precision floating points) if CUDA is not available, otherwise,
-            on FP16 (half-precision floating points).
+            Options for transcribing the audio file. If `None`, transcription is done without timestamps,
+            and with a number format that depends on whether CUDA is available:
+            FP16 (half-precision floating points) if available,
+            FP32 (single-precision floating points) otherwise.
         show_progress: bool
             Whether a progress bar is displayed or not.
 
@@ -170,17 +171,20 @@ class AudioTranscriber:
 
                 # Get sentence start and end timestamps
                 sents_ts = []
-                idx = 0
 
-                for sent in sents:
-                    sent_len = len(sent.split(" ")) - 1
+                # If word-level timestamps are available
+                if len(whole_word_timestamps) > 0:
+                    idx = 0
 
-                    start = whole_word_timestamps[idx]['timestamp']
-                    end = whole_word_timestamps[idx + sent_len]['timestamp']
+                    for sent in sents:
+                        sent_len = len(sent.split(" ")) - 1
 
-                    sents_ts.append(Sentence(sent, seg_start + start, seg_start + end))
+                        start = whole_word_timestamps[idx]['timestamp']
+                        end = whole_word_timestamps[idx + sent_len]['timestamp']
 
-                    idx += sent_len + 1
+                        sents_ts.append(Sentence(sent, seg_start + start, seg_start + end))
+
+                        idx += sent_len + 1
 
                 return sents_ts
 
@@ -276,9 +280,10 @@ class AudioTextIntegrator:
             A list of floats or array containing time points to which the transcribed text is matched.
             Is only optional if `AudioTextIntegrator.time_step` is not `None`.
         options: whisper.DecodingOptions, optional
-            Options for transcribing the audio file. If `None`, transcription is done without timestamps
-            and with FP32 (single-precision floating points) if CUDA is not available, otherwise,
-            on FP16 (half-precision floating points).
+            Options for transcribing the audio file. If `None`, transcription is done without timestamps,
+            and with a number format that depends on whether CUDA is available:
+            FP16 (half-precision floating points) if available,
+            FP32 (single-precision floating points) otherwise.
         show_progress: bool
             Whether a progress bar is displayed or not.
 
@@ -286,8 +291,8 @@ class AudioTextIntegrator:
         -------
         dict
             A dictionary with text features matched to audio features. Text features are 'segment_text',
-            'segment_sent_pos', 'segment_sent_neg', and 'segment_sent_neu', containing the segment transcriptions,
-            as well as positive, negative, and neutral sentiment scores.
+            'segment_sent_pos', 'segment_sent_neg', and 'segment_sent_neu'. They contain the segment
+            transcriptions as well as positive, negative, and neutral sentiment scores.
 
         """
         if time and not isinstance(time, (list, np.ndarray)):
