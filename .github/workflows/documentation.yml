@@ -19,7 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - name: Download libsndfile
-        run: sudo apt-get install libsndfile1
+        run: |
+          sudo apt-get install libsndfile1
+          sudo apt-get install ffmpeg
       - name: Set up Python 3.9
         uses: actions/setup-python@v2
         with:
@@ -31,7 +33,7 @@ jobs:
           python3 --version
       - name: Upgrade pip and install dependencies
         run: |
-          python3 -m pip install --upgrade pip setuptools
+          python3 -m pip install --upgrade pip setuptools wheel
           python3 -m pip install .[dev,publishing]
       - name: Install pandoc using apt
         run: sudo apt install pandoc
