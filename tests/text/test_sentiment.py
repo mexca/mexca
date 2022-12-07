@@ -1,40 +1,13 @@
 """ Test audio sentiment extraction classes and methods """
 
 import pytest
-from spacy.language import Vocab
-from spacy.tokens import Doc
-from mexca.text.sentiment import SequenceClassifier, SentimentExtractor
+from pyannote.core import Annotation
+from mexca.text.sentiment import SentimentExtractor
+from mexca.text.transcription import Sentence, TranscribedSegment
 
 
 # Skip tests on GitHub actions runner for Windows and Linux but
 # allow local runs
-@pytest.mark.skip_env('runner')
-@pytest.mark.skip_os(['Windows', 'Linux'])
-class TestSequenceClassifier:
-
-    @pytest.fixture
-    def classifier(self):
-        return SequenceClassifier("cardiffnlp/twitter-xlm-roberta-base-sentiment")
-
-    text = 'Today was a good day!'
-    reference = [0.01545323, 0.06419527, 0.9203513]
-
-    def test_properties(self, classifier):
-        with pytest.raises(TypeError):
-            classifier.model = 3.0
-
-        with pytest.raises(TypeError):
-            classifier.tokenizer = 'k'
-
-        with pytest.raises(TypeError):
-            classifier.classifier = 'k'
-
-
-    def test_apply(self, classifier):
-        scores = classifier.apply(self.text)
-        assert pytest.approx(scores[0].tolist()) == self.reference
-
-
 @pytest.mark.skip_env('runner')
 @pytest.mark.skip_os(['Windows', 'Linux'])
 class TestSentimentExtractor:
@@ -43,19 +16,31 @@ class TestSentimentExtractor:
     def extractor(self):
         return SentimentExtractor()
 
-    doc = Doc(
-        Vocab(),
-        words=['Today', 'was', 'a', 'good', 'day', '!'],
-        spaces=[True, True, True, True, False, False],
-        sent_starts=[True, False, False, False, False, False]
-    )
-    reference = [0.01545323, 0.06419527, 0.9203513]
+    @pytest.fixture
+    def annotation(self):
+        seg = TranscribedSegment(
+            start=0.0,
+            end=1.0,
+            text='Today was a good day!',
+            lang='en',
+            sents=[Sentence(text='Today was a good day!', start=0.0, end=1.0)]
+        )
+        ann = Annotation()
+        ann[seg, 'trackA'] = 'speaker1'
 
-    def test_properties(self, extractor):
-        with pytest.raises(TypeError):
-            extractor.roberta = 'k'
+        return(ann)
+
+    reference = {
+        'pos': 0.9203513,
+        'neg': 0.01545323,
+        'neu': 0.06419527
+    }
 
 
-    def test_apply(self, extractor):
-        sentiment = extractor.apply(self.doc)
-        assert pytest.approx(sentiment[0].tolist()) == self.reference
+    def test_apply(self, extractor, annotation):
+        sentiment_annotation = extractor.apply(annotation)
+        # Get first sentence object from first segment
+        sentence = list(sentiment_annotation.itersegments())[0].sents[0]
+        assert pytest.approx(sentence.sent_pos) == self.reference['pos']
+        assert pytest.approx(sentence.sent_neg) == self.reference['neg']
+        assert pytest.approx(sentence.sent_neu) == self.reference['neu']

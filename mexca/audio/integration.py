@@ -104,7 +104,7 @@ class AudioIntegrator:
             Path to the audio file.
         time: List or numpy.ndarray or None
             List or array with time points for with voice features should be extracted.
-        show_progress bool, default=True:
+        show_progress: bool, default=True:
             Enables a progress bar.
 
         Returns
@@ -123,4 +123,4 @@ class AudioIntegrator:
         voice_features = self.extractor.extract_features(filepath, time)
         annotated_features = self.integrate(voice_features, annotation, show_progress)
 
-        return annotated_features
+        return annotation, annotated_features
