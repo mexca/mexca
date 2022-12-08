@@ -12,7 +12,7 @@ from PIL import Image
 from spectralcluster import SpectralClusterer
 from tqdm import tqdm
 from mexca.core.exceptions import SkipFramesError
-
+from sklearn.metrics.pairwise import cosine_distances
 
 class FaceExtractor:
     """Combine steps to extract features from faces in a video file.
@@ -232,7 +232,6 @@ class FaceExtractor:
 
         return landmarks_np, aus
 
-
     @staticmethod
     def check_skip_frames(skip_frames):
         if isinstance(skip_frames, int):
@@ -241,6 +240,103 @@ class FaceExtractor:
         else:
             raise TypeError('Argument "skip_frames" must be int')
 
+    @staticmethod
+    def compute_centroids(embs, labels):
+        """ Compute embeddings' centroids
+
+        Parameters
+        ----------
+        embs: numpy.ndarray
+            embeddings
+        labels_unique: list
+            face labels
+
+        Returns
+        -------
+        centroids: list
+            embeddings' centroids
+        cluster_label_mapping: dict
+            cluster label mappings
+
+        """
+
+        # compute unique cluster labels
+        unique_labels = np.unique(labels)
+        # get rid of nan label
+        unique_labels = unique_labels[np.logical_not(np.isnan(unique_labels))]
+        # compute centroids:
+        centroids = []
+        cluster_label_mapping = {}
+        centroid = []
+
+        for i, label in enumerate(unique_labels):
+            # extract embeddings that have given label
+            label_embeddings = embs[labels == label]
+            # compute centroid of label_emeddings (vector mean)
+            centroid = np.nanmean(label_embeddings, axis=0)
+            # appends centroid list
+            centroids.append(centroid)
+            cluster_label_mapping[label] = i
+        return centroids, cluster_label_mapping
+
+
+    def compute_confidence(self, embeddings, labels):
+        """ Compute label classification confidence
+
+        Parameters
+        ----------
+        embeddings: numpy.ndarray
+            Array containing embeddings
+
+        labels: numpy.ndarray
+            Array containing labels
+
+        Returns
+        -------
+        confidence: numpy.ndarray
+            Array containing confidence scores
+
+        """
+        centroids, cluster_label_mapping = self.compute_centroids(embeddings, labels)
+
+        # create empty array with same lenght as labels
+        confidence = np.empty_like(labels)
+
+        for i, (frame_embedding, label) in enumerate(zip(embeddings, labels)):
+            # if frame is unclassified, assigns zero confidence
+            if np.isnan(label):
+                confidence[i] = np.nan
+            else:
+                # compute distance between frame embedding and each centroid
+                # frame embedding is put in list becouse it is required by cosine distances API
+                # cosine distances returns a list of list, so [0] is taken to get correct shape
+                distances = cosine_distances([frame_embedding], centroids)[0]
+                # if len(distance) is <= 1, it means that there is only 1 face
+                # Clustering confidence is not useful in that case
+                if len(distances) <= 1:
+                    c = np.nan
+                else:
+                    # recover index of centroid of cluster
+                    cluster_centroid_idx = cluster_label_mapping[label]
+
+                    # distance to the centroid of the cluster to which the frame belongs
+                    d1 = distances[cluster_centroid_idx]
+                    # mimimum of all other distance
+
+                    d2 = np.min(distances[np.arange(len(distances)) != cluster_centroid_idx])
+
+                    # confidence score: 0 if d1 = d2, 1 if d1 = 0
+                    c = (d2 - d1) / d2
+
+                    # handle edge cases: d1<d2 by definition, but if the clustering that produced
+                    # the labels used a different distance definition, this could not be the case.
+                    # These edge cases are low in confidence, i.e., c = 0.
+                    if c < 0:
+                        c = 0
+
+                confidence[i] = c
+
+        return confidence
 
     def apply(self, filepath, skip_frames=1, process_subclip=(0, None), show_progress=True):  # pylint: disable=too-many-locals
         """Apply multiple steps to extract features from faces in a video file.
@@ -326,4 +422,5 @@ class FaceExtractor:
             features['face_id'] = self.identify(
                 np.array(embeddings).squeeze()).tolist()
 
+            features['face_id_confidence'] = self.compute_confidence(np.asarray(embeddings), np.asarray(features['face_id']))
             return features
