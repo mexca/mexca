@@ -2,25 +2,33 @@
 Extract facial features such as landmarks and action units.
 """
 
+from typing import Any
+from typing import Dict
+from typing import List
+from typing import Optional
+from typing import Tuple
+from typing import Union
 import cv2
 import feat
 import numpy as np
+import torch
 from facenet_pytorch import MTCNN
 from facenet_pytorch import InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
+from sklearn.metrics.pairwise import cosine_distances
 from spectralcluster import SpectralClusterer
 from tqdm import tqdm
 from mexca.core.exceptions import SkipFramesError
-from sklearn.metrics.pairwise import cosine_distances
+
 
 class FaceExtractor:
     """Combine steps to extract features from faces in a video file.
 
     Parameters
     ----------
-    au_model: {'JAANET', 'svm', 'logistic'}
-        The name of the pretrained model for detecting action units. Default is `JAANET`.
+    au_model: str, default='JAANET'
+        The name of the pretrained model for detecting action units. Currently, only `'JAANET'` is available.
     landmark_model: {'PFLD', 'MobileFaceNet', 'MobileNet'}
         The name of the pretrained model for detecting facial landmarks. Default is `PFLD`.
     **clargs: dict, optional
@@ -29,9 +37,20 @@ class FaceExtractor:
     Attributes
     ----------
     mtcnn
+        The MTCNN model for face detection and extraction.
+        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
     resnet
+        The ResnetV1 model for computing face embeddings.
+        Uses the pretrained 'vggface2' version by default.
+        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
     cluster
+        The spectral clustering model for identifying faces based on embeddings.
+        See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
     pyfeat
+        The model for extracting facial landmarks and action units.
+        See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
+
+
 
     Notes
     -----
@@ -43,7 +62,11 @@ class FaceExtractor:
     """
 
 
-    def __init__(self, au_model='JAANET', landmark_model='PFLD', **clargs) -> 'FaceExtractor':
+    def __init__(self,
+        au_model: str = 'JAANET',
+        landmark_model: str = 'PFLD',
+        **clargs: Any
+    ):
         self.mtcnn = MTCNN(keep_all=True)
         self.resnet = InceptionResnetV1(
             pretrained='vggface2'
@@ -56,73 +79,19 @@ class FaceExtractor:
 
 
     @property
-    def mtcnn(self):
-        """The MTCNN model for face detection and extraction.
-        Must be instance of ``MTCNN`` class.
-        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
-        """
-        return self._mtcnn
-
-
-    @mtcnn.setter
-    def mtcnn(self, new_mtcnn):
-        if isinstance(new_mtcnn, MTCNN):
-            self._mtcnn = new_mtcnn
-        else:
-            raise TypeError('Can only set "mtcnn" to instances of the "MTCNN" class')
-
-
-    @property
-    def resnet(self):
-        """The ResnetV1 model for computing face embeddings. Uses the pretrained 'vggface2' version by default.
-        Must be instance of ``InceptionResnetV1`` class.
-        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ for details.
-        """
-        return self._resnet
-
-
-    @resnet.setter
-    def resnet(self, new_resnet):
-        if isinstance(new_resnet, InceptionResnetV1):
-            self._resnet = new_resnet
-        else:
-            raise TypeError('Can only set "resnet" to instances of the "InceptionResnetV1" class')
-
-
-    @property
-    def cluster(self):
-        """The spectral clustering model for identifying faces based on embeddings.
-        Must be instance of ``SpectralClusterer`` class.
-        See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
-        """
-        return self._cluster
-
-
-    @cluster.setter
-    def cluster(self, new_cluster):
-        if isinstance(new_cluster, SpectralClusterer):
-            self._cluster = new_cluster
-        else:
-            raise TypeError('Can only set "cluster" to instances of the "SpectralClusterer" class')
-
-
-    @property
-    def pyfeat(self):
-        """The model for extracting facial landmarks and action units. Must be instance of ``Detector`` class.
-        See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
-        """
+    def pyfeat(self) -> feat.detector.Detector:
         return self._pyfeat
 
 
     @pyfeat.setter
-    def pyfeat(self, new_pyfeat):
-        if isinstance(new_pyfeat, feat.detector.Detector):
+    def pyfeat(self, new_pyfeat: feat.detector.Detector):
+        if new_pyfeat.info['au_model'] == 'jaanet':
             self._pyfeat = new_pyfeat
         else:
-            raise TypeError('Can only set "pyfeat" to instances of the "Detector" class')
+            raise ValueError('Only the "JAANET" model is available for AU detection')
 
 
-    def detect(self, frame):
+    def detect(self, frame: np.ndarray) -> Tuple[torch.Tensor, np.ndarray, np.ndarray]:
         """Detect faces in an image array.
 
         Parameters
@@ -132,7 +101,7 @@ class FaceExtractor:
 
         Returns
         -------
-        faces: torch.tensor
+        faces: torch.Tensor
             Tensor containing the N cropped face images from the frame with dimensions (N, 3, 160, 160).
         boxes: numpy.ndarray
             Array containing the bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with
@@ -151,12 +120,12 @@ class FaceExtractor:
         return faces, boxes, probs
 
 
-    def encode(self, faces):
+    def encode(self, faces: torch.Tensor) -> np.ndarray:
         """Compute embeddings for face images.
 
         Parameters
         ----------
-        faces: torch.tensor
+        faces: torch.Tensor
             Tensor containing N face images with dimensions (N, 3, H, W). H and W must at least be 80 for
             the encoding to work.
 
@@ -171,7 +140,7 @@ class FaceExtractor:
         return embeddings
 
 
-    def identify(self, embeddings):
+    def identify(self, embeddings: np.ndarray) -> np.ndarray:
         """Cluster faces based on their embeddings.
 
         Parameters
@@ -194,7 +163,7 @@ class FaceExtractor:
         return labels
 
 
-    def extract(self, frame, boxes):
+    def extract(self, frame: np.ndarray, boxes: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
         """Detect facial action units and landmarks.
 
         Parameters
@@ -232,16 +201,12 @@ class FaceExtractor:
 
         return landmarks_np, aus
 
-    @staticmethod
-    def check_skip_frames(skip_frames):
-        if isinstance(skip_frames, int):
-            if skip_frames < 1:
-                raise ValueError('Argument "skip_frames" must be >= 1')
-        else:
-            raise TypeError('Argument "skip_frames" must be int')
 
     @staticmethod
-    def compute_centroids(embs, labels):
+    def compute_centroids(
+        embs: np.ndarray,
+        labels: List[Union[str, int]]
+    ) -> Tuple[List[float], Dict[str, int]]:
         """ Compute embeddings' centroids
 
         Parameters
@@ -280,7 +245,10 @@ class FaceExtractor:
         return centroids, cluster_label_mapping
 
 
-    def compute_confidence(self, embeddings, labels):
+    def compute_confidence(self,
+        embeddings: np.ndarray,
+        labels: np.ndarray
+    ) -> np.ndarray:
         """ Compute label classification confidence
 
         Parameters
@@ -338,7 +306,13 @@ class FaceExtractor:
 
         return confidence
 
-    def apply(self, filepath, skip_frames=1, process_subclip=(0, None), show_progress=True):  # pylint: disable=too-many-locals
+
+    def apply(self, # pylint: disable=too-many-locals
+        filepath: str,
+        skip_frames: int = 1,
+        process_subclip: Tuple[Optional[float]] = (0, None),
+        show_progress: bool = True
+    ) -> Dict[str, List[Union[str, float, int, List, np.ndarray]]]:
         """Apply multiple steps to extract features from faces in a video file.
 
         This method subsequently calls other methods for each frame of a video file to detect and cluster faces.
@@ -363,13 +337,12 @@ class FaceExtractor:
             A dictionary with extracted facial features.
 
         """
-        if not isinstance(show_progress, bool):
-            raise TypeError('Argument "show_progress" must be bool')
-
-        self.check_skip_frames(skip_frames)
+        if skip_frames < 1:
+            raise ValueError('Argument "skip_frames" must be >= 1')
 
         with VideoFileClip(filepath, audio=False, verbose=False) as clip:
             subclip = clip.subclip(process_subclip[0], process_subclip[1])
+
             features = {
                 'frame': [],
                 'time': [],
@@ -381,7 +354,7 @@ class FaceExtractor:
 
             embeddings = []  # Embeddings are separate because they won't be returned
 
-            n_frames = int(subclip.duration*subclip.fps)
+            n_frames = int(subclip.duration * subclip.fps)
 
             if skip_frames > n_frames:
                 raise SkipFramesError('Arguments "skip_frames" cannot be higher than the total frames in the video')
@@ -422,5 +395,5 @@ class FaceExtractor:
             features['face_id'] = self.identify(
                 np.array(embeddings).squeeze()).tolist()
 
-            features['face_id_confidence'] = self.compute_confidence(np.asarray(embeddings), np.asarray(features['face_id']))
+            features['face_id_confidence'] = self.compute_confidence(np.asarray(embeddings), np.asarray(features['face_id'])).tolist()
             return features

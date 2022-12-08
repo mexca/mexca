@@ -20,18 +20,15 @@ class TestFaceExtractor:
         features = json.loads(file.read())
 
 
-    def test_properties(self):
-        with pytest.raises(TypeError):
-            self.extractor.mtcnn = 3.0
+    def test_au_detector(self):
+        with pytest.raises(ValueError):
+            FaceExtractor(min_clusters=1, max_clusters=4, au_model='svm')
 
-        with pytest.raises(TypeError):
-            self.extractor.resnet = 3.0
+        with pytest.raises(ValueError):
+            FaceExtractor(min_clusters=1, max_clusters=4, au_model='logistic')
 
-        with pytest.raises(TypeError):
-            self.extractor.pyfeat = False
-
-        with pytest.raises(TypeError):
-            self.extractor.cluster = 'k'
+        with pytest.raises(ValueError):
+            FaceExtractor(min_clusters=1, max_clusters=4, au_model='rf')
 
 
     def test_detect(self):
@@ -83,22 +80,9 @@ class TestFaceExtractor:
             assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
 
-    def test_check_skip_frames(self):
-        with pytest.raises(ValueError):
-            self.extractor.check_skip_frames(-1)
-
-        with pytest.raises(TypeError):
-            self.extractor.check_skip_frames('k')
-
-
-    # @pytest.mark.skipif(
-    #    platform.system() == 'Windows',
-    #    reason='VMs run out of memory on windows'
-    # )
-
     def test_apply(self): # Tests JAANET AU model
-        with pytest.raises(TypeError):
-            features = self.extractor.apply(self.filepath, show_progress='k')
+        with pytest.raises(ValueError):
+            features = self.extractor.apply(self.filepath, skip_frames=-1, show_progress=False)
 
         with pytest.raises(SkipFramesError):
             features = self.extractor.apply(self.filepath, skip_frames=10, show_progress=False)
@@ -112,7 +96,8 @@ class TestFaceExtractor:
         assert np.array(features['face_landmarks']).shape == np.array(self.features['face_landmarks']).shape
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus']).shape
 
-    @pytest.mark.skip(
+
+    @pytest.mark.xfail(
         reason='pyfeat currently does not support this model'
     )
     def test_pyfeat_svm(self): # Tests SVM AU model
@@ -122,7 +107,7 @@ class TestFaceExtractor:
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus_svm']).shape
 
 
-    @pytest.mark.skip(
+    @pytest.mark.xfail(
         reason='pyfeat currently does not support this model'
     )
     def test_pyfeat_logistic(self): # Tests logistic AU model
@@ -130,6 +115,7 @@ class TestFaceExtractor:
         features = svm_extractor.apply(self.filepath, show_progress=False)
 
         assert np.array(features['face_aus']).shape == np.array(self.features['face_aus_logistic']).shape
+
 
     def test_compute_centroids(self):
         # create two array embeddings
