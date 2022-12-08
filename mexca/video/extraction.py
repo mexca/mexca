@@ -72,23 +72,14 @@ class FaceExtractor:
             pretrained='vggface2'
         ).eval()
         self.cluster = SpectralClusterer(**clargs)
-        self.pyfeat = feat.detector.Detector(
-            au_model=au_model,
-            landmark_model=landmark_model
-        )
 
-
-    @property
-    def pyfeat(self) -> feat.detector.Detector:
-        return self._pyfeat
-
-
-    @pyfeat.setter
-    def pyfeat(self, new_pyfeat: feat.detector.Detector):
-        if new_pyfeat.info['au_model'] == 'jaanet':
-            self._pyfeat = new_pyfeat
-        else:
+        if au_model.lower() != 'jaanet':
             raise ValueError('Only the "JAANET" model is available for AU detection')
+        else:
+            self.pyfeat = feat.detector.Detector(
+                au_model=au_model,
+                landmark_model=landmark_model
+            )
 
 
     def detect(self, frame: np.ndarray) -> Tuple[torch.Tensor, np.ndarray, np.ndarray]:
