@@ -2,12 +2,7 @@
 Extract facial features such as landmarks and action units.
 """
 
-from typing import Any
-from typing import Dict
-from typing import List
-from typing import Optional
-from typing import Tuple
-from typing import Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 import cv2
 import feat
 import numpy as np
@@ -196,8 +191,8 @@ class FaceExtractor:
     @staticmethod
     def compute_centroids(
         embs: np.ndarray,
-        labels: List[Union[str, int]]
-    ) -> Tuple[List[float], Dict[str, int]]:
+        labels: List[Union[str, int, float]]
+    ) -> Tuple[List[float], Dict[Union[str, int, float], int]]:
         """ Compute embeddings' centroids
 
         Parameters
