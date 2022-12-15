@@ -70,11 +70,12 @@ class FaceExtractor:
 
         if au_model.lower() != 'jaanet':
             raise ValueError('Only the "JAANET" model is available for AU detection')
-        else:
-            self.pyfeat = feat.detector.Detector(
-                au_model=au_model,
-                landmark_model=landmark_model
-            )
+        
+
+        self.pyfeat = feat.detector.Detector(
+            au_model=au_model,
+            landmark_model=landmark_model
+        )
 
 
     def detect(self, frame: np.ndarray) -> Tuple[torch.Tensor, np.ndarray, np.ndarray]:
@@ -285,8 +286,7 @@ class FaceExtractor:
                     # handle edge cases: d1<d2 by definition, but if the clustering that produced
                     # the labels used a different distance definition, this could not be the case.
                     # These edge cases are low in confidence, i.e., c = 0.
-                    if c < 0:
-                        c = 0
+                    c = max(c, 0)
 
                 confidence[i] = c
 
