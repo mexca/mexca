@@ -7,8 +7,7 @@ import cv2
 import feat
 import numpy as np
 import torch
-from facenet_pytorch import MTCNN
-from facenet_pytorch import InceptionResnetV1
+from facenet_pytorch import MTCNN, InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from sklearn.metrics.pairwise import cosine_distances
