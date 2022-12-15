@@ -9,8 +9,7 @@ from mexca.audio.integration import AudioIntegrator
 from mexca.core.output import Multimodal
 from mexca.core.preprocessing import Video2AudioConverter
 from mexca.text.sentiment import SentimentExtractor
-from mexca.text.transcription import AudioTextIntegrator
-from mexca.text.transcription import AudioTranscriber
+from mexca.text.transcription import AudioTextIntegrator, AudioTranscriber
 from mexca.video.extraction import FaceExtractor
 
 

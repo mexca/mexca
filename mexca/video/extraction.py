@@ -7,8 +7,7 @@ import cv2
 import feat
 import numpy as np
 import torch
-from facenet_pytorch import MTCNN
-from facenet_pytorch import InceptionResnetV1
+from facenet_pytorch import MTCNN, InceptionResnetV1
 from moviepy.editor import VideoFileClip
 from PIL import Image
 from sklearn.metrics.pairwise import cosine_distances
@@ -70,11 +69,12 @@ class FaceExtractor:
 
         if au_model.lower() != 'jaanet':
             raise ValueError('Only the "JAANET" model is available for AU detection')
-        else:
-            self.pyfeat = feat.detector.Detector(
-                au_model=au_model,
-                landmark_model=landmark_model
-            )
+        
+
+        self.pyfeat = feat.detector.Detector(
+            au_model=au_model,
+            landmark_model=landmark_model
+        )
 
 
     def detect(self, frame: np.ndarray) -> Tuple[torch.Tensor, np.ndarray, np.ndarray]:
@@ -285,8 +285,7 @@ class FaceExtractor:
                     # handle edge cases: d1<d2 by definition, but if the clustering that produced
                     # the labels used a different distance definition, this could not be the case.
                     # These edge cases are low in confidence, i.e., c = 0.
-                    if c < 0:
-                        c = 0
+                    c = max(c, 0)
 
                 confidence[i] = c
 

@@ -1,16 +1,50 @@
 name: Python package
 
 on:
+  workflow_dispatch: # For manual triggering
   push:
     branches:
     - main
   pull_request:
     branches:
     - main
+  schedule:
+    - cron: '0 0 * * 0'
 
 jobs:
-  build:
+  lint: # Check code quality and if installation works first 
+    name: Linting build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download libsndfile
+        run: |
+          sudo apt-get install libsndfile1
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+          cache: 'pip'
+          cache-dependency-path: setup.cfg
+      - name: Python info
+        shell: bash -l {0}
+        run: |
+          which python3
+          python3 --version
+      - name: Upgrade pip and install dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install .[dev]
+      - name: Check style against standards using prospector
+        run: prospector
+      - name: Check import order
+        run: isort --check-only mexca --diff
+
+  build: # Then test for all OS and Python versions
     name: Build for (${{ matrix.python-version }}, ${{ matrix.os }})
+    needs: [lint]
     runs-on: ${{ matrix.os }}
     env:
       HDF5_DISABLE_VERSION_CHECK: 1
@@ -33,6 +67,8 @@ jobs:
         uses: actions/setup-python@v3
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: setup.cfg
       - name: Python info
         shell: bash -l {0}
         run: |
@@ -48,31 +84,3 @@ jobs:
         run: pytest -vv -E runner
       - name: Verify that we can build the package
         run: python3 setup.py sdist bdist_wheel
-
-  # lint:
-  #   name: Linting build
-  #   runs-on: ubuntu-latest
-  #   strategy:
-  #     fail-fast: false
-  #   steps:
-  #     - uses: actions/checkout@v3
-  #     - name: Download libsndfile
-  #       run: |
-  #         sudo apt-get install libsndfile1
-  #     - name: Set up Python 3.9
-  #       uses: actions/setup-python@v3
-  #       with:
-  #         python-version: 3.9
-  #     - name: Python info
-  #       shell: bash -l {0}
-  #       run: |
-  #         which python3
-  #         python3 --version
-  #     - name: Upgrade pip and install dependencies
-  #       run: |
-  #         python3 -m pip install --upgrade pip setuptools wheel
-  #         python3 -m pip install .[dev]
-  #     - name: Check style against standards using prospector
-  #       run: prospector
-  #     - name: Check import order
-  #       run: isort --check-only mexca --diff
