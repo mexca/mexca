@@ -1,5 +1,7 @@
 """ Test audio sentiment extraction classes and methods """
 
+import os
+import subprocess
 import pytest
 from pyannote.core import Annotation
 from mexca.text.sentiment import SentimentExtractor
@@ -11,10 +13,10 @@ from mexca.text.transcription import Sentence, TranscribedSegment
 @pytest.mark.skip_env('runner')
 @pytest.mark.skip_os(['Windows', 'Linux'])
 class TestSentimentExtractor:
-
     @pytest.fixture
     def extractor(self):
         return SentimentExtractor()
+
 
     @pytest.fixture
     def annotation(self):
@@ -44,3 +46,13 @@ class TestSentimentExtractor:
         assert pytest.approx(sentence.sent_pos) == self.reference['pos']
         assert pytest.approx(sentence.sent_neg) == self.reference['neg']
         assert pytest.approx(sentence.sent_neu) == self.reference['neu']
+
+
+    def test_cli(self):
+        annotation_path = os.path.join(
+            'tests', 'reference_files', 'annotation_video_audio_5_seconds.json'
+        )
+        out_filename = os.path.basename(annotation_path) + '.json'
+        subprocess.run(['extract-sentiment', '-a', annotation_path, '-o', '.'], check=True)
+        assert os.path.exists(out_filename)
+        os.remove(out_filename)

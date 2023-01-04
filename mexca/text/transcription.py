@@ -1,20 +1,18 @@
 """Transcribe speech from audio to text.
 """
 
+import argparse
+import os
 import re
 from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional, Union
-import numpy as np
+from typing import List, Optional, Union
+import pyannote.core.json
 import stable_whisper
 import torch
 import whisper
-from parselmouth import Sound
 from pyannote.core import Annotation, Segment
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from mexca.core.exceptions import TimeStepError
-from mexca.core.utils import create_time_var_from_step
-from mexca.text.sentiment import SentimentExtractor
 
 
 @dataclass
@@ -55,7 +53,7 @@ class TranscribedSegment(Segment):
 
     """
 
-    def __init__(self, # pylint: disable=too-many-arguments
+    def __init__(self, #pylint: disable=too-many-arguments
         start: float,
         end: float,
         text: Optional[str] = None,
@@ -66,6 +64,23 @@ class TranscribedSegment(Segment):
         self.text = text
         self.lang = lang
         self.sents = sents
+
+    # These methods must be explictly declared to compare
+    # TranscribedSegments with Segments
+    def __lt__(self, obj):
+        return self.start < obj.start and self.end < obj.end
+
+
+    def __le__(self, obj):
+        return self.start <= obj.start and self.end <= obj.end
+
+
+    def __gt__(self, obj):
+        return self.start > obj.start and self.end > obj.end
+
+
+    def __ge__(self, obj):
+        return self.start >= obj.start and self.end >= obj.end
 
 
 class AudioTranscriber:
@@ -124,7 +139,7 @@ class AudioTranscriber:
             and with a number format that depends on whether CUDA is available:
             FP16 (half-precision floating points) if available,
             FP32 (single-precision floating points) otherwise.
-        show_progress: bool
+        show_progress: bool, optional, default=True
             Whether a progress bar is displayed or not.
 
         Returns
@@ -219,129 +234,50 @@ class AudioTranscriber:
             fp16=torch.cuda.is_available()
         )
 
-
-class AudioTextIntegrator:
-    """Integrate audio transcription and audio features.
-
-    Parameters
-    ----------
-    audio_transcriber: AudioTranscriber
-        A class instance for audio transcription.
-    sentiment_extractor: SentimentExtractor
-        A class instance for sentiment prediction.
-    time_step: float, optional
-        The interval at which transcribed text is matched to audio frames.
-        Must be > 0. Only used if the `apply` method has `time=None`.
-
+# Adapted from whisper.trascribe.cli
+# See: https://github.com/openai/whisper/blob/main/whisper/transcribe.py
+def cli():
+    """Command line interface for audio transcription.
     """
-    def __init__(self,
-        audio_transcriber: AudioTranscriber,
-        sentiment_extractor: SentimentExtractor,
-        time_step: Optional[float] = None
-    ):
-        self.audio_transcriber = audio_transcriber
-        self.sentiment_extractor = sentiment_extractor
-        self.time_step = time_step
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-f', '--filepath', type=str, required=True)
+    parser.add_argument('-a', '--annotation-path', type=str, required=True, dest='annotation_path')
+    parser.add_argument('-o', '--outdir', type=str, required=True)
+    parser.add_argument("--model", default="small", choices=whisper.available_models())
+    parser.add_argument("--device", default="cpu")
+    parser.add_argument("--language", type=str, default=None, choices=sorted(whisper.tokenizer.LANGUAGES.keys()) + sorted([k.title() for k in whisper.tokenizer.TO_LANGUAGE_CODE.keys()]))
+    parser.add_argument('--sentence-rule', type=str, default=None, dest='sentence_rule')
+    parser.add_argument('--show-progress', type=str, default=None, dest='show_progress')
+
+    args = parser.parse_args().__dict__
+
+    transcriber = AudioTranscriber(
+        whisper_model=args['model'],
+        device=args['device'],
+        sentence_rule=args['sentence_rule']
+    )
+
+    options = whisper.DecodingOptions(
+        language=args['language'],
+        without_timestamps=False,
+        fp16=torch.cuda.is_available()
+    )
+
+    audio_annotation = pyannote.core.json.load_from(args['annotation_path'])
+
+    output = transcriber.apply(
+        args['filepath'],
+        audio_annotation=audio_annotation,
+        options=options,
+        show_progress=args['show_progress']
+    )
+
+    pyannote.core.json.dump_to(
+        output,
+        os.path.join(args['outdir'], os.path.basename(args['filepath']) + '.json')
+    )
 
 
-    @property
-    def time_step(self) -> float:
-        return self._time_step
-
-
-    @time_step.setter
-    def time_step(self, new_time_step: float):
-        if new_time_step:
-            if new_time_step > 0.0:
-                self._time_step = new_time_step
-            else:
-                raise ValueError('Can only set "time_step" to values > zero')
-
-        self._time_step = new_time_step
-
-
-    def apply(self, # pylint: disable=too-many-arguments
-        filepath: str,
-        audio_annotation: Annotation,
-        time: Optional[Union[List[float], np.ndarray]] = None,
-        options: Optional[whisper.DecodingOptions] = None,
-        show_progress: bool = True
-    ) -> Dict:
-        """
-        Integrate audio transcription and audio features.
-
-        Parameters
-        ----------
-        filepath: str
-            Path to the audio file.
-        audio_annotation: pyannote.core.Annotation
-            An annotation object containing speech segments.
-        time: list or numpy.ndarray, optional
-            A list of floats or array containing time points to which the transcribed text is matched.
-            Is only optional if `AudioTextIntegrator.time_step` is not `None`.
-        options: whisper.DecodingOptions, optional
-            Options for transcribing the audio file. If `None`, transcription is done without timestamps,
-            and with a number format that depends on whether CUDA is available:
-            FP16 (half-precision floating points) if available,
-            FP32 (single-precision floating points) otherwise.
-        show_progress: bool
-            Whether a progress bar is displayed or not.
-
-        Returns
-        -------
-        dict
-            A dictionary with text features matched to audio features. Text features are 'segment_text',
-            'segment_sent_pos', 'segment_sent_neg', and 'segment_sent_neu'. They contain the segment
-            transcriptions as well as positive, negative, and neutral sentiment scores.
-
-        """
-        if time and not isinstance(time, (list, np.ndarray)):
-            raise TypeError('Argument "time" must be list or numpy.ndarray')
-
-        snd = Sound(filepath)
-
-        if not time and not self.time_step:
-            raise TimeStepError()
-
-        if not time:
-            end_time = snd.get_end_time()
-            time = create_time_var_from_step(self.time_step, end_time)
-
-        transcription = self.audio_transcriber.apply(filepath, audio_annotation, options, show_progress)
-        transcription = self.sentiment_extractor.apply(transcription)
-
-        audio_text_features = {
-            'time': time,
-            'segment_text': np.full_like(time, np.nan, dtype=np.chararray),
-            'segment_lang': np.full_like(time, np.nan, dtype=np.chararray),
-            'sentence_id': np.full_like(time, np.nan),
-            'sentence_start': np.full_like(time, np.nan),
-            'sentence_end': np.full_like(time, np.nan),
-            'sentence_text': np.full_like(time, np.nan, dtype=np.chararray),
-            'sentence_sent_pos': np.full_like(time, np.nan),
-            'sentence_sent_neg': np.full_like(time, np.nan),
-            'sentence_sent_neu': np.full_like(time, np.nan)
-        }
-
-        for seg in transcription.itersegments():
-            is_segment = np.logical_and(
-                np.less(time, seg.end), np.greater(time, seg.start)
-            )
-
-            audio_text_features['segment_text'][is_segment] = seg.text
-            audio_text_features['segment_lang'][is_segment] = seg.lang
-
-            for i, sent in enumerate(seg.sents):
-                is_sent = np.logical_and(
-                    np.less(time, sent.end), np.greater(time, sent.start)
-                )
-
-                audio_text_features['sentence_id'][is_sent] = i
-                audio_text_features['sentence_start'][is_sent] = sent.start
-                audio_text_features['sentence_end'][is_sent] = sent.end
-                audio_text_features['sentence_text'][is_sent] = sent.text
-                audio_text_features['sentence_sent_pos'][is_sent] = sent.sent_pos
-                audio_text_features['sentence_sent_neg'][is_sent] = sent.sent_neg
-                audio_text_features['sentence_sent_neu'][is_sent] = sent.sent_neu
-
-        return audio_text_features
+if __name__ == '__main__':
+    cli()
