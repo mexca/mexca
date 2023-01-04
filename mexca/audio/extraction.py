@@ -2,10 +2,34 @@
 Currently, only the voice pitch as the fundamental frequency F0 can be extracted.
 """
 
+import argparse
+import json
+import os
+from dataclasses import dataclass, field, asdict
+from typing import Optional, List
+import numpy as np
 from parselmouth import Sound
-import mexca.audio.features
-from mexca.core.exceptions import TimeStepError
-from mexca.core.utils import create_time_var_from_step
+
+
+@dataclass
+class VoiceFeatures:
+    """Class for storing voice features.
+    """
+    time: List[float]
+    pitch_F0: Optional[List[float]] = field(default_factory=list)
+
+
+    def write_json(self, filename: str):
+        """Store voice features in a json file.
+
+        Arguments
+        ---------
+        filename: str
+            Name of the destination file. Must have a .json ending.
+
+        """
+        with open(filename, 'w', encoding='utf-8') as file:
+            json.dump(asdict(self), file, allow_nan=True)
 
 
 class VoiceExtractor:
@@ -34,61 +58,9 @@ class VoiceExtractor:
     A tutorial on how to create a custom feature class will follow soon (TODO).
 
     """
-    def __init__(self, time_step=None, features=None) -> 'VoiceExtractor':
-        self.time_step = time_step
-
-        if features:
-            self.features = features
-        else:
-            self.set_default_features()
 
 
-    @property
-    def time_step(self):
-        """Interval between time points at which voice features are extracted. Must be `float`.
-        """
-        return self._time_step
-
-
-    @time_step.setter
-    def time_step(self, new_time_step):
-        if new_time_step:
-            if isinstance(new_time_step, (float, int)):
-                if new_time_step >= 0.0:
-                    self._time_step = new_time_step
-                else:
-                    raise ValueError('Can only set "time_step" to values >= zero')
-            else:
-                raise TypeError('Can only set "time_step" to float, int, or None')
-        else:
-            self._time_step = new_time_step
-
-
-    @property
-    def features(self):
-        """Voice features to be extracted. Must be `dict`.
-        """
-        return self._features
-
-
-    @features.setter
-    def features(self, new_features):
-        if isinstance(new_features, dict):
-            self._features = new_features
-        else:
-            raise TypeError('Can only set "features" to dict class instances')
-
-
-    def set_default_features(self) -> None:
-        """Set `feature` attribute to the default feature classes.
-        Currently, this only includes `mexca.audio.features.PitchF0`.
-        """
-        self.features = {
-            'pitchF0': mexca.audio.features.FeaturePitchF0()
-        }
-
-
-    def extract_features(self, filepath, time):
+    def apply(self, filepath: str, time_step: float = 0.023):
         """Extract voice features from an audio file.
 
         Parameters
@@ -112,21 +84,34 @@ class VoiceExtractor:
             the time points must be constructed with with the `time_step` attribute.
 
         """
-        if not time and not self.time_step:
-            raise TimeStepError()
-
         snd = Sound(filepath)
+        time = np.arange(snd.start_time, snd.end_time, time_step)
+        
+        pitch = snd.to_pitch_shs()
 
-        if not time:
-            end_time = snd.get_end_time()
-            time = create_time_var_from_step(self.time_step, end_time)
+        pitch_array = np.vectorize(pitch.get_value_at_time)(time)
 
-        voice_features = {
-            'time': time
-        }
+        return VoiceFeatures(time=time, pitch_F0=pitch_array.tolist())
 
-        for feature in self.features:
-            feature_method = self.features[feature]
-            voice_features[feature] = feature_method.extract(snd, time)
 
-        return voice_features
+def cli():
+    """Command line interface for extracting voice features.
+    """
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-f', '--filepath', type=str, required=True)
+    parser.add_argument('-o', '--outdir', type=str, required=True)
+    parser.add_argument('-t', '--time-step', type=str, dest='time_step')
+
+    args = parser.parse_args().__dict__
+
+    extractor = VoiceExtractor()
+
+    output = extractor.apply(args['filepath'], time_step=args['time_step'])
+
+    output.write_json(os.path.join(args['outdir'], os.path.basename(args['filepath']) + '.json'))
+
+
+if __name__ == '__main__':
+    cli()
+    
