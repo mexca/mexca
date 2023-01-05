@@ -51,8 +51,8 @@ class TestSpeakerIdentifier:
 
 
     def test_cli(self):
-        out_filename = os.path.basename(self.filepath) + '.json'
-        subprocess.run(['extract-voice', '-f', self.filepath,
-                        '-o', '.', '-t', '0.04'], check=True)
+        out_filename = os.path.basename(self.filepath) + '.rttm'
+        subprocess.run(['identify-speakers', '-f', self.filepath,
+                        '-o', '.', '--num-speakers', '2'], check=True)
         assert os.path.exists(out_filename)
         os.remove(out_filename)

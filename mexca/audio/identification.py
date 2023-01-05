@@ -3,8 +3,7 @@
 
 import argparse
 import os
-from typing import Optional, Tuple, Union
-import pyannote.core.json
+from typing import Optional, Union
 from pyannote.audio import Pipeline
 from pyannote.core import Annotation
 
@@ -88,10 +87,13 @@ def cli():
 
     output = identifier.apply(args['filepath'])
 
-    pyannote.core.json.dump_to(
-        output,
-        os.path.join(args['outdir'], os.path.basename(args['filepath']) + '.json')
-    )
+    with open(
+        os.path.join(
+            args['outdir'],
+            os.path.basename(args['filepath']) + '.rttm'
+        ), 'w', encoding='utf-8'
+    ) as file:
+        output.write_rttm(file)
 
 
 if __name__ == '__main__':
