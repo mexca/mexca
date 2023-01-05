@@ -1,11 +1,11 @@
 """ Test audio sentiment extraction classes and methods """
 
 import os
+import srt
 import subprocess
+from datetime import timedelta
 import pytest
-from pyannote.core import Annotation
-from mexca.text.sentiment import SentimentExtractor
-from mexca.text.transcription import Sentence, TranscribedSegment
+from mexca.text import SentimentExtractor
 
 
 # Skip tests on GitHub actions runner for Windows and Linux but
@@ -19,18 +19,15 @@ class TestSentimentExtractor:
 
 
     @pytest.fixture
-    def annotation(self):
-        seg = TranscribedSegment(
-            start=0.0,
-            end=1.0,
-            text='Today was a good day!',
-            lang='en',
-            sents=[Sentence(text='Today was a good day!', start=0.0, end=1.0)]
+    def transcription(self):
+        sent = srt.Subtitle(
+            index=0,
+            start=timedelta(seconds=0),
+            end=timedelta(seconds=1),
+            content='Today was a good day!'
         )
-        ann = Annotation()
-        ann[seg, 'trackA'] = 'speaker1'
 
-        return(ann)
+        return [sent]
 
     reference = {
         'pos': 0.9203513,
@@ -39,20 +36,20 @@ class TestSentimentExtractor:
     }
 
 
-    def test_apply(self, extractor, annotation):
-        sentiment_annotation = extractor.apply(annotation)
+    def test_apply(self, extractor, transcription):
+        sentiment = extractor.apply(transcription)
         # Get first sentence object from first segment
-        sentence = list(sentiment_annotation.itersegments())[0].sents[0]
-        assert pytest.approx(sentence.sent_pos) == self.reference['pos']
-        assert pytest.approx(sentence.sent_neg) == self.reference['neg']
-        assert pytest.approx(sentence.sent_neu) == self.reference['neu']
+        sentence = sentiment[0]
+        assert pytest.approx(sentence.pos) == self.reference['pos']
+        assert pytest.approx(sentence.neg) == self.reference['neg']
+        assert pytest.approx(sentence.neu) == self.reference['neu']
 
 
     def test_cli(self):
-        annotation_path = os.path.join(
-            'tests', 'reference_files', 'annotation_video_audio_5_seconds.json'
+        transcription_path = os.path.join(
+            'tests', 'reference_files', 'transcription_video_audio_5_seconds.srt'
         )
-        out_filename = os.path.basename(annotation_path) + '.json'
-        subprocess.run(['extract-sentiment', '-a', annotation_path, '-o', '.'], check=True)
+        out_filename = os.path.basename(transcription_path) + '_sentiment.json'
+        subprocess.run(['extract-sentiment', '-a', transcription_path, '-o', '.'], check=True)
         assert os.path.exists(out_filename)
         os.remove(out_filename)

@@ -1,39 +1,13 @@
 """ Test Audio to text transcription classes and methods """
 
-import json
 import os
 import subprocess
+from datetime import timedelta
 import pytest
+import srt
 import stable_whisper
 import whisper
-from pyannote.core import Annotation
-from mexca.text.transcription import AudioTranscriber, Sentence, TranscribedSegment
-
-
-class TestSentence:
-    sentence = Sentence('k', 0.0, 1.0)
-
-    def test_set_sentiment(self):
-        self.sentence.sent_pos = 0.5
-        self.sentence.sent_neg = 0.25
-        self.sentence.sent_neu = 0.25
-
-        assert self.sentence.sent_pos == 0.5
-        assert self.sentence.sent_neg == 0.25
-        assert self.sentence.sent_neu == 0.25
-
-
-class TestTranscribedSegment:
-    segment = TranscribedSegment(0.0, 1.0)
-
-    def test_set_transcription(self):
-        self.segment.text = 'k'
-        self.segment.lang = 'en'
-        self.segment.sents = [Sentence('k', 0.1, 0.9)]
-
-        assert self.segment.text == 'k'
-        assert self.segment.lang == 'en'
-        assert self.segment.sents == [Sentence('k', 0.1, 0.9)]
+from mexca.text.transcription import AudioTranscriber, RttmAnnotation
 
 
 class TestAudioTranscription:
@@ -42,23 +16,24 @@ class TestAudioTranscription:
         'tests', 'test_files', 'test_video_audio_5_seconds.wav'
     )
     annotation_path = os.path.join(
-        'tests', 'reference_files', 'annotation_video_audio_5_seconds.json'
+        'tests', 'reference_files', 'annotation_video_audio_5_seconds.rttm'
     )
-    with open(annotation_path, 'r', encoding="utf-8") as file:
-        annotation = Annotation.from_json(json.loads(file.read()))
+    
+    annotation = RttmAnnotation.from_rttm(annotation_path)
 
     def test_apply(self):
         transcription = self.audio_transcriber.apply(self.filepath, self.annotation)
-        segments = list(transcription.itersegments())
 
+        assert isinstance(transcription, list)
         # Only one segment
-        assert isinstance(segments[0].text, str)
-        assert isinstance(segments[0].lang, str)
-        assert isinstance(segments[0].sents[0].text, str)
+        assert isinstance(transcription[0], srt.Subtitle)
+        assert isinstance(transcription[0].start, timedelta)
+        assert isinstance(transcription[0].end, timedelta)
+        assert isinstance(transcription[0].content, str)
 
 
     def test_cli(self):
-        out_filename = os.path.basename(self.filepath) + '.json'
+        out_filename = os.path.basename(self.filepath) + '.srt'
         subprocess.run(['transcribe', '-f', self.filepath,
                         '-a', self.annotation_path, '-o', '.'], check=True)
         assert os.path.exists(out_filename)

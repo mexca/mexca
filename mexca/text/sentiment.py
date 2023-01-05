@@ -2,13 +2,22 @@
 """
 
 import argparse
+import json
 import os
-from typing import Optional
-import pyannote.core.json
-from pyannote.core import Annotation
+from dataclasses import asdict, dataclass
+from typing import List, Optional
+import srt
 from scipy.special import softmax
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from tqdm import tqdm
+
+
+@dataclass
+class Sentiment:
+    index: int
+    pos: float
+    neg: float
+    neu: float
 
 
 class SentimentExtractor:
@@ -40,7 +49,7 @@ class SentimentExtractor:
         self.classifier = AutoModelForSequenceClassification.from_pretrained(model_name)
 
 
-    def apply(self, transcription: Annotation, show_progress: bool = True) -> Annotation:
+    def apply(self, transcription: List[srt.Subtitle], show_progress: bool = True) -> List[Sentiment]:
         """Extract the sentiment from text.
 
         Iterates over the segments in the audio annotation and predicts the sentiment
@@ -62,17 +71,35 @@ class SentimentExtractor:
 
         """
 
-        for seg in tqdm(transcription.itersegments(), total=len(transcription), disable=not show_progress):
-            for sent in seg.sents:
-                tokens = self.tokenizer(sent.text, return_tensors='pt')
-                output = self.classifier(**tokens)
-                logits = output.logits.detach().numpy()
-                scores = softmax(logits)[0]
-                sent.sent_pos = scores[2]
-                sent.sent_neg = scores[0]
-                sent.sent_neu = scores[1]
+        sentiment = []
 
-        return transcription
+        for sent in tqdm(transcription, total=len(transcription), disable=not show_progress):
+            tokens = self.tokenizer(sent.content, return_tensors='pt')
+            output = self.classifier(**tokens)
+            logits = output.logits.detach().numpy()
+            scores = softmax(logits)[0]
+            sentiment.append(Sentiment(
+                index=sent.index,
+                pos=float(scores[2]),
+                neg=float(scores[0]),
+                neu=float(scores[1])
+            ))
+
+        return sentiment
+
+
+    @staticmethod
+    def read_srt(filename: str) -> List[srt.Subtitle]:
+        with open(filename, 'r', encoding='utf-8') as file:
+            subtitles = srt.parse(file)
+
+            return list(subtitles)
+
+
+    @staticmethod
+    def write_json(filename: str, sentiment: List[Sentiment]):
+        with open(filename, 'w', encoding='utf-8') as file:
+            file.write(json.dumps([asdict(sent) for sent in sentiment]))
 
 
 def cli():
@@ -80,7 +107,7 @@ def cli():
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-a', '--annotation-path', type=str, required=True, dest='annotation_path')
+    parser.add_argument('-a', '--transcription-path', type=str, required=True, dest='transcription_path')
     parser.add_argument('-o', '--outdir', type=str, required=True)
     parser.add_argument('--show-progress', type=str, default=None, dest='show_progress')
 
@@ -88,13 +115,13 @@ def cli():
 
     extractor = SentimentExtractor()
 
-    audio_annotation = pyannote.core.json.load_from(args['annotation_path'])
+    transcription = extractor.read_srt(args['transcription_path'])
 
-    output = extractor.apply(audio_annotation, show_progress=args['show_progress'])
+    output = extractor.apply(transcription, show_progress=args['show_progress'])
 
-    pyannote.core.json.dump_to(
-        output,
-        os.path.join(args['outdir'], os.path.basename(args['annotation_path']) + '.json')
+    extractor.write_json(
+        os.path.join(args['outdir'], os.path.basename(args['transcription_path']) + '_sentiment.json'),
+        output
     )
 
 

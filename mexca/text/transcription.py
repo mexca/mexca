@@ -4,83 +4,79 @@
 import argparse
 import os
 import re
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, field
+from datetime import timedelta
 from typing import List, Optional, Union
-import pyannote.core.json
+import srt
 import stable_whisper
 import torch
 import whisper
-from pyannote.core import Annotation, Segment
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
 
 
 @dataclass
-class Sentence:
-    """Annotate a sentence within a transcribed speech segment.
-
-    Parameters
-    ----------
-    text: str
-        The transcribed sentence.
-    start, end: float
-        The start and end of the sentence within in the segment (in seconds).
-    sent_pos, sent_neg, sent_neu: float, optional
-        The positive, negative, and neutral sentiment scores of the sentence.
-
-    """
-    text: str
-    start: float
-    end: float
-    sent_pos: Optional[float] = None
-    sent_neg: Optional[float] = None
-    sent_neu: Optional[float] = None
+class RttmSegment:
+    type: str
+    file: str
+    chnl: int
+    tbeg: float
+    tdur: float
+    ortho: Optional[str] = None
+    stype: Optional[str] = None
+    name: Optional[str] = None
+    conf: Optional[float] = None
 
 
-class TranscribedSegment(Segment):
-    """Annotate an audio segment with transcribed text and sentiment.
-
-    Parameters
-    ----------
-    start, end: float
-        The start and end of the segment (in seconds).
-    text: str, optional
-        The transcribed text of speech within the segment.
-    lang: str, optional
-        The detected language of speech within the segment.
-    sents: list, optional
-        A list of sentences in the transcribed text.
-
-    """
-
-    def __init__(self, #pylint: disable=too-many-arguments
-        start: float,
-        end: float,
-        text: Optional[str] = None,
-        lang: Optional[str] = None,
-        sents: Optional[List[Sentence]] = None
-    ):
-        super().__init__(start, end)
-        self.text = text
-        self.lang = lang
-        self.sents = sents
-
-    # These methods must be explictly declared to compare
-    # TranscribedSegments with Segments
-    def __lt__(self, obj):
-        return self.start < obj.start and self.end < obj.end
+def _get_rttm_header() -> List[str]:
+    return ["type", "file", "chnl", "tbeg", 
+            "tdur", "ortho", "stype", "name", 
+            "conf"]
 
 
-    def __le__(self, obj):
-        return self.start <= obj.start and self.end <= obj.end
+@dataclass
+class RttmAnnotation:
+    segments: List[RttmSegment]
+    header: List[str] = field(default_factory=_get_rttm_header)
 
 
-    def __gt__(self, obj):
-        return self.start > obj.start and self.end > obj.end
+    @classmethod
+    def from_pyannote(cls, annotation: 'pyannote.core.Annotation'):
+        segments = []
+
+        for seg, _, spk in annotation.itertracks(yield_label=True):
+            segments.append(RttmSegment(
+                type='SPEAKER',
+                file=annotation.uri,
+                chnl=1,
+                tbeg=seg.start,
+                tdur=seg.duration,
+                name=spk
+            ))
+
+        return cls(segments)
 
 
-    def __ge__(self, obj):
-        return self.start >= obj.start and self.end >= obj.end
+    @classmethod
+    def from_rttm(cls, filename: str):
+        with open(filename, "r", encoding='utf-8') as file:
+            segments = []
+            for row in file:
+                row_split = [None if cell == "<NA>" else cell for cell in row.split(" ")]
+                segment = RttmSegment(
+                    type=row_split[0],
+                    file=row_split[1],
+                    chnl=int(row_split[2]),
+                    tbeg=float(row_split[3]),
+                    tdur=float(row_split[4]),
+                    ortho=row_split[5],
+                    stype=row_split[6],
+                    name=row_split[7],
+                    conf=float(row_split[8]) if row_split[8] is not None else None
+                )
+                segments.append(segment)
+
+            return cls(segments)
 
 
 class AudioTranscriber:
@@ -122,10 +118,10 @@ class AudioTranscriber:
 
     def apply(self, # pylint: disable=too-many-locals
         filepath: str,
-        audio_annotation: Annotation,
+        audio_annotation: RttmAnnotation,
         options: Optional[whisper.DecodingOptions] = None,
         show_progress: bool = True
-    ) -> Annotation:
+    ) -> List[srt.Subtitle]:
         """Transcribe speech in an audio file to text.
 
         Parameters
@@ -153,16 +149,16 @@ class AudioTranscriber:
 
         audio = torch.Tensor(whisper.load_audio(filepath))
 
-        new_annotation = Annotation()
+        subtitles = []
 
-        for seg, trk, spk in tqdm( # segment, track, speaker
-            audio_annotation.itertracks(yield_label=True),
-            total=len(audio_annotation),
+        for i, seg in tqdm(
+            enumerate(audio_annotation.segments),
+            total=len(audio_annotation.segments),
             disable=not show_progress
         ):
             # Get start and end frame
-            start = int(seg.start * SAMPLE_RATE)
-            end = int(seg.end * SAMPLE_RATE)
+            start = int(seg.tbeg * SAMPLE_RATE)
+            end = int((seg.tbeg + seg.tdur) * SAMPLE_RATE)
 
             # Subset audio signal
             audio_sub = audio[start:end]
@@ -174,50 +170,31 @@ class AudioTranscriber:
             # Split text into sentences
             sents = re.split(self.sentence_rule, segment_text)
 
+            # Concatenate word timestamps from every segment
+            whole_word_timestamps = []
 
-            def annotate_sentences(sents, output, seg_start):
-                """Helper function to annotate sentence start and end timestamps.
-                """
-                # Concatenate word timestamps from every segment
-                whole_word_timestamps = []
+            for segment in output['segments']:
+                whole_word_timestamps.extend(segment['whole_word_timestamps'])
 
-                for segment in output['segments']:
-                    whole_word_timestamps.extend(segment['whole_word_timestamps'])
+            if len(whole_word_timestamps) > 0:
+                idx = 0
 
-                # Get sentence start and end timestamps
-                sents_ts = []
+                for sent in sents:
+                    sent_len = len(sent.split(" ")) - 1
 
-                # If word-level timestamps are available
-                if len(whole_word_timestamps) > 0:
-                    idx = 0
+                    sent_start = whole_word_timestamps[idx]['timestamp']
+                    sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
 
-                    for sent in sents:
-                        sent_len = len(sent.split(" ")) - 1
+                    subtitles.append(srt.Subtitle(
+                        index=i,
+                        start=timedelta(seconds=seg.tbeg + sent_start),
+                        end=timedelta(seconds=seg.tbeg + sent_end),
+                        content=sent
+                    ))
 
-                        start = whole_word_timestamps[idx]['timestamp']
-                        end = whole_word_timestamps[idx + sent_len]['timestamp']
+                    idx += sent_len + 1
 
-                        sents_ts.append(Sentence(sent, seg_start + start, seg_start + end))
-
-                        idx += sent_len + 1
-
-                return sents_ts
-
-
-            sents_ts = annotate_sentences(sents, output, seg.start)
-
-            # Add new segment with text
-            new_seg = TranscribedSegment(
-                seg.start,
-                seg.end,
-                segment_text,
-                output['language'],
-                sents = sents_ts
-            )
-
-            new_annotation[new_seg, trk] = spk
-
-        return new_annotation
+        return subtitles
 
 
     @staticmethod
@@ -233,6 +210,13 @@ class AudioTranscriber:
             without_timestamps=False,
             fp16=torch.cuda.is_available()
         )
+
+
+    @staticmethod
+    def write_srt(filename: str, subtitles: List[srt.Subtitle]):
+        with open(filename, 'w', encoding='utf-8') as file:
+            file.write(srt.compose(subtitles))
+
 
 # Adapted from whisper.trascribe.cli
 # See: https://github.com/openai/whisper/blob/main/whisper/transcribe.py
@@ -264,7 +248,7 @@ def cli():
         fp16=torch.cuda.is_available()
     )
 
-    audio_annotation = pyannote.core.json.load_from(args['annotation_path'])
+    audio_annotation = RttmAnnotation.from_rttm(args['annotation_path'])
 
     output = transcriber.apply(
         args['filepath'],
@@ -273,9 +257,10 @@ def cli():
         show_progress=args['show_progress']
     )
 
-    pyannote.core.json.dump_to(
-        output,
-        os.path.join(args['outdir'], os.path.basename(args['filepath']) + '.json')
+
+    transcriber.write_srt(
+        os.path.join(args['outdir'], os.path.basename(args['filepath']) + '.srt'),
+        output
     )
 
 
