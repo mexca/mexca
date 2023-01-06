@@ -2,6 +2,6 @@
 """
 
 from .sentiment import SentimentExtractor
-from .transcription import AudioTranscriber, RttmAnnotation, RttmSegment
+from .transcription import AudioTranscriber
 
-__all__ = ['AudioTranscriber', 'RttmAnnotation', 'RttmSegment', 'SentimentExtractor']
+__all__ = ['AudioTranscriber', 'SentimentExtractor']
