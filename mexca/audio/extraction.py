@@ -3,33 +3,10 @@ Currently, only the voice pitch as the fundamental frequency F0 can be extracted
 """
 
 import argparse
-import json
 import os
-from dataclasses import dataclass, field, asdict
-from typing import Optional, List
 import numpy as np
 from parselmouth import Sound
-
-
-@dataclass
-class VoiceFeatures:
-    """Class for storing voice features.
-    """
-    time: List[float]
-    pitch_F0: Optional[List[float]] = field(default_factory=list)
-
-
-    def write_json(self, filename: str):
-        """Store voice features in a json file.
-
-        Arguments
-        ---------
-        filename: str
-            Name of the destination file. Must have a .json ending.
-
-        """
-        with open(filename, 'w', encoding='utf-8') as file:
-            json.dump(asdict(self), file, allow_nan=True)
+from mexca.data import VoiceFeatures
 
 
 class VoiceExtractor:

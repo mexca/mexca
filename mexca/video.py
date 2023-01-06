@@ -2,9 +2,7 @@
 """
 
 import argparse
-import json
 import os
-from dataclasses import asdict, dataclass, field
 from typing import Dict, List, Optional, Tuple, Union
 import feat
 import numpy as np
@@ -17,68 +15,12 @@ from torch import transpose
 from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_video
 from tqdm import tqdm
+from mexca.data import VideoAnnotation
 
 
 EMPTY_VALUE = np.nan
 """Value that is returned if no faces are detected in a video frame.
 """
-
-
-@dataclass
-class VideoAnnotation:
-    """Video annotation class for storing facial features and video meta data.
-
-    Parameters
-    ----------
-    filename : str
-        Name of the video file.
-    duration : float
-        Duration of the video.
-    fps : int
-        Frames per second of the video.
-    frame : list
-        Index of each frame.
-    time : list
-        Timestamp of each frame in seconds.
-    face_box : list
-        Bounding box of a detected face. Is `numpy.nan` if no face was detected.
-    face_prob : list
-        Probability of a detected face. Is `numpy.nan` if no face was detected.
-    face_landmarks : list
-        Facial landmarks of a detected face. Is `numpy.nan` if no face was detected.
-    face_aus : list
-        Facial action unit activations of a detected face. Is `numpy.nan` if no face was detected.
-    face_label : list
-        Label of a detected face. Is `numpy.nan` if no face was detected.
-    face_confidence : list, optional
-        Confidence of the `face_label` assignment. Is `numpy.nan` if no face was detected or
-        only one face label was assigned.
-
-    """
-    filename: str
-    duration: float
-    fps: int
-    frame: Optional[List[int]] = field(default_factory=list)
-    time: Optional[List[float]] = field(default_factory=list)
-    face_box: Optional[List[List[float]]] = field(default_factory=list)
-    face_prob: Optional[List[float]] = field(default_factory=list)
-    face_landmarks: Optional[List[List[List[float]]]] = field(default_factory=list)
-    face_aus: Optional[List[List[float]]] = field(default_factory=list)
-    face_label: Optional[List[Union[str, int]]] = field(default_factory=list)
-    face_confidence: Optional[List[float]] = field(default_factory=list)
-
-
-    def write_json(self, filename: str):
-        """Store the video annotation in a json file.
-
-        Arguments
-        ---------
-        filename: str
-            Name of the destination file. Must have a .json ending.
-
-        """
-        with open(filename, 'w', encoding='utf-8') as file:
-            json.dump(asdict(self), file, allow_nan=True)
 
 
 # Adapted from pyfeat.data.VideoDataset

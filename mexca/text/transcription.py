@@ -4,7 +4,7 @@
 import argparse
 import os
 import re
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict
 from datetime import timedelta
 from typing import List, Optional, Union
 import srt
@@ -13,70 +13,7 @@ import torch
 import whisper
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-
-
-@dataclass
-class RttmSegment:
-    type: str
-    file: str
-    chnl: int
-    tbeg: float
-    tdur: float
-    ortho: Optional[str] = None
-    stype: Optional[str] = None
-    name: Optional[str] = None
-    conf: Optional[float] = None
-
-
-def _get_rttm_header() -> List[str]:
-    return ["type", "file", "chnl", "tbeg", 
-            "tdur", "ortho", "stype", "name", 
-            "conf"]
-
-
-@dataclass
-class RttmAnnotation:
-    segments: List[RttmSegment]
-    header: List[str] = field(default_factory=_get_rttm_header)
-
-
-    @classmethod
-    def from_pyannote(cls, annotation: 'pyannote.core.Annotation'):
-        segments = []
-
-        for seg, _, spk in annotation.itertracks(yield_label=True):
-            segments.append(RttmSegment(
-                type='SPEAKER',
-                file=annotation.uri,
-                chnl=1,
-                tbeg=seg.start,
-                tdur=seg.duration,
-                name=spk
-            ))
-
-        return cls(segments)
-
-
-    @classmethod
-    def from_rttm(cls, filename: str):
-        with open(filename, "r", encoding='utf-8') as file:
-            segments = []
-            for row in file:
-                row_split = [None if cell == "<NA>" else cell for cell in row.split(" ")]
-                segment = RttmSegment(
-                    type=row_split[0],
-                    file=row_split[1],
-                    chnl=int(row_split[2]),
-                    tbeg=float(row_split[3]),
-                    tdur=float(row_split[4]),
-                    ortho=row_split[5],
-                    stype=row_split[6],
-                    name=row_split[7],
-                    conf=float(row_split[8]) if row_split[8] is not None else None
-                )
-                segments.append(segment)
-
-            return cls(segments)
+from mexca.data import RttmAnnotation
 
 
 class AudioTranscriber:

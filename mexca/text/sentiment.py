@@ -4,20 +4,13 @@
 import argparse
 import json
 import os
-from dataclasses import asdict, dataclass
+from dataclasses import asdict
 from typing import List, Optional
 import srt
 from scipy.special import softmax
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from tqdm import tqdm
-
-
-@dataclass
-class Sentiment:
-    index: int
-    pos: float
-    neg: float
-    neu: float
+from mexca.data import Sentiment
 
 
 class SentimentExtractor:
