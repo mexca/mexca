@@ -91,7 +91,7 @@ class VoiceExtractor:
 
         pitch_array = np.vectorize(pitch.get_value_at_time)(time)
 
-        return VoiceFeatures(time=time, pitch_F0=pitch_array.tolist())
+        return VoiceFeatures(time=time.tolist(), pitch_F0=pitch_array.tolist())
 
 
 def cli():
@@ -101,7 +101,7 @@ def cli():
 
     parser.add_argument('-f', '--filepath', type=str, required=True)
     parser.add_argument('-o', '--outdir', type=str, required=True)
-    parser.add_argument('-t', '--time-step', type=str, dest='time_step')
+    parser.add_argument('-t', '--time-step', type=float, dest='time_step')
 
     args = parser.parse_args().__dict__
 
