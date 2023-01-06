@@ -6,6 +6,7 @@ import os
 from typing import Optional, Union
 from pyannote.audio import Pipeline
 from pyannote.core import Annotation
+from mexca.data import RttmAnnotation
 
 
 class SpeakerIdentifier:
@@ -47,7 +48,7 @@ class SpeakerIdentifier:
         )
 
 
-    def apply(self, filepath: str) -> Annotation:
+    def apply(self, filepath: str) -> RttmAnnotation:
         """Identify speech segments and speakers.
 
         Parameters
@@ -64,7 +65,9 @@ class SpeakerIdentifier:
 
         annotation = self.pipeline(filepath, num_speakers=self.num_speakers)
 
-        return annotation.rename_labels(generator='int').rename_tracks(generator='int')
+        return RttmAnnotation.from_pyannote(
+            annotation.rename_labels(generator='int').rename_tracks(generator='int')
+        )
 
 
 def cli():
@@ -87,13 +90,10 @@ def cli():
 
     output = identifier.apply(args['filepath'])
 
-    with open(
-        os.path.join(
-            args['outdir'],
-            os.path.basename(args['filepath']) + '.rttm'
-        ), 'w', encoding='utf-8'
-    ) as file:
-        output.write_rttm(file)
+    output.write_rttm(os.path.join(
+        args['outdir'],
+        os.path.basename(args['filepath']) + '.rttm'
+    ))
 
 
 if __name__ == '__main__':

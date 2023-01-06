@@ -2,8 +2,8 @@
 
 import os
 import subprocess
-from pyannote.core import Annotation, Segment
 from mexca.audio import SpeakerIdentifier
+from mexca.data import RttmAnnotation, RttmSegment
 
 
 class TestSpeakerIdentifier:
@@ -13,20 +13,24 @@ class TestSpeakerIdentifier:
     )
 
 
+    @staticmethod
+    def check_rttm_annotation(annotation):
+        assert isinstance(annotation, RttmAnnotation)
+        
+        for seg in annotation.segments:
+            assert isinstance(seg, RttmSegment)
+            assert isinstance(seg.tbeg, float)
+            assert 5.0 >= seg.tbeg >= 0.0
+            assert isinstance(seg.tdur, float)
+            assert 5.0 >= seg.tdur >= 0.0
+            assert isinstance(seg.name, int)
+
+
     def test_apply(self):
         speaker_identifier = SpeakerIdentifier(use_auth_token=self.use_auth_token)
         annotation = speaker_identifier.apply(self.filepath)
 
-        assert isinstance(annotation, Annotation)
-        
-        for seg, trk, spk in annotation.itertracks(yield_label=True):
-            assert isinstance(seg, Segment)
-            assert isinstance(seg.start, float)
-            assert 5.0 >= seg.start >= 0.0
-            assert isinstance(seg.end, float)
-            assert 5.0 >= seg.end >= 0.0
-            assert isinstance(trk, int)
-            assert isinstance(spk, int)
+        self.check_rttm_annotation(annotation)
 
 
     def test_apply_num_speakers(self):
@@ -37,17 +41,7 @@ class TestSpeakerIdentifier:
         )
         annotation = speaker_identifier.apply(self.filepath)
 
-        assert isinstance(annotation, Annotation)
-        
-        for seg, trk, spk in annotation.itertracks(yield_label=True):
-            assert isinstance(seg, Segment)
-            assert isinstance(seg.start, float)
-            assert 5.0 >= seg.start >= 0.0
-            assert isinstance(seg.end, float)
-            assert 5.0 >= seg.end >= 0.0
-            assert isinstance(trk, int)
-            assert isinstance(spk, int)
-            assert spk <= num_speakers
+        self.check_rttm_annotation(annotation)
 
 
     def test_cli(self):
