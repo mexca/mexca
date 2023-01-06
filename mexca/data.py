@@ -3,6 +3,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, field
 from typing import Any, List, Optional, TextIO, Union
+import srt
 
 @dataclass
 class VideoAnnotation:
@@ -178,3 +179,20 @@ class Sentiment:
     pos: float
     neg: float
     neu: float
+
+
+class Multimodal:
+    def __init__(self,
+        filename: Optional[str] = None,
+        video_annotation: Optional[VideoAnnotation] = None,
+        audio_annotation: Optional[RttmAnnotation] = None,
+        voice_features: Optional[VoiceFeatures] = None,
+        transcription: Optional[List[srt.Subtitle]] = None,
+        sentiment: Optional[List[Sentiment]] = None
+    ):
+        self.filename = filename
+        self.video_annotation = video_annotation
+        self.audio_annotation = audio_annotation
+        self.voice_features = voice_features
+        self.transcription = transcription
+        self.sentiment = sentiment
