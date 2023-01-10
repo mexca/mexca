@@ -6,6 +6,8 @@ container so they won't be downloaded every time the container is run.
 """
 
 import argparse
+import os
+
 
 def cli():
     parser = argparse.ArgumentParser()
@@ -23,8 +25,8 @@ def cli():
 
     elif args.component == 'spe':
         from mexca.audio import SpeakerIdentifier
-
-        component = SpeakerIdentifier()
+        use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
+        component = SpeakerIdentifier(use_auth_token=use_auth_token)
 
     elif args.component == 'voi':
         pass
