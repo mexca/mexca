@@ -16,6 +16,7 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_video
 from tqdm import tqdm
 from mexca.data import VideoAnnotation
+from mexca.utils import optional_float, optional_int, str2bool
 
 
 EMPTY_VALUE = np.nan
@@ -517,21 +518,21 @@ def cli():
 
     parser.add_argument('-f', '--filepath', type=str, required=True)
     parser.add_argument('-o', '--outdir', type=str, required=True)
-    parser.add_argument('--num-faces', type=int, required=True, dest='num_faces')
+    parser.add_argument('--num-faces', type=optional_int, default=None, dest='num_faces')
 
     parser.add_argument('--batch-size', type=int, default=1, dest='batch_size')
     parser.add_argument('--skip-frames', type=int, default=1, dest='skip_frames')
-    parser.add_argument('--process-subclip', nargs=2, default=[0, None], dest='process_subclip')
-    parser.add_argument('--show-progress', type=bool, default=True, dest='show_progress')
+    parser.add_argument('--process-subclip', type=optional_float, nargs=2, default=[0, None], dest='process_subclip')
+    parser.add_argument('--show-progress', type=str2bool, default=True, dest='show_progress')
 
     parser.add_argument('--min-face-size', type=int, default=20, dest='min_face_size')
-    parser.add_argument('--thresholds', type=tuple, default=(0.6, 0.7, 0.7))
+    parser.add_argument('--thresholds', type=float, nargs=3, default=[0.6, 0.7, 0.7])
     parser.add_argument('--factor', type=float, default=0.709)
-    parser.add_argument('--post-process', type=bool, default=True, dest='post_process')
-    parser.add_argument('--select-largest', type=bool, default=True, dest='select_largest')
+    parser.add_argument('--post-process', type=str2bool, default=True, dest='post_process')
+    parser.add_argument('--select-largest', type=str2bool, default=True, dest='select_largest')
     parser.add_argument('--selection-method', type=str, default=None, dest='selection_method')
-    parser.add_argument('--keep-all', type=bool, default=True, dest='keep_all')
-    parser.add_argument('--device', type=str, default=None)
+    parser.add_argument('--keep-all', type=str2bool, default=True, dest='keep_all')
+    parser.add_argument('--device', type=str, default='cpu')
     parser.add_argument('--embeddings-model', type=str, default='vggface2', dest='embeddings_model')
     parser.add_argument('--au-model', type=str, default='xgb', dest='au_model')
     parser.add_argument('--landmark-model', type=str, default='mobilefacenet', dest='landmark_model')

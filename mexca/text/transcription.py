@@ -14,6 +14,7 @@ import whisper
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
 from mexca.data import RttmAnnotation
+from mexca.utils import optional_str, str2bool
 
 
 class AudioTranscriber:
@@ -167,9 +168,9 @@ def cli():
     parser.add_argument('-o', '--outdir', type=str, required=True)
     parser.add_argument("--model", default="small", choices=whisper.available_models())
     parser.add_argument("--device", default="cpu")
-    parser.add_argument("--language", type=str, default=None, choices=sorted(whisper.tokenizer.LANGUAGES.keys()) + sorted([k.title() for k in whisper.tokenizer.TO_LANGUAGE_CODE.keys()]))
-    parser.add_argument('--sentence-rule', type=str, default=None, dest='sentence_rule')
-    parser.add_argument('--show-progress', type=str, default=None, dest='show_progress')
+    parser.add_argument("--language", type=optional_str, default=None, choices=sorted(whisper.tokenizer.LANGUAGES.keys()) + sorted([k.title() for k in whisper.tokenizer.TO_LANGUAGE_CODE.keys()]))
+    parser.add_argument('--sentence-rule', type=optional_str, default=None, dest='sentence_rule')
+    parser.add_argument('--show-progress', type=str2bool, default=True, dest='show_progress')
 
     args = parser.parse_args().__dict__
 

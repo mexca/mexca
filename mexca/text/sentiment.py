@@ -11,6 +11,7 @@ from scipy.special import softmax
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from tqdm import tqdm
 from mexca.data import Sentiment
+from mexca.utils import str2bool
 
 
 class SentimentExtractor:
@@ -102,7 +103,7 @@ def cli():
 
     parser.add_argument('-a', '--transcription-path', type=str, required=True, dest='transcription_path')
     parser.add_argument('-o', '--outdir', type=str, required=True)
-    parser.add_argument('--show-progress', type=str, default=None, dest='show_progress')
+    parser.add_argument('--show-progress', type=str2bool, default=True, dest='show_progress')
 
     args = parser.parse_args().__dict__
 
