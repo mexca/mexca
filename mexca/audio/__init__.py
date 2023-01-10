@@ -1,7 +1,15 @@
 """Voice feature extraction from video audio.
 """
 
-from .identification import SpeakerIdentifier
-from .extraction import VoiceExtractor
+import importlib.util
 
-__all__ = ['SpeakerIdentifier', 'VoiceExtractor']
+all = []
+
+if importlib.util.find_spec('pyannote.audio') is not None:
+    from .identification import SpeakerIdentifier
+    all.append('SpeakerIdentifier')
+if importlib.util.find_spec('praat-parselmouth') is not None:
+    from .extraction import VoiceExtractor
+    all.append('VoiceExtractor')
+
+__all__ = all
