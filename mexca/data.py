@@ -1,8 +1,8 @@
 
 import json
 import sys
-from dataclasses import asdict, dataclass, field
-from typing import Any, List, Optional, TextIO, Union
+from dataclasses import asdict, dataclass, field, fields
+from typing import Any, Dict, List, Optional, TextIO, Union
 import srt
 
 @dataclass
@@ -47,6 +47,21 @@ class VideoAnnotation:
     face_aus: Optional[List[List[float]]] = field(default_factory=list)
     face_label: Optional[List[Union[str, int]]] = field(default_factory=list)
     face_confidence: Optional[List[float]] = field(default_factory=list)
+
+
+    @classmethod
+    def from_dict(cls, data: Dict):
+        field_names = [f.name for f in fields(cls)]
+        filtered_data = {k: v for k, v in data.items() if k in field_names}
+        return cls(**filtered_data)
+
+
+    @classmethod
+    def from_json(cls, filename: str):
+        with open(filename, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        return cls.from_dict(data=data)
 
 
     def write_json(self, filename: str):
