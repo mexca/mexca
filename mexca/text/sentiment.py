@@ -67,7 +67,7 @@ class SentimentExtractor:
 
         sentiment_annotation = SentimentAnnotation()
 
-        for sent in tqdm(transcription.subtitles, total=len(transcription.subtitles), disable=not show_progress):
+        for sent in tqdm(transcription.subtitles, total=len(transcription), disable=not show_progress):
             tokens = self.tokenizer(sent.content, return_tensors='pt')
             output = self.classifier(**tokens)
             logits = output.logits.detach().numpy()
@@ -95,7 +95,7 @@ def cli():
 
     extractor = SentimentExtractor()
 
-    transcription = extractor.read_srt(args['transcription_path'])
+    transcription = AudioTranscription.from_srt(args['transcription_path'])
 
     output = extractor.apply(transcription, show_progress=args['show_progress'])
 

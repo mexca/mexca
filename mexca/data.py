@@ -206,12 +206,16 @@ class AudioTranscription:
     subtitles: List[srt.Subtitle] = field(default_factory=list)
 
 
+    def __len__(self) -> int:
+        return len(self.subtitles)
+
+
     @classmethod
     def from_srt(cls, filename: str):
         with open(filename, 'r', encoding='utf-8') as file:
             subtitles = srt.parse(file)
 
-            return cls(filename=filename, subtitles=subtitles)
+            return cls(filename=filename, subtitles=list(subtitles))
 
 
     def write_srt(self, filename: str):
