@@ -197,7 +197,7 @@ def cli():
 
 
     transcriber.write_srt(
-        os.path.join(args['outdir'], os.path.basename(args['filepath']) + '.srt'),
+        os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath']))[0] + '_transcription.srt'),
         output
     )
 

@@ -558,7 +558,7 @@ def cli():
         show_progress=show_progress
     )
 
-    output.write_json(os.path.join(outdir, os.path.basename(filepath) + '.json'))
+    output.write_json(os.path.join(outdir, os.path.splitext(os.path.basename(filepath))[0] + '_video_annotation.json'))
 
 
 if __name__ == '__main__':

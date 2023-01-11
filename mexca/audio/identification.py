@@ -92,7 +92,7 @@ def cli():
 
     output.write_rttm(os.path.join(
         args['outdir'],
-        os.path.basename(args['filepath']) + '.rttm'
+        os.path.splitext(os.path.basename(args['filepath']))[0] + 'audio_annotation.rttm'
     ))
 
 
