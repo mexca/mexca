@@ -22,3 +22,10 @@ def optional_float(string: str):
 
 def optional_str(string: str):
     return None if string == "None" else str(string)
+
+
+def bool_or_str(string: str):
+    try: 
+        return str2bool(string)
+    except ValueError:
+        return string

@@ -6,7 +6,7 @@ import os
 from typing import Optional, Union
 from pyannote.audio import Pipeline
 from mexca.data import RttmAnnotation
-from mexca.utils import optional_int, str2bool
+from mexca.utils import bool_or_str, optional_int
 
 
 class SpeakerIdentifier:
@@ -79,7 +79,7 @@ def cli():
     parser.add_argument('-f', '--filepath', type=str, required=True)
     parser.add_argument('-o', '--outdir', type=str, required=True)
     parser.add_argument('--num-speakers', type=optional_int, default=None, dest='num_speakers')
-    parser.add_argument('--use-auth-token', type=str, default=True, dest='use_auth_token')
+    parser.add_argument('--use-auth-token', type=bool_or_str, default=True, dest='use_auth_token')
 
     args = parser.parse_args().__dict__
 
