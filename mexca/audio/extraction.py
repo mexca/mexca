@@ -86,7 +86,7 @@ def cli():
 
     output = extractor.apply(args['filepath'], time_step=args['time_step'])
 
-    output.write_json(os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath'])) + 'voice_features.json'))
+    output.write_json(os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath'])) + '_voice_features.json'))
 
 
 if __name__ == '__main__':
