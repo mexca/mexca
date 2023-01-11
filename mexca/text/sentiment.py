@@ -113,8 +113,10 @@ def cli():
 
     output = extractor.apply(transcription, show_progress=args['show_progress'])
 
+    base_name = "_".join(os.path.splitext(os.path.basename(args['transcription_path']))[0].split('_')[:-1])
+
     extractor.write_json(
-        os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['transcription_path']))[0] + '_sentiment.json'),
+        os.path.join(args['outdir'], base_name + '_sentiment.json'),
         output
     )
 
