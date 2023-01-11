@@ -2,9 +2,12 @@
 """
 
 import importlib.util
-from .sentiment import SentimentExtractor
 
-all = ['SentimentExtractor']
+all = []
+
+if importlib.util.find_spec('scipy') is not None:
+    from .sentiment import SentimentExtractor
+    all.append('SentimentExtractor')
 
 if importlib.util.find_spec('whisper') is not None:
     from .transcription import AudioTranscriber
