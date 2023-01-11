@@ -13,7 +13,7 @@ import torch
 import whisper
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from mexca.data import RttmAnnotation
+from mexca.data import RttmAnnotation, AudioTranscription
 from mexca.utils import optional_str, str2bool
 
 
@@ -59,7 +59,7 @@ class AudioTranscriber:
         audio_annotation: RttmAnnotation,
         options: Optional[whisper.DecodingOptions] = None,
         show_progress: bool = True
-    ) -> List[srt.Subtitle]:
+    ) -> AudioTranscription:
         """Transcribe speech in an audio file to text.
 
         Parameters
@@ -87,7 +87,7 @@ class AudioTranscriber:
 
         audio = torch.Tensor(whisper.load_audio(filepath))
 
-        subtitles = []
+        transcription = AudioTranscription(filename=filepath)
 
         for i, seg in tqdm(
             enumerate(audio_annotation.segments),
@@ -123,7 +123,7 @@ class AudioTranscriber:
                     sent_start = whole_word_timestamps[idx]['timestamp']
                     sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
 
-                    subtitles.append(srt.Subtitle(
+                    transcription.subtitles.append(srt.Subtitle(
                         index=i,
                         start=timedelta(seconds=seg.tbeg + sent_start),
                         end=timedelta(seconds=seg.tbeg + sent_end),
@@ -132,7 +132,7 @@ class AudioTranscriber:
 
                     idx += sent_len + 1
 
-        return subtitles
+        return transcription
 
 
     @staticmethod
@@ -148,12 +148,6 @@ class AudioTranscriber:
             without_timestamps=False,
             fp16=torch.cuda.is_available()
         )
-
-
-    @staticmethod
-    def write_srt(filename: str, subtitles: List[srt.Subtitle]):
-        with open(filename, 'w', encoding='utf-8') as file:
-            file.write(srt.compose(subtitles))
 
 
 # Adapted from whisper.trascribe.cli
@@ -195,11 +189,7 @@ def cli():
         show_progress=args['show_progress']
     )
 
-
-    transcriber.write_srt(
-        os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath']))[0] + '_transcription.srt'),
-        output
-    )
+    output.write_srt(os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath']))[0] + '_transcription.srt'))
 
 
 if __name__ == '__main__':

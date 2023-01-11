@@ -10,7 +10,7 @@ import srt
 from scipy.special import softmax
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 from tqdm import tqdm
-from mexca.data import Sentiment
+from mexca.data import AudioTranscription, Sentiment, SentimentAnnotation
 from mexca.utils import str2bool
 
 
@@ -43,7 +43,7 @@ class SentimentExtractor:
         self.classifier = AutoModelForSequenceClassification.from_pretrained(model_name)
 
 
-    def apply(self, transcription: List[srt.Subtitle], show_progress: bool = True) -> List[Sentiment]:
+    def apply(self, transcription: AudioTranscription, show_progress: bool = True) -> SentimentAnnotation:
         """Extract the sentiment from text.
 
         Iterates over the segments in the audio annotation and predicts the sentiment
@@ -65,35 +65,21 @@ class SentimentExtractor:
 
         """
 
-        sentiment = []
+        sentiment_annotation = SentimentAnnotation()
 
-        for sent in tqdm(transcription, total=len(transcription), disable=not show_progress):
+        for sent in tqdm(transcription.subtitles, total=len(transcription.subtitles), disable=not show_progress):
             tokens = self.tokenizer(sent.content, return_tensors='pt')
             output = self.classifier(**tokens)
             logits = output.logits.detach().numpy()
             scores = softmax(logits)[0]
-            sentiment.append(Sentiment(
+            sentiment_annotation.sentiment.append(Sentiment(
                 index=sent.index,
                 pos=float(scores[2]),
                 neg=float(scores[0]),
                 neu=float(scores[1])
             ))
 
-        return sentiment
-
-
-    @staticmethod
-    def read_srt(filename: str) -> List[srt.Subtitle]:
-        with open(filename, 'r', encoding='utf-8') as file:
-            subtitles = srt.parse(file)
-
-            return list(subtitles)
-
-
-    @staticmethod
-    def write_json(filename: str, sentiment: List[Sentiment]):
-        with open(filename, 'w', encoding='utf-8') as file:
-            file.write(json.dumps([asdict(sent) for sent in sentiment]))
+        return sentiment_annotation
 
 
 def cli():
@@ -115,10 +101,7 @@ def cli():
 
     base_name = "_".join(os.path.splitext(os.path.basename(args['transcription_path']))[0].split('_')[:-1])
 
-    extractor.write_json(
-        os.path.join(args['outdir'], base_name + '_sentiment.json'),
-        output
-    )
+    output.write_json(os.path.join(args['outdir'], base_name + '_sentiment.json'))
 
 
 if __name__ == '__main__':

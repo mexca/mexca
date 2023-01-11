@@ -36,9 +36,6 @@ class VideoAnnotation:
         only one face label was assigned.
 
     """
-    filename: str
-    duration: float
-    fps: int
     frame: Optional[List[int]] = field(default_factory=list)
     time: Optional[List[float]] = field(default_factory=list)
     face_box: Optional[List[List[float]]] = field(default_factory=list)
@@ -81,8 +78,23 @@ class VideoAnnotation:
 class VoiceFeatures:
     """Class for storing voice features.
     """
-    time: List[float]
+    frame: List[int]
     pitch_F0: Optional[List[float]] = field(default_factory=list)
+
+
+    @classmethod
+    def from_dict(cls, data: Dict):
+        field_names = [f.name for f in fields(cls)]
+        filtered_data = {k: v for k, v in data.items() if k in field_names}
+        return cls(**filtered_data)
+
+
+    @classmethod
+    def from_json(cls, filename: str):
+        with open(filename, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        return cls.from_dict(data=data)
 
 
     def write_json(self, filename: str):
@@ -189,6 +201,25 @@ class RttmAnnotation:
 
 
 @dataclass
+class AudioTranscription:
+    filename: str
+    subtitles: List[srt.Subtitle] = field(default_factory=list)
+
+
+    @classmethod
+    def from_srt(cls, filename: str):
+        with open(filename, 'r', encoding='utf-8') as file:
+            subtitles = srt.parse(file)
+
+            return cls(filename=filename, subtitles=subtitles)
+
+
+    def write_srt(self, filename: str):
+        with open(filename, 'w', encoding='utf-8') as file:
+            file.write(srt.compose(self.subtitles))
+
+
+@dataclass
 class Sentiment:
     index: int
     pos: float
@@ -196,16 +227,47 @@ class Sentiment:
     neu: float
 
 
+@dataclass
+class SentimentAnnotation:
+    sentiment: List[Sentiment] = field(default_factory=list)
+
+
+    @classmethod
+    def from_dict(cls, data: Dict):
+        field_names = [f.name for f in fields(cls)]
+        filtered_data = {k: v for k, v in data.items() if k in field_names}
+        return cls(**filtered_data)
+
+
+    @classmethod
+    def from_json(cls, filename: str):
+        with open(filename, 'r', encoding='utf-8') as file:
+            data = json.load(file)
+
+        return cls.from_dict(data=data)
+
+
+    def write_json(self, filename: str):
+        with open(filename, 'w', encoding='utf-8') as file:
+            json.dump(asdict(self), file, allow_nan=True)
+
+
 class Multimodal:
     def __init__(self,
-        filename: Optional[str] = None,
+        filename: str,
+        duration: Optional[float] = None,
+        fps: Optional[int] = None,
+        fps_adjusted: Optional[int] = None,
         video_annotation: Optional[VideoAnnotation] = None,
         audio_annotation: Optional[RttmAnnotation] = None,
         voice_features: Optional[VoiceFeatures] = None,
-        transcription: Optional[List[srt.Subtitle]] = None,
-        sentiment: Optional[List[Sentiment]] = None
+        transcription: Optional[AudioTranscription] = None,
+        sentiment: Optional[SentimentAnnotation] = None
     ):
         self.filename = filename
+        self.duration = duration
+        self.fps = fps
+        self.fps_adjusted = fps_adjusted
         self.video_annotation = video_annotation
         self.audio_annotation = audio_annotation
         self.voice_features = voice_features
