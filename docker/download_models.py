@@ -29,17 +29,19 @@ def cli():
         component = SpeakerIdentifier(use_auth_token=use_auth_token)
 
     elif args.component == 'voi':
-        pass
+        from mexca.audio import VoiceExtractor
+        
+        component = VoiceExtractor()
 
     elif args.component == 'tra':
         from mexca.text import AudioTranscriber
 
-        component = AudioTranscriber
+        component = AudioTranscriber()
 
     elif args.component == 'sen':
         from mexca.text import SentimentExtractor
 
-        component = SentimentExtractor
+        component = SentimentExtractor()
 
     else:
         raise Exception("Please specify a valid component: 'vid', 'spe', 'voi', 'tra', 'sen'")
