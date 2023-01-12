@@ -4,6 +4,7 @@ import sys
 from dataclasses import asdict, dataclass, field, fields
 from typing import Any, Dict, List, Optional, TextIO, Union
 import srt
+import pandas as pd
 
 @dataclass
 class VideoAnnotation:
@@ -240,6 +241,12 @@ class SentimentAnnotation:
     def from_dict(cls, data: Dict):
         field_names = [f.name for f in fields(cls)]
         filtered_data = {k: v for k, v in data.items() if k in field_names}
+        filtered_data['sentiment'] = [Sentiment(
+            index=s['index'],
+            pos=s['pos'],
+            neg=s['neg'],
+            neu=s['neu']
+        ) for s in filtered_data['sentiment']]
         return cls(**filtered_data)
 
 
@@ -266,7 +273,8 @@ class Multimodal:
         audio_annotation: Optional[RttmAnnotation] = None,
         voice_features: Optional[VoiceFeatures] = None,
         transcription: Optional[AudioTranscription] = None,
-        sentiment: Optional[SentimentAnnotation] = None
+        sentiment: Optional[SentimentAnnotation] = None,
+        features: Optional[pd.DataFrame] = None
     ):
         self.filename = filename
         self.duration = duration
@@ -277,3 +285,4 @@ class Multimodal:
         self.voice_features = voice_features
         self.transcription = transcription
         self.sentiment = sentiment
+        self.features = features
