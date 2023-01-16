@@ -7,11 +7,11 @@ import pytest
 import srt
 import stable_whisper
 import whisper
+from mexca.data import AudioTranscription
 from mexca.text.transcription import AudioTranscriber, RttmAnnotation
 
 
 class TestAudioTranscription:
-    audio_transcriber = AudioTranscriber(whisper_model='tiny')
     filepath = os.path.join(
         'tests', 'test_files', 'test_video_audio_5_seconds.wav'
     )
@@ -21,19 +21,32 @@ class TestAudioTranscription:
     
     annotation = RttmAnnotation.from_rttm(annotation_path)
 
-    def test_apply(self):
-        transcription = self.audio_transcriber.apply(self.filepath, self.annotation)
+    
+    @pytest.fixture
+    def audio_transcriber(self):
+        return AudioTranscriber(whisper_model='tiny')
 
-        assert isinstance(transcription, list)
+
+    def test_lazy_init(self, audio_transcriber):
+        assert not audio_transcriber._transcriber
+        assert isinstance(audio_transcriber.transcriber, whisper.Whisper)
+        del audio_transcriber.transcriber
+        assert not audio_transcriber._transcriber
+
+
+    def test_apply(self, audio_transcriber):
+        transcription = audio_transcriber.apply(self.filepath, self.annotation)
+
+        assert isinstance(transcription, AudioTranscription)
         # Only one segment
-        assert isinstance(transcription[0], srt.Subtitle)
-        assert isinstance(transcription[0].start, timedelta)
-        assert isinstance(transcription[0].end, timedelta)
-        assert isinstance(transcription[0].content, str)
+        assert isinstance(transcription.subtitles[0], srt.Subtitle)
+        assert isinstance(transcription.subtitles[0].start, timedelta)
+        assert isinstance(transcription.subtitles[0].end, timedelta)
+        assert isinstance(transcription.subtitles[0].content, str)
 
 
     def test_cli(self):
-        out_filename = os.path.basename(self.filepath) + '.srt'
+        out_filename = os.path.splitext(os.path.basename(self.filepath))[0] + '_transcription.srt'
         subprocess.run(['transcribe', '-f', self.filepath,
                         '-a', self.annotation_path, '-o', '.'], check=True)
         assert os.path.exists(out_filename)
