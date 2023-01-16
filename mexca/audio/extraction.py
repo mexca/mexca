@@ -62,8 +62,8 @@ class VoiceExtractor:
 
         """
         snd = Sound(filepath)
-        time = np.arange(snd.start_time, snd.end_time, time_step)
-        frame = time * int(1 / time_step)
+        time = np.arange(snd.start_time, snd.end_time, time_step, dtype=np.float32)
+        frame = np.array(time * int(1/time_step), dtype=np.int32)
         
         pitch = snd.to_pitch_shs()
 
