@@ -1,10 +1,15 @@
+"""Create objects for storing multimodal data
+"""
 
 import json
 import sys
 from dataclasses import asdict, dataclass, field, fields
+from functools import reduce
 from typing import Any, Dict, List, Optional, TextIO, Union
 import srt
+import numpy as np
 import pandas as pd
+
 
 @dataclass
 class VideoAnnotation:
@@ -279,10 +284,116 @@ class Multimodal:
         self.filename = filename
         self.duration = duration
         self.fps = fps
-        self.fps_adjusted = fps_adjusted
+        self.fps_adjusted = fps if fps_adjusted is None else fps_adjusted
         self.video_annotation = video_annotation
         self.audio_annotation = audio_annotation
         self.voice_features = voice_features
         self.transcription = transcription
         self.sentiment = sentiment
         self.features = features
+
+
+    def _merge_video_annotation(self, data_frames: List):
+        if self.video_annotation:
+            data_frames.append(pd.DataFrame(asdict(self.video_annotation)).set_index('frame'))
+
+
+    def _merge_audio_text_features(self, data_frames: List):
+        if self.audio_annotation: #pylint: disable=too-many-nested-blocks
+            audio_annotation_dict = {
+                "frame": [],
+                "segment_start": [],
+                "segment_end": [],
+                "segment_speaker_label": []
+            }
+
+            time = np.arange(0.0, self.duration, 1/self.fps_adjusted, dtype=np.float32)
+            frame = np.arange(0, self.duration*self.fps, self.fps_adjusted, dtype=np.int32)
+
+            if self.transcription:
+                text_features_dict = {
+                    "frame": [],
+                    "span_start": [],
+                    "span_end": [],
+                    "span_text": []
+                }
+
+                if self.sentiment:
+                    text_features_dict['span_sent_pos'] = []
+                    text_features_dict['span_sent_neg'] = []
+                    text_features_dict['span_sent_neu'] = []
+
+            for i, t in zip(frame, time):
+                for seg in self.audio_annotation.segments:
+                    seg_end = seg.tbeg + seg.tdur
+                    if seg.tbeg <= t <= seg_end:
+                        audio_annotation_dict['frame'].append(i)
+                        audio_annotation_dict['segment_start'].append(seg.tbeg)
+                        audio_annotation_dict['segment_end'].append(seg_end)
+                        audio_annotation_dict['segment_speaker_label'].append(seg.name)
+
+                if self.transcription and self.sentiment:
+                    for span, sent in zip(self.transcription.subtitles, self.sentiment.sentiment):
+                        if span.start.total_seconds() <= t <= span.end.total_seconds():
+                            text_features_dict['frame'].append(i)
+                            text_features_dict['span_start'].append(span.start.total_seconds())
+                            text_features_dict['span_end'].append(span.end.total_seconds())
+                            text_features_dict['span_text'].append(span.content)
+
+                            if span.index == sent.index:
+                                text_features_dict['span_sent_pos'].append(sent.pos)
+                                text_features_dict['span_sent_neg'].append(sent.neg)
+                                text_features_dict['span_sent_neu'].append(sent.neu)
+
+                elif self.transcription:
+                    for span in self.transcription.subtitles:
+                        if span.start.total_seconds() <= t <= span.end.total_seconds():
+                            text_features_dict['frame'].append(i)
+                            text_features_dict['span_start'].append(span.start.total_seconds())
+                            text_features_dict['span_end'].append(span.end.total_seconds())
+                            text_features_dict['span_text'].append(span.content)
+                    
+            audio_text_features_df = (pd.DataFrame(audio_annotation_dict).
+                set_index('frame').
+                merge(pd.DataFrame(text_features_dict).set_index('frame'), on=['frame'], how='left')
+            )
+
+            data_frames.append(audio_text_features_df)
+
+
+    def _merge_voice_features(self, data_frames: List):
+        if self.voice_features:
+            data_frames.append(pd.DataFrame(asdict(self.voice_features)).set_index('frame'))
+
+
+    def merge_features(self):
+        """Merge multimodal features from pipeline components into a common data frame.
+
+        Transforms and merges the available output stored in the `Multimodal` object
+        based on the `'frame'` variable. Stores the merged features as a `pandas.DataFrame`
+        in the `features` attribute.
+
+        Returns
+        -------
+        pandas.DataFrame
+            Merged multimodal features.
+
+        """
+
+        dfs = []
+
+        self._merge_video_annotation(data_frames=dfs)
+
+        self._merge_audio_text_features(data_frames=dfs)
+
+        self._merge_voice_features(data_frames=dfs)
+
+        if len(dfs) > 0:
+            self.features = reduce(lambda left, right:
+                pd.merge(left , right,
+                    on = ["frame"],
+                    how = "left"),
+                dfs
+            ).reset_index()
+
+        return self.features
