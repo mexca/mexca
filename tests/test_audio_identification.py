@@ -5,7 +5,7 @@ import subprocess
 import pytest
 from pyannote.audio import Pipeline
 from mexca.audio import SpeakerIdentifier
-from mexca.data import RttmAnnotation, RttmSegment
+from mexca.data import SegmentData, SpeakerAnnotation
 
 
 class TestSpeakerIdentifier:
@@ -17,15 +17,15 @@ class TestSpeakerIdentifier:
 
     @staticmethod
     def check_rttm_annotation(annotation):
-        assert isinstance(annotation, RttmAnnotation)
+        assert isinstance(annotation, SpeakerAnnotation)
         
-        for seg in annotation.segments:
-            assert isinstance(seg, RttmSegment)
-            assert isinstance(seg.tbeg, float)
-            assert 5.0 >= seg.tbeg >= 0.0
-            assert isinstance(seg.tdur, float)
-            assert 5.0 >= seg.tdur >= 0.0
-            assert isinstance(seg.name, int)
+        for seg in annotation.items():
+            assert isinstance(seg.data, SegmentData)
+            assert isinstance(seg.begin, float)
+            assert 5.0 >= seg.begin >= 0.0
+            assert isinstance(seg.end, float)
+            assert 5.0 >= seg.end >= 0.0
+            assert isinstance(seg.data.name, int)
 
 
     @pytest.fixture

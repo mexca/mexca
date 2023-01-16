@@ -7,8 +7,8 @@ import pytest
 import srt
 import stable_whisper
 import whisper
-from mexca.data import AudioTranscription
-from mexca.text.transcription import AudioTranscriber, RttmAnnotation
+from mexca.data import AudioTranscription, SpeakerAnnotation
+from mexca.text import AudioTranscriber
 
 
 class TestAudioTranscription:
@@ -19,7 +19,7 @@ class TestAudioTranscription:
         'tests', 'reference_files', 'annotation_video_audio_5_seconds.rttm'
     )
     
-    annotation = RttmAnnotation.from_rttm(annotation_path)
+    annotation = SpeakerAnnotation.from_rttm(annotation_path)
 
     
     @pytest.fixture

@@ -5,7 +5,7 @@ from typing import List, Optional, Tuple, Union
 import docker
 import srt
 from docker.types import Mount
-from mexca.data import AudioTranscription, RttmAnnotation, Sentiment, SentimentAnnotation, VideoAnnotation, VoiceFeatures
+from mexca.data import AudioTranscription, SpeakerAnnotation, Sentiment, SentimentAnnotation, VideoAnnotation, VoiceFeatures
 
 class BaseContainer:
     def __init__(self, image_name: str):
@@ -140,7 +140,7 @@ class SpeakerIdentifierContainer(BaseContainer):
         super().__init__(image_name=image_name)
 
 
-    def apply(self, filepath: str) -> RttmAnnotation:
+    def apply(self, filepath: str) -> SpeakerAnnotation:
         cmd_args = [
             '--num-speaker', str(self.num_speakers),
             '--use-auth-token', str(self.use_auth_token)
@@ -151,7 +151,7 @@ class SpeakerIdentifierContainer(BaseContainer):
 
         self._run_container(cmd + cmd_args)
 
-        return RttmAnnotation.from_rttm(self._create_out_path_stem(filepath=filepath, outdir=outdir) + '_audio_annotation.rttm')
+        return SpeakerAnnotation.from_rttm(self._create_out_path_stem(filepath=filepath, outdir=outdir) + '_audio_annotation.rttm')
 
 
 class VoiceExtractorContainer(BaseContainer):
@@ -186,7 +186,7 @@ class AudioTranscriberContainer(BaseContainer):
 
     def apply(self,
         filepath: str,
-        audio_annotation: RttmAnnotation,
+        audio_annotation: SpeakerAnnotation,
         show_progress: bool = True
     ) -> AudioTranscription:
         cmd_args = [

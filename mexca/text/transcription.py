@@ -6,14 +6,14 @@ import os
 import re
 from dataclasses import asdict
 from datetime import timedelta
-from typing import List, Optional, Union
+from typing import Optional, Union
 import srt
 import stable_whisper
 import torch
 import whisper
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from mexca.data import RttmAnnotation, AudioTranscription
+from mexca.data import SpeakerAnnotation, AudioTranscription
 from mexca.utils import optional_str, str2bool
 
 
@@ -74,7 +74,7 @@ class AudioTranscriber:
 
     def apply(self, # pylint: disable=too-many-locals
         filepath: str,
-        audio_annotation: RttmAnnotation,
+        audio_annotation: SpeakerAnnotation,
         options: Optional[whisper.DecodingOptions] = None,
         show_progress: bool = True
     ) -> AudioTranscription:
@@ -108,13 +108,13 @@ class AudioTranscriber:
         transcription = AudioTranscription(filename=filepath)
 
         for i, seg in tqdm(
-            enumerate(audio_annotation.segments),
-            total=len(audio_annotation.segments),
+            enumerate(audio_annotation),
+            total=len(audio_annotation),
             disable=not show_progress
         ):
             # Get start and end frame
-            start = int(seg.tbeg * SAMPLE_RATE)
-            end = int((seg.tbeg + seg.tdur) * SAMPLE_RATE)
+            start = int(seg.begin * SAMPLE_RATE)
+            end = int(seg.end * SAMPLE_RATE)
 
             # Subset audio signal
             audio_sub = audio[start:end]
@@ -143,8 +143,8 @@ class AudioTranscriber:
 
                     transcription.subtitles.append(srt.Subtitle(
                         index=i,
-                        start=timedelta(seconds=seg.tbeg + sent_start),
-                        end=timedelta(seconds=seg.tbeg + sent_end),
+                        start=timedelta(seconds=seg.begin + sent_start),
+                        end=timedelta(seconds=seg.begin + sent_end),
                         content=sent
                     ))
 
@@ -200,7 +200,7 @@ def cli():
         fp16=torch.cuda.is_available()
     )
 
-    audio_annotation = RttmAnnotation.from_rttm(args['annotation_path'])
+    audio_annotation = SpeakerAnnotation.from_rttm(args['annotation_path'])
 
     output = transcriber.apply(
         args['filepath'],

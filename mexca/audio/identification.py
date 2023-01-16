@@ -5,7 +5,7 @@ import argparse
 import os
 from typing import Optional, Union
 from pyannote.audio import Pipeline
-from mexca.data import RttmAnnotation
+from mexca.data import SpeakerAnnotation
 from mexca.utils import bool_or_str, optional_int
 
 
@@ -64,7 +64,7 @@ class SpeakerIdentifier:
         self._pipeline = None
 
 
-    def apply(self, filepath: str) -> RttmAnnotation:
+    def apply(self, filepath: str) -> SpeakerAnnotation:
         """Identify speech segments and speakers.
 
         Parameters
@@ -83,8 +83,8 @@ class SpeakerIdentifier:
 
         del self.pipeline
 
-        return RttmAnnotation.from_pyannote(
-            annotation.rename_labels(generator='int').rename_tracks(generator='int')
+        return SpeakerAnnotation.from_pyannote(
+            annotation.rename_labels(generator=int)
         )
 
 
