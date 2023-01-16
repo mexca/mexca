@@ -80,7 +80,7 @@ todo_include_todos = False
 # -- Use autoapi.extension to run sphinx-apidoc -------
 
 autoapi_dirs = ['../mexca']
-autoapi_options = [ 'members', 'undoc-members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members', ]
+autoapi_options = [ 'members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members', ]
 
 # -- Options for HTML output ----------------------------------------------
 
