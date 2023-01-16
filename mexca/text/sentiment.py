@@ -8,7 +8,7 @@ from dataclasses import asdict
 from typing import List, Optional
 import srt
 from scipy.special import softmax
-from transformers import AutoModelForSequenceClassification, AutoTokenizer
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, XLMRobertaForSequenceClassification
 from tqdm import tqdm
 from mexca.data import AudioTranscription, Sentiment, SentimentAnnotation
 from mexca.utils import str2bool
@@ -40,7 +40,22 @@ class SentimentExtractor:
 
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
-        self.classifier = AutoModelForSequenceClassification.from_pretrained(model_name)
+        # Lazy initialization
+        self._classifier = None
+
+
+    # Initialize pretrained models only when needed
+    @property
+    def classifier(self) -> XLMRobertaForSequenceClassification:
+        if not self._classifier:
+            self._classifier = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+        return self._classifier
+
+
+    # Delete pretrained models when not needed anymore
+    @classifier.deleter
+    def classifier(self):
+        self._classifier = None
 
 
     def apply(self, transcription: AudioTranscription, show_progress: bool = True) -> SentimentAnnotation:
@@ -78,6 +93,8 @@ class SentimentExtractor:
                 neg=float(scores[0]),
                 neu=float(scores[1])
             ))
+
+        del self.classifier
 
         return sentiment_annotation
 

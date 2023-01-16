@@ -42,10 +42,26 @@ class SpeakerIdentifier:
         use_auth_token: Union[bool, str] = True
     ):
         self.num_speakers = num_speakers
-        self.pipeline = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization",
-            use_auth_token=use_auth_token
-        )
+        self.use_auth_token = use_auth_token
+        # Lazy initialization
+        self._pipeline = None
+
+
+    # Initialize pretrained models only when needed 
+    @property
+    def pipeline(self) -> Pipeline:
+        if not self._pipeline:
+            self._pipeline = Pipeline.from_pretrained(
+                "pyannote/speaker-diarization",
+                use_auth_token=self.use_auth_token
+            )
+        return self._pipeline
+
+
+    # Delete pretrained models when not needed anymore
+    @pipeline.deleter
+    def pipeline(self):
+        self._pipeline = None
 
 
     def apply(self, filepath: str) -> RttmAnnotation:
@@ -64,6 +80,8 @@ class SpeakerIdentifier:
         """
 
         annotation = self.pipeline(filepath, num_speakers=self.num_speakers)
+
+        del self.pipeline
 
         return RttmAnnotation.from_pyannote(
             annotation.rename_labels(generator='int').rename_tracks(generator='int')

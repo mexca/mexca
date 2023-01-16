@@ -131,21 +131,6 @@ class FaceExtractor:
     landmark_model : {'mobilefacenet', 'mobilenet', 'pfld'}, default='mobilefacenet'
         Pretrained model for detecting facial landmarks.
 
-    Attributes
-    ----------
-    mtcnn : facenet_pytorch.MTCNN
-        The MTCNN model for face detection and extraction.
-        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch/blob/555aa4bec20ca3e7c2ead14e7e39d5bbce203e4b/models/mtcnn.py#L157>`_ for details.
-    resnet : facenet_pytorch.InceptionResnetV1
-        The ResnetV1 model for computing face embeddings.
-        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch/blob/555aa4bec20ca3e7c2ead14e7e39d5bbce203e4b/models/inception_resnet_v1.py#L184>`__ for details.
-    cluster : spectralcluster.SpectralClusterer
-        The spectral clustering model for identifying faces based on embeddings.
-        See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
-    pyfeat : feat.detector.Detector
-        The model for extracting facial landmarks and action units.
-        See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
-
     Notes
     -----
     For details on the available pretrained models for facial action unit and landmark detection,
@@ -167,30 +152,106 @@ class FaceExtractor:
         embeddings_model: str = 'vggface2',
         au_model: str = 'xgb',
         landmark_model: str = 'mobilefacenet'
-    ):          
-        self.mtcnn = MTCNN(
-            min_face_size=min_face_size,
-            thresholds=thresholds,
-            factor=factor,
-            post_process=post_process,
-            select_largest=select_largest,
-            selection_method=selection_method,
-            keep_all=keep_all,
-            device=device
-        )
-        self.resnet = InceptionResnetV1(
-            pretrained=embeddings_model,
-            device=device
-        ).eval()
-        self.cluster = SpectralClusterer(
-            min_clusters=num_faces,
-            max_clusters=num_faces
-        )
-        self.pyfeat = feat.detector.Detector(
-            au_model=au_model,
-            landmark_model=landmark_model,
-            device='cpu' if device is None else device
-        )
+    ):  
+        self.min_face_size = min_face_size
+        self.thresholds = thresholds
+        self.factor = factor
+        self.post_process = post_process
+        self.select_largest = select_largest
+        self.selection_method = selection_method
+        self.keep_all = keep_all
+        self.device = device        
+        self.embeddings_model = embeddings_model
+        self.num_faces = num_faces
+        self.au_model = au_model
+        self.landmark_model = landmark_model
+        
+        # Lazy initialization: See getter functions
+        self._detector = None
+        self._encoder = None
+        self._clusterer = None
+        self._extractor = None
+
+
+    # Initialize pretrained models only when needed
+    @property
+    def detector(self) -> MTCNN:
+        """The MTCNN model for face detection and extraction.
+        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch/blob/555aa4bec20ca3e7c2ead14e7e39d5bbce203e4b/models/mtcnn.py#L157>`_ for details.
+        """
+        if not self._detector:
+            self._detector = MTCNN(
+                min_face_size=self.min_face_size,
+                thresholds=self.thresholds,
+                factor=self.factor,
+                post_process=self.post_process,
+                select_largest=self.select_largest,
+                selection_method=self.selection_method,
+                keep_all=self.keep_all,
+                device=self.device
+            )
+        return self._detector
+
+
+    # Delete pretrained models when not needed anymore
+    @detector.deleter
+    def detector(self):
+        self._detector = None
+
+
+    @property
+    def encoder(self) -> InceptionResnetV1:
+        """The ResnetV1 model for computing face embeddings.
+        See `facenet-pytorch <https://github.com/timesler/facenet-pytorch/blob/555aa4bec20ca3e7c2ead14e7e39d5bbce203e4b/models/inception_resnet_v1.py#L184>`__ for details.
+        """
+        if not self._encoder:
+            self._encoder = InceptionResnetV1(
+                pretrained=self.embeddings_model,
+                device=self.device
+            ).eval()
+        return self._encoder
+
+
+    @encoder.deleter
+    def encoder(self):
+        self._encoder = None
+
+
+    @property
+    def clusterer(self) -> SpectralClusterer:
+        """The spectral clustering model for identifying faces based on embeddings.
+        See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
+        """
+        if not self._clusterer:
+            self._clusterer = SpectralClusterer(
+                min_clusters=self.num_faces,
+                max_clusters=self.num_faces
+            )
+        return self._clusterer
+
+
+    @clusterer.deleter
+    def clusterer(self):
+        self._clusterer = None
+
+
+    @property
+    def extractor(self) -> feat.detector.Detector:
+        """The model for extracting facial landmarks and action units.
+        See `py-feat <https://py-feat.org/pages/api.html>`_ for details.
+        """
+        if not self._extractor:
+            self._extractor = feat.detector.Detector(
+                au_model=self.au_model,
+                landmark_model=self.landmark_model,
+                device='cpu' if self.device is None else self.device
+            )
+        return self._extractor
+
+
+    @extractor.deleter
+    def extractor(self):
+        self._extractor = None
 
 
     def __call__(self, **callargs) -> VideoAnnotation:
@@ -226,9 +287,9 @@ class FaceExtractor:
         """
         frame = convert_image_to_tensor(frame)
 
-        boxes, probs = self.mtcnn.detect(frame, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
+        boxes, probs = self.detector.detect(frame, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
 
-        faces = self.mtcnn.extract(frame, boxes, save_path=None)
+        faces = self.detector.extract(frame, boxes, save_path=None)
 
         return faces, boxes, probs
 
@@ -249,7 +310,7 @@ class FaceExtractor:
 
         """
 
-        embeddings = self.resnet(faces).detach().cpu().numpy()
+        embeddings = self.encoder(faces).detach().cpu().numpy()
 
         return embeddings
 
@@ -271,7 +332,7 @@ class FaceExtractor:
         """
         labels = np.full((embeddings.shape[0]), np.nan)
         label_finite = np.all(np.isfinite(embeddings), 1)
-        labels[label_finite] = self.cluster.predict(
+        labels[label_finite] = self.clusterer.predict(
             embeddings[label_finite, :])
 
         return labels
@@ -321,8 +382,8 @@ class FaceExtractor:
 
         # Only if any faces were detected
         if len(boxes_list) > 0:
-            landmarks = self.pyfeat.detect_landmarks(frame, boxes_list)
-            aus = self.pyfeat.detect_aus(frame, landmarks)
+            landmarks = self.extractor.detect_landmarks(frame, boxes_list)
+            aus = self.extractor.detect_aus(frame, landmarks)
 
         landmarks_list = []
         aus_list = []
@@ -470,11 +531,7 @@ class FaceExtractor:
         )
 
         # Store features
-        annotation = VideoAnnotation(
-            filename=filepath,
-            duration=video_dataset.duration,
-            fps=video_dataset.video_fps # Update fps
-        )
+        annotation = VideoAnnotation()
 
         embeddings = []  # Embeddings are separate because they won't be returned
 
@@ -485,7 +542,7 @@ class FaceExtractor:
             # If no faces were detected in batch
             for i, frame in enumerate(batch['Frame']):
                 if faces[i] is None:
-                    embeddings.append(np.full((self.resnet.last_bn.num_features), np.nan))
+                    embeddings.append(np.full((self.encoder.last_bn.num_features), np.nan))
                     annotation.frame.append(int(frame))
                     annotation.face_box.append(EMPTY_VALUE)
                     annotation.face_landmarks.append(EMPTY_VALUE)
@@ -504,9 +561,16 @@ class FaceExtractor:
 
                         embeddings.append(emb)
 
+        # Delete pretrained models to save memory
+        del self.detector
+        del self.encoder
+        del self.extractor
+
         annotation.face_label = self.identify(np.asarray(embeddings).squeeze()).tolist()
         annotation.face_confidence = self.compute_confidence(np.asarray(embeddings), np.asarray(annotation.face_label)).tolist()
-        annotation.time = (np.array(annotation.frame) / annotation.fps).tolist()
+        annotation.time = (np.array(annotation.frame) / video_dataset.video_fps).tolist()
+
+        del self.clusterer
 
         return annotation
 

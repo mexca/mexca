@@ -46,12 +46,30 @@ class AudioTranscriber:
     ):
         self.whisper_model = whisper_model
         self.device = device
-        self.transcriber = stable_whisper.load_model(whisper_model, device)
+        # Lazy initialization
+        self._transcriber = None
 
         if not sentence_rule:
             self.sentence_rule = r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!|:)\s"
         else:
             self.sentence_rule = sentence_rule
+
+
+    # Initialize pretrained models only when needed
+    @property
+    def transcriber(self) -> whisper.Whisper:
+        if not self._transcriber:
+            self._transcriber = stable_whisper.load_model(
+                self.whisper_model,
+                self.device
+            )
+        return self._transcriber
+
+
+    # Delete pretrained models when not needed anymore
+    @transcriber.deleter
+    def transcriber(self):
+        self._transcriber = None
 
 
     def apply(self, # pylint: disable=too-many-locals
@@ -131,6 +149,8 @@ class AudioTranscriber:
                     ))
 
                     idx += sent_len + 1
+
+        del self._transcriber
 
         return transcription
 
