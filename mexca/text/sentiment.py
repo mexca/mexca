@@ -104,7 +104,7 @@ def cli():
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 
-    parser.add_argument('-a', '--transcription-path', type=str, required=True, dest='transcription_path')
+    parser.add_argument('-t', '--transcription-path', type=str, required=True, dest='transcription_path')
     parser.add_argument('-o', '--outdir', type=str, required=True)
     parser.add_argument('--show-progress', type=str2bool, default=True, dest='show_progress')
 
