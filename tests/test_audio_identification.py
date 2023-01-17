@@ -18,14 +18,14 @@ class TestSpeakerIdentifier:
     @staticmethod
     def check_rttm_annotation(annotation):
         assert isinstance(annotation, SpeakerAnnotation)
-        
+                
         for seg in annotation.items():
             assert isinstance(seg.data, SegmentData)
             assert isinstance(seg.begin, float)
             assert 5.0 >= seg.begin >= 0.0
             assert isinstance(seg.end, float)
             assert 5.0 >= seg.end >= 0.0
-            assert isinstance(seg.data.name, int)
+            assert isinstance(seg.data.name, str)
 
 
     @pytest.fixture
