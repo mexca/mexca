@@ -367,10 +367,14 @@ class Multimodal:
                             text_features_dict['span_end'].append(span.end.total_seconds())
                             text_features_dict['span_text'].append(span.content)
                     
-            audio_text_features_df = (pd.DataFrame(audio_annotation_dict).
-                set_index('frame').
-                merge(pd.DataFrame(text_features_dict).set_index('frame'), on=['frame'], how='left')
-            )
+            audio_text_features_df = pd.DataFrame(audio_annotation_dict).set_index('frame')
+
+            if self.transcription:
+                audio_text_features_df = audio_text_features_df.merge(
+                    pd.DataFrame(text_features_dict).set_index('frame'),
+                    on=['frame'],
+                    how='left'
+                )
 
             data_frames.append(audio_text_features_df)
 
