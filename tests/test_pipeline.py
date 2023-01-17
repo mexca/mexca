@@ -30,6 +30,54 @@ class TestPipeline:
         return pipeline
 
 
+    @pytest.fixture
+    def face_extractor_pipeline(self, num_faces=2):
+        pipeline = Pipeline(
+            face_extractor=FaceExtractor(num_faces=num_faces)
+        )
+
+        return pipeline
+
+
+    @pytest.fixture
+    def speaker_identifier_pipeline(self, num_speakers=2):
+        pipeline = Pipeline(
+            speaker_identifier=SpeakerIdentifier(num_speakers=num_speakers)
+        )
+
+        return pipeline
+
+
+    @pytest.fixture
+    def voice_extractor_pipeline(self):
+        pipeline = Pipeline(
+            voice_extractor=VoiceExtractor()
+        )
+
+        return pipeline
+
+
+    @pytest.fixture
+    def speaker_identifier_transcription_pipeline(self, num_speakers=2):
+        pipeline = Pipeline(
+            speaker_identifier=SpeakerIdentifier(num_speakers=num_speakers),
+            audio_transcriber=AudioTranscriber(whisper_model='tiny')
+        )
+
+        return pipeline
+
+
+    @pytest.fixture
+    def speaker_identifier_transcription_sentiment_pipeline(self, num_speakers=2):
+        pipeline = Pipeline(
+            speaker_identifier=SpeakerIdentifier(num_speakers=num_speakers),
+            audio_transcriber=AudioTranscriber(whisper_model='tiny'),
+            sentiment_extractor=SentimentExtractor()
+        )
+
+        return pipeline
+
+
     def test_full_pipeline(self, full_pipeline):
         result = full_pipeline.apply(
             self.filepath,
@@ -59,3 +107,60 @@ class TestPipeline:
         assert result.features.span_end.ge(result.features.time, fill_value=result.features.time.max()).all()
         assert result.features.span_start.isna().eq(result.features.span_end.isna()).all()
         assert result.features.span_start.isna().eq(result.features.span_text.isna()).all()
+
+
+    def test_face_extractor_pipeline(self, face_extractor_pipeline):
+        result = face_extractor_pipeline.apply(
+            self.filepath,
+            frame_batch_size=5,
+            skip_frames=5,
+            keep_audiofile=True
+        )
+
+        assert isinstance(result, Multimodal)
+        assert isinstance(result.video_annotation, VideoAnnotation)
+        assert isinstance(result.features, pd.DataFrame)
+
+
+    def test_speaker_identifier_pipeline(self, speaker_identifier_pipeline):
+        result = speaker_identifier_pipeline.apply(
+            self.filepath,
+            keep_audiofile=True # Otherwise test audio file is removed
+        )
+
+        assert isinstance(result, Multimodal)
+        assert isinstance(result.audio_annotation, SpeakerAnnotation)
+        assert isinstance(result.features, pd.DataFrame)
+
+
+    def test_voice_extractor_pipeline(self, voice_extractor_pipeline):
+        result = voice_extractor_pipeline.apply(
+            self.filepath,
+            keep_audiofile=True # Otherwise test audio file is removed
+        )
+
+        assert isinstance(result, Multimodal)
+        assert isinstance(result.voice_features, VoiceFeatures)
+        assert isinstance(result.features, pd.DataFrame)
+
+
+    def test_speaker_identifier_transcription_pipeline(self, speaker_identifier_transcription_pipeline):
+        result = speaker_identifier_transcription_pipeline.apply(
+            self.filepath,
+            keep_audiofile=True # Otherwise test audio file is removed
+        )
+
+        assert isinstance(result, Multimodal)
+        assert isinstance(result.transcription, AudioTranscription)
+        assert isinstance(result.features, pd.DataFrame)
+
+
+    def test_speaker_identifier_transcription_sentiment_pipeline(self, speaker_identifier_transcription_sentiment_pipeline):
+        result = speaker_identifier_transcription_sentiment_pipeline.apply(
+            self.filepath,
+            keep_audiofile=True # Otherwise test audio file is removed
+        )
+
+        assert isinstance(result, Multimodal)
+        assert isinstance(result.sentiment, SentimentAnnotation)
+        assert isinstance(result.features, pd.DataFrame)
