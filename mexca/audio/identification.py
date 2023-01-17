@@ -3,10 +3,11 @@
 
 import argparse
 import os
+import logging
 from typing import Optional, Union
 from pyannote.audio import Pipeline
 from mexca.data import SpeakerAnnotation
-from mexca.utils import bool_or_str, optional_int
+from mexca.utils import ClassInitMessage, bool_or_str, optional_int
 
 
 class SpeakerIdentifier:
@@ -41,10 +42,12 @@ class SpeakerIdentifier:
         num_speakers: Optional[int] = None,
         use_auth_token: Union[bool, str] = True
     ):
+        self.logger = logging.getLogger('mexca.audio.identification.SpeakerIdentifier')
         self.num_speakers = num_speakers
         self.use_auth_token = use_auth_token
         # Lazy initialization
         self._pipeline = None
+        self.logger.debug(ClassInitMessage())
 
 
     # Initialize pretrained models only when needed 
@@ -55,6 +58,8 @@ class SpeakerIdentifier:
                 "pyannote/speaker-diarization",
                 use_auth_token=self.use_auth_token
             )
+            self.logger.debug('Initialized speaker diarization pipeline')
+
         return self._pipeline
 
 
@@ -62,6 +67,7 @@ class SpeakerIdentifier:
     @pipeline.deleter
     def pipeline(self):
         self._pipeline = None
+        self.logger.debug('Removed speaker diarization pipeline')
 
 
     def apply(self, filepath: str) -> SpeakerAnnotation:
@@ -83,8 +89,11 @@ class SpeakerIdentifier:
 
         del self.pipeline
 
+        self.logger.info('Detected %s speakers', len(annotation.labels()))
+        self.logger.debug('Detected speaker chart: %s', annotation.chart())
+
         return SpeakerAnnotation.from_pyannote(
-            annotation.rename_labels(generator=int)
+            annotation.rename_labels(generator='int')
         )
 
 

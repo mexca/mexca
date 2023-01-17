@@ -1,12 +1,15 @@
 """Build a pipeline to extract emotion expression features from a video file.
 """
 
-import os  
+import logging
+import logging.config
+import os
 from typing import Optional, Tuple
 from moviepy.editor import VideoFileClip
 from mexca.audio import SpeakerIdentifier, VoiceExtractor
 from mexca.data import Multimodal
 from mexca.text import AudioTranscriber, SentimentExtractor
+from mexca.utils import ClassInitMessage
 from mexca.video import FaceExtractor
 
 
@@ -52,11 +55,13 @@ class Pipeline:
         audio_transcriber: AudioTranscriber = None,
         sentiment_extractor: SentimentExtractor = None
     ):
+        self.logger = logging.getLogger('mexca.pipeline.Pipeline')
         self.face_extractor = face_extractor
         self.speaker_identifier = speaker_identifier
         self.voice_extractor = voice_extractor
         self.audio_transcriber = audio_transcriber
         self.sentiment_extractor = sentiment_extractor
+        self.logger.debug(ClassInitMessage())
 
 
     def apply(self, # pylint: disable=too-many-locals
@@ -108,6 +113,11 @@ class Pipeline:
         {'frame': [0, 1, 2, ...], 'time': [0.04, 0.08, 0.12, ...], ...} # Dictionary with extracted features
 
         """
+        if show_progress:
+            logging.getLogger(__name__).setLevel(logging.INFO)
+            
+
+        self.logger.info('Starting MEXCA pipeline')
         output = Multimodal(filename=filepath)
 
         with VideoFileClip(filepath) as clip:
@@ -116,16 +126,19 @@ class Pipeline:
                 process_subclip[0],
                 process_subclip[1]
             )
+            self.logger.debug('Reading video file from %s to %s', subclip.start, subclip.end)
             output.duration = subclip.duration
             output.fps = subclip.fps
             output.fps_adjusted = int(subclip.fps / skip_frames)
             time_step = 1/int(subclip.fps / skip_frames)
 
             if self.speaker_identifier or self.voice_extractor:
-                # Use subclip if `process_subclip` is provided (default uses entire clip)
-                subclip.audio.write_audiofile(audio_path)
+                self.logger.debug('Writing audio file')
+                subclip.audio.write_audiofile(audio_path, logger=None)
+                self.logger.info('Wrote audio file to %s', audio_path)
 
         if self.face_extractor:
+            self.logger.info('Processing video frames')
             video_annotation = self.face_extractor.apply(
                 filepath,
                 batch_size=frame_batch_size,
@@ -133,14 +146,16 @@ class Pipeline:
                 process_subclip=process_subclip,
                 show_progress=show_progress
             )
-            output.video_annotation = video_annotation        
+            output.video_annotation = video_annotation  
 
         if self.speaker_identifier:
+            self.logger.info('Identifying speakers')
             audio_annotation = self.speaker_identifier.apply(audio_path)
 
             output.audio_annotation = audio_annotation
 
             if self.audio_transcriber:
+                self.logger.info('Transcribing speech segments to text')
                 transcription = self.audio_transcriber.apply(
                     audio_path,
                     audio_annotation=audio_annotation,
@@ -150,6 +165,7 @@ class Pipeline:
                 output.transcription = transcription
 
                 if self.sentiment_extractor:
+                    self.logger.info('Extracting sentiment from transcribed text')
                     sentiment = self.sentiment_extractor.apply(
                         transcription=transcription,
                         show_progress=show_progress
@@ -158,16 +174,19 @@ class Pipeline:
                     output.sentiment = sentiment
 
         if self.voice_extractor:
+            self.logger.info('Extracting voice features')
             voice_features = self.voice_extractor.apply(
                 audio_path,
                 time_step=time_step
             )
 
             output.voice_features = voice_features
-        
+
         output.merge_features()
 
         if not keep_audiofile and os.path.exists(audio_path):
+            self.logger.info('Removing audio file at %s', audio_path)
             os.remove(audio_path)
 
+        self.logger.info('MEXCA pipeline finished')
         return output

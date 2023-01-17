@@ -2,7 +2,9 @@
 """
 
 import argparse
+import logging
 import os
+import warnings
 from typing import Dict, List, Optional, Tuple, Union
 import feat
 import numpy as np
@@ -16,12 +18,17 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision.io import read_video
 from tqdm import tqdm
 from mexca.data import VideoAnnotation
-from mexca.utils import optional_float, optional_int, str2bool
+from mexca.utils import ClassInitMessage, optional_float, optional_int, str2bool
 
 
 EMPTY_VALUE = np.nan
 """Value that is returned if no faces are detected in a video frame.
 """
+# Package versions are pinned so we can ignore future and deprecation warnings
+# Ignore warning from facenet_pytorch
+warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+# Ignore warning from spectralclusterer
+warnings.simplefilter('ignore', category=FutureWarning)
 
 
 # Adapted from pyfeat.data.VideoDataset
@@ -60,10 +67,12 @@ class VideoDataset(Dataset):
             end_pts=end,
             pts_unit='sec'
         )
+        self.logger = logging.getLogger('mexca.video.VideoDataset')
         self.file_name = os.path.basename(video_file)
         self.video_fps = info['video_fps']
         self.video_frames = np.arange(0, self.video.shape[0], skip_frames)
         self.video = self.video[self.video_frames, :, :]
+        self.logger.debug(ClassInitMessage())
 
 
     @property
@@ -94,6 +103,7 @@ class VideoDataset(Dataset):
             and 'Frame' containing the frame index.
 
         """
+        self.logger.debug('Getting item %s', idx)
         return {
             "Image": self.video[idx],
             "Frame": self.video_frames[idx]
@@ -152,7 +162,8 @@ class FaceExtractor:
         embeddings_model: str = 'vggface2',
         au_model: str = 'xgb',
         landmark_model: str = 'mobilefacenet'
-    ):  
+    ):
+        self.logger = logging.getLogger('mexca.video.FaceExtractor')
         self.min_face_size = min_face_size
         self.thresholds = thresholds
         self.factor = factor
@@ -160,7 +171,7 @@ class FaceExtractor:
         self.select_largest = select_largest
         self.selection_method = selection_method
         self.keep_all = keep_all
-        self.device = device        
+        self.device = device
         self.embeddings_model = embeddings_model
         self.num_faces = num_faces
         self.au_model = au_model
@@ -171,6 +182,8 @@ class FaceExtractor:
         self._encoder = None
         self._clusterer = None
         self._extractor = None
+        
+        self.logger.debug(ClassInitMessage())
 
 
     # Initialize pretrained models only when needed
@@ -190,6 +203,7 @@ class FaceExtractor:
                 keep_all=self.keep_all,
                 device=self.device
             )
+            self.logger.debug('Initialized MTCNN face detector')
         return self._detector
 
 
@@ -197,6 +211,7 @@ class FaceExtractor:
     @detector.deleter
     def detector(self):
         self._detector = None
+        self.logger.debug('Removed MTCNN face detector')
 
 
     @property
@@ -209,12 +224,14 @@ class FaceExtractor:
                 pretrained=self.embeddings_model,
                 device=self.device
             ).eval()
+            self.logger.debug('Initialized InceptionResnetV1 face encoder')
         return self._encoder
 
 
     @encoder.deleter
     def encoder(self):
         self._encoder = None
+        self.logger.debug('Removed InceptionResnetV1 face encoder')
 
 
     @property
@@ -227,12 +244,14 @@ class FaceExtractor:
                 min_clusters=self.num_faces,
                 max_clusters=self.num_faces
             )
+            self.logger.debug('Initialized spectral clusterer')
         return self._clusterer
 
 
     @clusterer.deleter
     def clusterer(self):
         self._clusterer = None
+        self.logger.debug('Removed spectral clusterer')
 
 
     @property
@@ -246,12 +265,14 @@ class FaceExtractor:
                 landmark_model=self.landmark_model,
                 device='cpu' if self.device is None else self.device
             )
+            self.logger.debug('Initialized pyfeat facial feature extractor')
         return self._extractor
 
 
     @extractor.deleter
     def extractor(self):
         self._extractor = None
+        self.logger.debug('Removed pyfeat facial feature extractor')
 
 
     def __call__(self, **callargs) -> VideoAnnotation:
@@ -285,10 +306,13 @@ class FaceExtractor:
             Is `None` if a frame contains no faces.
 
         """
+        
         frame = convert_image_to_tensor(frame)
 
+        self.logger.debug('Detecting faces')
         boxes, probs = self.detector.detect(frame, landmarks=False) # pylint: disable=unbalanced-tuple-unpacking
 
+        self.logger.debug('Extracting facial action units and landmarks')
         faces = self.detector.extract(frame, boxes, save_path=None)
 
         return faces, boxes, probs
@@ -310,6 +334,7 @@ class FaceExtractor:
 
         """
 
+        self.logger.debug('Encoding faces')
         embeddings = self.encoder(faces).detach().cpu().numpy()
 
         return embeddings
@@ -332,6 +357,8 @@ class FaceExtractor:
         """
         labels = np.full((embeddings.shape[0]), np.nan)
         label_finite = np.all(np.isfinite(embeddings), 1)
+
+        self.logger.info('Clustering face embeddings')
         labels[label_finite] = self.clusterer.predict(
             embeddings[label_finite, :])
 
@@ -446,6 +473,7 @@ class FaceExtractor:
             Confidence scores between 0 and 1. Returns `numpy.nan` if no label was assigned to a face.
 
         """
+        self.logger.info('Computing face clustering confidence')
         centroids, cluster_label_mapping = self._compute_centroids(embeddings, labels)
 
         # create empty array with same lenght as labels
@@ -535,13 +563,21 @@ class FaceExtractor:
 
         embeddings = []  # Embeddings are separate because they won't be returned
 
-        for batch in tqdm(batch_data_loader, disable=not show_progress):
+        self.logger.info('Detecting and encoding faces, extracting facial features')
+        for b, batch in tqdm(
+            enumerate(batch_data_loader),
+            total=len(batch_data_loader),
+            disable=not show_progress
+        ):
+            self.logger.debug('Processing batch %s', b)
             faces, boxes, probs = self.detect(batch['Image'])
             landmarks, aus = self.extract(batch['Image'], boxes)
 
             # If no faces were detected in batch
             for i, frame in enumerate(batch['Frame']):
+                self.logger.debug('Processing frame %s', int(frame))
                 if faces[i] is None:
+                    self.logger.debug('No faces detected in frame %s', int(frame))
                     embeddings.append(np.full((self.encoder.last_bn.num_features), np.nan))
                     annotation.frame.append(int(frame))
                     annotation.face_box.append(EMPTY_VALUE)
@@ -550,8 +586,10 @@ class FaceExtractor:
                     annotation.face_aus.append(EMPTY_VALUE)
 
                 else:
+                    self.logger.debug('%s faces detected in frame %s', len(faces[i]), int(frame))
                     embs = self.encode(faces[i])
-                    for box, prob, landmark, au, emb in zip(boxes[i], probs[i], landmarks[i], aus[i], embs):
+                    for k, (box, prob, landmark, au, emb) in enumerate(zip(boxes[i], probs[i], landmarks[i], aus[i], embs)):
+                        self.logger.debug('Processing face %s', k)
                         # Convert everything to lists to make saving and loading easier
                         annotation.frame.append(int(frame))
                         annotation.face_box.append(box.tolist())

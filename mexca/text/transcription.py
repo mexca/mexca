@@ -2,6 +2,7 @@
 """
 
 import argparse
+import logging
 import os
 import re
 from dataclasses import asdict
@@ -14,7 +15,7 @@ import whisper
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
 from mexca.data import SpeakerAnnotation, AudioTranscription
-from mexca.utils import optional_str, str2bool
+from mexca.utils import ClassInitMessage, optional_str, str2bool
 
 
 class AudioTranscriber:
@@ -44,6 +45,7 @@ class AudioTranscriber:
         device: Optional[Union[str, torch.device]] = 'cpu',
         sentence_rule: Optional[str] = None
     ):
+        self.logger = logging.getLogger('mexca.text.transcription.AudioTranscriber')
         self.whisper_model = whisper_model
         self.device = device
         # Lazy initialization
@@ -51,8 +53,11 @@ class AudioTranscriber:
 
         if not sentence_rule:
             self.sentence_rule = r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!|:)\s"
+            self.logger.debug('Using default sentence rule %s because "sentence_rule=None"', self.sentence_rule)
         else:
             self.sentence_rule = sentence_rule
+
+        self.logger.debug(ClassInitMessage())
 
 
     # Initialize pretrained models only when needed
@@ -63,6 +68,8 @@ class AudioTranscriber:
                 self.whisper_model,
                 self.device
             )
+            self.logger.debug('Initialized %s whisper model for audio transcription', self.whisper_model)
+
         return self._transcriber
 
 
@@ -70,6 +77,7 @@ class AudioTranscriber:
     @transcriber.deleter
     def transcriber(self):
         self._transcriber = None
+        self.logger.debug('Removed %s whisper model for audio transcription', self.whisper_model)
 
 
     def apply(self, # pylint: disable=too-many-locals
@@ -101,6 +109,7 @@ class AudioTranscriber:
 
         """
         if not options:
+            self.logger.debug('Using default options for whisper: No native timestamps and FP16 only if CUDA is available')
             options = self.get_default_options()
 
         audio = torch.Tensor(whisper.load_audio(filepath))
@@ -119,12 +128,14 @@ class AudioTranscriber:
             # Subset audio signal
             audio_sub = audio[start:end]
 
-            output = self.transcriber.transcribe(audio_sub, **asdict(options))
-
+            self.logger.debug('Transcribing segment %s from %s to %s', i, seg.begin, seg.end)
+            output = self.transcriber.transcribe(audio_sub, verbose=None, **asdict(options))
+            self.logger.debug('Detected language: %s', whisper.tokenizer.LANGUAGES[output['language']].title())
             segment_text = output['text'].strip()
 
             # Split text into sentences
             sents = re.split(self.sentence_rule, segment_text)
+            self.logger.debug('Segment text split into %s sentences', len(sents))
 
             # Concatenate word timestamps from every segment
             whole_word_timestamps = []
@@ -135,7 +146,8 @@ class AudioTranscriber:
             if len(whole_word_timestamps) > 0:
                 idx = 0
 
-                for sent in sents:
+                for j, sent in enumerate(sents):
+                    self.logger.debug('Processing sentence %s', j)
                     sent_len = len(sent.split(" ")) - 1
 
                     sent_start = whole_word_timestamps[idx]['timestamp']

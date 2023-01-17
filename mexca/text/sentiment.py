@@ -2,16 +2,14 @@
 """
 
 import argparse
-import json
+import logging
 import os
-from dataclasses import asdict
-from typing import List, Optional
-import srt
+from typing import Optional
 from scipy.special import softmax
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, XLMRobertaForSequenceClassification
 from tqdm import tqdm
 from mexca.data import AudioTranscription, Sentiment, SentimentAnnotation
-from mexca.utils import str2bool
+from mexca.utils import ClassInitMessage, str2bool
 
 
 class SentimentExtractor:
@@ -35,13 +33,16 @@ class SentimentExtractor:
 
     """
     def __init__(self, model_name: Optional[str] = None):
+        self.logger = logging.getLogger('mexca.text.extraction.SentimentExtractor')
         if not model_name:
             model_name = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
+            self.logger.debug('Using default pretrained model %s because "model_name=None"', model_name)
 
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # Lazy initialization
         self._classifier = None
+        self.logger.debug(ClassInitMessage())
 
 
     # Initialize pretrained models only when needed
@@ -49,6 +50,8 @@ class SentimentExtractor:
     def classifier(self) -> XLMRobertaForSequenceClassification:
         if not self._classifier:
             self._classifier = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+            self.logger.debug('Initialized sentiment extraction model')
+
         return self._classifier
 
 
@@ -56,6 +59,7 @@ class SentimentExtractor:
     @classifier.deleter
     def classifier(self):
         self._classifier = None
+        self.logger.debug('Removed sentiment extraction model')
 
 
     def apply(self, transcription: AudioTranscription, show_progress: bool = True) -> SentimentAnnotation:
@@ -82,7 +86,8 @@ class SentimentExtractor:
 
         sentiment_annotation = SentimentAnnotation()
 
-        for sent in tqdm(transcription.subtitles, total=len(transcription), disable=not show_progress):
+        for i, sent in tqdm(enumerate(transcription.subtitles), total=len(transcription), disable=not show_progress):
+            self.logger.debug('Extracting sentiment for sentence %s', i)
             tokens = self.tokenizer(sent.content, return_tensors='pt')
             output = self.classifier(**tokens)
             logits = output.logits.detach().numpy()

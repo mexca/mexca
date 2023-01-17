@@ -8,8 +8,8 @@ def str2bool(string: str):
     str2val = {"True": True, "False": False}
     if string in str2val:
         return str2val[string]
-    else:
-        raise ValueError(f"Expected one of {set(str2val.keys())}, got {string}")
+
+    raise ValueError(f"Expected one of {set(str2val.keys())}, got {string}")
 
 
 def optional_int(string: str):
@@ -29,3 +29,11 @@ def bool_or_str(string: str):
         return str2bool(string)
     except ValueError:
         return string
+
+
+class ClassInitMessage:
+    def __init__(self):
+        self.message = 'Initialized class instance'
+
+    def __str__(self):
+        return self.message

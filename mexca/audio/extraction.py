@@ -4,9 +4,11 @@ Currently, only the voice pitch as the fundamental frequency F0 can be extracted
 
 import argparse
 import os
+import logging
 import numpy as np
 from parselmouth import Sound
 from mexca.data import VoiceFeatures
+from mexca.utils import ClassInitMessage
 
 
 class VoiceExtractor:
@@ -37,6 +39,11 @@ class VoiceExtractor:
     """
 
 
+    def __init__(self):
+        self.logger = logging.getLogger('mexca.audio.extraction.VoiceExtractor')
+        self.logger.debug(ClassInitMessage())
+
+
     def apply(self, filepath: str, time_step: float = 0.023):
         """Extract voice features from an audio file.
 
@@ -61,10 +68,12 @@ class VoiceExtractor:
             the time points must be constructed with with the `time_step` attribute.
 
         """
+        self.logger.debug('Loading audio file')
         snd = Sound(filepath)
         time = np.arange(snd.start_time, snd.end_time, time_step, dtype=np.float32)
         frame = np.array(time * int(1/time_step), dtype=np.int32)
         
+        self.logger.debug('Computing SHS voice pitch')
         pitch = snd.to_pitch_shs()
 
         pitch_array = np.vectorize(pitch.get_value_at_time)(time)
