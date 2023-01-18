@@ -60,6 +60,7 @@ class TestSpeakerIdentifier:
     def test_cli(self):
         out_filename = os.path.splitext(os.path.basename(self.filepath))[0] + '_audio_annotation.rttm'
         subprocess.run(['identify-speakers', '-f', self.filepath,
-                        '-o', '.', '--num-speakers', '2'], check=True)
+                        '-o', '.', '--num-speakers', '2',
+                        '--use-auth-token', self.use_auth_token], check=True)
         assert os.path.exists(out_filename)
         os.remove(out_filename)

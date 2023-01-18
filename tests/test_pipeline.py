@@ -42,7 +42,10 @@ class TestPipeline:
     @pytest.fixture
     def speaker_identifier_pipeline(self, num_speakers=2):
         pipeline = Pipeline(
-            speaker_identifier=SpeakerIdentifier(num_speakers=num_speakers)
+            speaker_identifier=SpeakerIdentifier(
+                num_speakers=num_speakers,
+                use_auth_token=self.use_auth_token
+            )
         )
 
         return pipeline
@@ -60,7 +63,10 @@ class TestPipeline:
     @pytest.fixture
     def speaker_identifier_transcription_pipeline(self, num_speakers=2):
         pipeline = Pipeline(
-            speaker_identifier=SpeakerIdentifier(num_speakers=num_speakers),
+            speaker_identifier=SpeakerIdentifier(
+                num_speakers=num_speakers,
+                use_auth_token=self.use_auth_token
+            ),
             audio_transcriber=AudioTranscriber(whisper_model='tiny')
         )
 
@@ -70,7 +76,10 @@ class TestPipeline:
     @pytest.fixture
     def speaker_identifier_transcription_sentiment_pipeline(self, num_speakers=2):
         pipeline = Pipeline(
-            speaker_identifier=SpeakerIdentifier(num_speakers=num_speakers),
+            speaker_identifier=SpeakerIdentifier(
+                num_speakers=num_speakers,
+                use_auth_token=self.use_auth_token
+            ),
             audio_transcriber=AudioTranscriber(whisper_model='tiny'),
             sentiment_extractor=SentimentExtractor()
         )
