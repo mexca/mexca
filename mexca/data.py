@@ -100,7 +100,7 @@ class VoiceFeatures:
 
     """
     frame: List[int]
-    pitch_F0: Optional[List[float]] = field(default_factory=list) #pycodestyle: disable=N815
+    pitch_F0: Optional[List[float]] = field(default_factory=list) #pycodestyle: ignore=N815
 
 
     @classmethod
