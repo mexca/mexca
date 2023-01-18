@@ -333,6 +333,32 @@ class SentimentAnnotation:
 
 class Multimodal:
     """Class for storing multimodal features.
+
+    See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_
+    section for details.
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file from which features were extracted.
+    duration : float, optional, default=None
+        Video duration in seconds.
+    fps: : float
+        Frames per second.
+    fps_adjusted : float
+        Frames per seconds adjusted for skipped frames.
+        Mostly needed for internal computations.
+    video_annotation : VideoAnnotation
+        Object containing facial features.
+    audio_annotation : SpeakerAnnotation
+        Object containing speech segments and speakers.
+    voice_features : VoiceFeatures
+        Object containing voice features.
+    transcription : AudioTranscription
+        Object containing transcribed speech segments split into sentences.
+    Sentiment : SentimentAnnotation
+        Object containing sentiment scores for transcribed sentences.
+
     """
     def __init__(self,
         filename: str,
