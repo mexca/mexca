@@ -7,7 +7,7 @@ import pytest
 import srt
 import stable_whisper
 import whisper
-from mexca.data import AudioTranscription, SpeakerAnnotation
+from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.text import AudioTranscriber
 
 
@@ -39,10 +39,13 @@ class TestAudioTranscription:
 
         assert isinstance(transcription, AudioTranscription)
         # Only one segment
-        assert isinstance(transcription.subtitles[0], srt.Subtitle)
-        assert isinstance(transcription.subtitles[0].start, timedelta)
-        assert isinstance(transcription.subtitles[0].end, timedelta)
-        assert isinstance(transcription.subtitles[0].content, str)
+        for seg in transcription.subtitles.items():
+            assert isinstance(seg.data, TranscriptionData)
+            assert isinstance(seg.begin, float)
+            assert 5.0 >= seg.begin >= 0.0
+            assert isinstance(seg.end, float)
+            assert 5.0 >= seg.end >= 0.0
+            assert isinstance(seg.data.text, str)
 
 
     def test_cli(self):

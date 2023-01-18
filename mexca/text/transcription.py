@@ -12,9 +12,10 @@ import srt
 import stable_whisper
 import torch
 import whisper
+from intervaltree import Interval, IntervalTree
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from mexca.data import AudioTranscription, SpeakerAnnotation
+from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.utils import ClassInitMessage, optional_str, str2bool
 
 
@@ -117,7 +118,10 @@ class AudioTranscriber:
 
         audio = torch.Tensor(whisper.load_audio(filepath))
 
-        transcription = AudioTranscription(filename=filepath)
+        transcription = AudioTranscription(
+            filename=filepath,
+            subtitles=IntervalTree()
+        )
 
         for i, seg in tqdm(
             enumerate(audio_annotation),
@@ -156,11 +160,13 @@ class AudioTranscriber:
                     sent_start = whole_word_timestamps[idx]['timestamp']
                     sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
 
-                    transcription.subtitles.append(srt.Subtitle(
-                        index=i,
-                        start=timedelta(seconds=seg.begin + sent_start),
-                        end=timedelta(seconds=seg.begin + sent_end),
-                        content=sent
+                    transcription.subtitles.add(Interval(
+                        begin=seg.begin + sent_start,
+                        end=seg.begin + sent_end,
+                        data=TranscriptionData(
+                            index=i,
+                            text=sent
+                        )
                     ))
 
                     idx += sent_len + 1

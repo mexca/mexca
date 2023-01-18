@@ -4,6 +4,7 @@
 import json
 import sys
 from dataclasses import asdict, dataclass, field, fields
+from datetime import timedelta
 from functools import reduce
 from typing import Any, Dict, List, Optional, TextIO, Union
 import numpy as np
@@ -270,9 +271,18 @@ class SpeakerAnnotation(IntervalTree):
 
 
 @dataclass
+class TranscriptionData:
+    index: int
+    text: str
+
+
 class AudioTranscription:
-    filename: str
-    subtitles: List[srt.Subtitle] = field(default_factory=list)
+    def __init__(self,
+        filename: str,
+        subtitles: Optional[IntervalTree] = None
+    ):
+        self.filename = filename
+        self.subtitles = subtitles
 
 
     def __len__(self) -> int:
@@ -284,12 +294,34 @@ class AudioTranscription:
         with open(filename, 'r', encoding='utf-8') as file:
             subtitles = srt.parse(file)
 
-            return cls(filename=filename, subtitles=list(subtitles))
+            intervals = []
+
+            for sub in subtitles:
+                intervals.append(Interval(
+                    begin=sub.start.total_seconds(),
+                    end=sub.end.total_seconds(),
+                    data=TranscriptionData(
+                        index=sub.index,
+                        text=sub.content
+                    )
+                ))
+
+            return cls(filename=filename, subtitles=IntervalTree(intervals))
 
 
     def write_srt(self, filename: str):
+        subtitles = []
+
+        for iv in self.subtitles.all_intervals:
+            subtitles.append(srt.Subtitle(
+                index=iv.data.index,
+                start=timedelta(seconds=iv.begin),
+                end=timedelta(seconds=iv.end),
+                content=iv.data.text
+            ))
+
         with open(filename, 'w', encoding='utf-8') as file:
-            file.write(srt.compose(self.subtitles))
+            file.write(srt.compose(subtitles))
 
 
 @dataclass
@@ -425,18 +457,17 @@ class Multimodal:
                     audio_annotation_dict['segment_speaker_label'].append(seg.data.name)
 
                 if self.transcription and self.sentiment:
-                    for span, sent in zip(self.transcription.subtitles, self.sentiment.sentiment):
-                        if span.start.total_seconds() <= t <= span.end.total_seconds():
-                            text_features_dict['frame'].append(i)
-                            text_features_dict['time'].append(t)
-                            text_features_dict['span_start'].append(span.start.total_seconds())
-                            text_features_dict['span_end'].append(span.end.total_seconds())
-                            text_features_dict['span_text'].append(span.content)
+                    for span, sent in zip(self.transcription.subtitles[t], self.sentiment.sentiment):
+                        text_features_dict['frame'].append(i)
+                        text_features_dict['time'].append(t)
+                        text_features_dict['span_start'].append(span.start.total_seconds())
+                        text_features_dict['span_end'].append(span.end.total_seconds())
+                        text_features_dict['span_text'].append(span.content)
 
-                            if span.index == sent.index:
-                                text_features_dict['span_sent_pos'].append(sent.pos)
-                                text_features_dict['span_sent_neg'].append(sent.neg)
-                                text_features_dict['span_sent_neu'].append(sent.neu)
+                        if span.index == sent.index:
+                            text_features_dict['span_sent_pos'].append(sent.pos)
+                            text_features_dict['span_sent_neg'].append(sent.neg)
+                            text_features_dict['span_sent_neu'].append(sent.neu)
 
                 elif self.transcription:
                     for span in self.transcription.subtitles:

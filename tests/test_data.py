@@ -5,9 +5,9 @@ import datetime
 import os
 import pytest
 import srt
-from intervaltree import Interval
+from intervaltree import Interval, IntervalTree
 from pyannote.core import Annotation, Segment
-from mexca.data import AudioTranscription, Multimodal, SegmentData, Sentiment, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures, _get_rttm_header
+from mexca.data import AudioTranscription, Multimodal, SegmentData, Sentiment, SentimentAnnotation, SpeakerAnnotation, TranscriptionData, VideoAnnotation, VoiceFeatures, _get_rttm_header
 from mexca.utils import _validate_multimodal
 
 
@@ -69,6 +69,7 @@ class TestSpeakerAnnotation:
 
         speaker_annotation = SpeakerAnnotation.from_rttm(filename)
         self.check_object(speaker_annotation)
+        os.remove(filename)
 
 
 class TestAudioTranscription:
@@ -76,12 +77,16 @@ class TestAudioTranscription:
         filename = 'test.srt'
         transcription = AudioTranscription(
             filename=filename,
-            subtitles=[srt.Subtitle(
-                index=0,
-                start=datetime.timedelta(seconds=0),
-                end=datetime.timedelta(seconds=1),
-                content='Test.'
-            )]
+            subtitles=IntervalTree([
+                Interval(
+                    begin=0,
+                    end=1,
+                    data=TranscriptionData(
+                        index=0,
+                        text="Test"
+                    )
+                )
+            ])
         )
 
         transcription.write_srt(filename=filename)
@@ -89,7 +94,10 @@ class TestAudioTranscription:
 
         transcription = AudioTranscription.from_srt(filename=filename)
         assert isinstance(transcription, AudioTranscription)
-        assert isinstance(transcription.subtitles[0], srt.Subtitle)
+        for seg in transcription.subtitles.items():
+            assert isinstance(seg.data, TranscriptionData)
+        
+        os.remove(filename)
 
 
 class TestSentimentAnnotation:
