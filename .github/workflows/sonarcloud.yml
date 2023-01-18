@@ -22,8 +22,8 @@ jobs:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
       - name: Download libsndfile
         run: |
-          sudo apt-get install libsndfile1
-          sudo apt-get install ffmpeg
+          sudo apt-get update
+          sudo apt-get install --fix-missing libsndfile-dev ffmpeg
       - name: Set up Python
         uses: actions/setup-python@v3
         with:
@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install .[dev]
+          python3 -m pip install .[vid,spe,voi,tra,sen,dev]
       - name: Check style against standards using prospector
         run: prospector --zero-exit --output-format grouped --output-format pylint:pylint-report.txt
       - name: Run unit tests with coverage
