@@ -11,12 +11,16 @@ member-warnings: false
 
 ignore-paths:
   - docs
+  - docker
+  - tests
 
 pyroma:
     run: true
 
 pycodestyle:
-    full: true
+    disable: [
+        E501 # line too long
+    ]
 
 pydocstyle:
     disable: [
@@ -27,3 +31,19 @@ pydocstyle:
         D213,  # Multi-line docstring summary should start at the second line
         D404,  # First word of the docstring should not be This
     ]
+
+pyflakes:
+    disable: [
+        F401 # unused import in init files,
+        F821 # undefined name (for torch)
+    ]
+
+pylint:
+    extension-pkg-allow-list: [
+        docker
+    ]
+    disable:
+        - not-callable # for property getters
+        - no-name-in-module
+        - redefined-builtin
+        - too-many-arguments
