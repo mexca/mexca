@@ -2,8 +2,8 @@
 """
 
 import argparse
-import os
 import logging
+import os
 from typing import Optional, Union
 from pyannote.audio import Pipeline
 from mexca.data import SpeakerAnnotation

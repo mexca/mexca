@@ -6,9 +6,9 @@ import sys
 from dataclasses import asdict, dataclass, field, fields
 from functools import reduce
 from typing import Any, Dict, List, Optional, TextIO, Union
-import srt
 import numpy as np
 import pandas as pd
+import srt
 from intervaltree import Interval, IntervalTree
 
 
@@ -100,7 +100,7 @@ class VoiceFeatures:
 
     """
     frame: List[int]
-    pitch_F0: Optional[List[float]] = field(default_factory=list) #pycodestyle: ignore=N815
+    pitch_F0: Optional[List[float]] = field(default_factory=list)
 
 
     @classmethod

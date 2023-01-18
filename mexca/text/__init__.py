@@ -3,6 +3,7 @@
 
 import importlib.util
 
+
 all = []
 
 if importlib.util.find_spec('scipy') is not None:

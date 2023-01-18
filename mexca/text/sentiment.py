@@ -6,8 +6,8 @@ import logging
 import os
 from typing import Optional
 from scipy.special import softmax
-from transformers import AutoModelForSequenceClassification, AutoTokenizer, XLMRobertaForSequenceClassification
 from tqdm import tqdm
+from transformers import AutoModelForSequenceClassification, AutoTokenizer, XLMRobertaForSequenceClassification
 from mexca.data import AudioTranscription, Sentiment, SentimentAnnotation
 from mexca.utils import ClassInitMessage, str2bool
 

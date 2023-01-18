@@ -2,8 +2,9 @@
 import os
 from typing import List, Optional, Tuple, Union
 import docker
-from docker.types import Mount #pylint: disable=import-error
-from mexca.data import AudioTranscription, SpeakerAnnotation, SentimentAnnotation, VideoAnnotation, VoiceFeatures
+from docker.types import Mount  # pylint: disable=import-error
+from mexca.data import AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures
+
 
 class BaseContainer:
     def __init__(self, image_name: str):

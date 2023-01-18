@@ -14,7 +14,7 @@ import torch
 import whisper
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from mexca.data import SpeakerAnnotation, AudioTranscription
+from mexca.data import AudioTranscription, SpeakerAnnotation
 from mexca.utils import ClassInitMessage, optional_str, str2bool
 
 

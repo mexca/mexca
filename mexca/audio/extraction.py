@@ -3,8 +3,8 @@ Currently, only the voice pitch as the fundamental frequency F0 can be extracted
 """
 
 import argparse
-import os
 import logging
+import os
 import numpy as np
 from parselmouth import Sound
 from mexca.data import VoiceFeatures
