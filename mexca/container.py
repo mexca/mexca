@@ -14,6 +14,7 @@ class BaseContainer:
     def __init__(self, image_name: str):
         self.image_name = image_name
         self.client = docker.from_env()
+        self.mount_dir = '/mnt/vol'
 
         try:
             self.client.images.get(image_name)
@@ -25,7 +26,7 @@ class BaseContainer:
         outdir = os.path.abspath(os.path.dirname(filepath))
         self.mounts = [
             Mount(
-                target='/mnt/vol',
+                target=self.mount_dir,
                 source=outdir,
                 type='bind'
             )
@@ -41,7 +42,8 @@ class BaseContainer:
 
     @staticmethod
     def _create_base_cmd(filepath: str) -> List[str]:
-        return ['-f', '../mnt/vol/' + os.path.basename(filepath), '-o', '../mnt/vol']
+        mount_dir = '../mnt/vol/'
+        return ['-f', mount_dir + os.path.basename(filepath), '-o', mount_dir]
 
 
     def _run_container(self, args: List[str], show_progress: bool = True):
@@ -241,7 +243,7 @@ class AudioTranscriberContainer(BaseContainer):
 
     def apply(self,
         filepath: str,
-        audio_annotation: SpeakerAnnotation, #pylint: disable=unused-argument
+        _, # audio_annotation in AudioTranscriber.apply()
         show_progress: bool = True
     ) -> AudioTranscription:
         cmd_args = [
