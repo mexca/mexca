@@ -39,10 +39,9 @@ pyflakes:
     ]
 
 pylint:
-    extension-pkg-allow-list: [
-        docker
-    ]
     disable:
+        - c-extension-no-member # for docker package
+        - line-too-long # for doc links
         - not-callable # for property getters
         - no-name-in-module
         - redefined-builtin
