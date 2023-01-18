@@ -3,10 +3,13 @@
 
 import datetime
 import os
+import pytest
 import srt
 from intervaltree import Interval
 from pyannote.core import Annotation, Segment
-from mexca.data import AudioTranscription, SegmentData, Sentiment, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures, _get_rttm_header
+from mexca.data import AudioTranscription, Multimodal, SegmentData, Sentiment, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures, _get_rttm_header
+from mexca.utils import _validate_multimodal
+
 
 class TestVideoAnnotation:
     def test_write_from_json(self):
@@ -23,12 +26,13 @@ class TestVideoAnnotation:
 class TestVoiceFeatures:
     def test_write_from_json(self):
         filename = 'test.json'
-        annotation = VoiceFeatures(frame=[0, 1, 2])
+        annotation = VoiceFeatures(frame=[0, 1, 2], time=[0, 1, 2])
         annotation.write_json(filename)
         assert os.path.exists(filename)
         annotation = VoiceFeatures.from_json(filename=filename)
         assert isinstance(annotation, VoiceFeatures)
         assert annotation.frame == [0, 1, 2]
+        assert annotation.time == [0, 1, 2]
         os.remove(filename)
 
 
@@ -103,3 +107,144 @@ class TestSentimentAnnotation:
         assert isinstance(sentiment, SentimentAnnotation)
         assert isinstance(sentiment.sentiment[0], Sentiment)
         os.remove(filename)
+
+
+class TestMultimodal:
+    ref_dir = os.path.join('tests', 'reference_files')
+    filepath = 'test_video_audio_5_seconds.mp4'
+
+    @pytest.fixture
+    def multimodal(self) -> Multimodal:
+        return Multimodal(
+            filename=self.filepath,
+            duration=5.0,
+            fps=25,
+            fps_adjusted=5,
+            video_annotation=VideoAnnotation.from_json(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_video_annotation.json')
+            ),
+            audio_annotation=SpeakerAnnotation.from_rttm(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
+            ),
+            voice_features=VoiceFeatures.from_json(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_voice_features.json')
+            ),
+            transcription=AudioTranscription.from_srt(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_transcription.srt')
+            ),
+            sentiment=SentimentAnnotation.from_json(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_sentiment.json')
+            )
+        )
+
+
+    def test_merge_features(self, multimodal):
+        multimodal.merge_features()
+        _validate_multimodal(multimodal)
+
+
+    def test_merge_features_video_annotation(self):
+        output = Multimodal(
+            filename=self.filepath,
+            duration=5.0,
+            fps=25,
+            fps_adjusted=5,
+            video_annotation=VideoAnnotation.from_json(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_video_annotation.json')
+            )
+        )
+
+        output.merge_features()
+        _validate_multimodal(output,
+            check_audio_annotation=False,
+            check_voice_features=False,
+            check_transcription=False,
+            check_sentiment=False
+        )
+
+
+    def test_merge_features_audio_annotation(self):
+        output = Multimodal(
+            filename=self.filepath,
+            duration=5.0,
+            fps=25,
+            fps_adjusted=5,
+            audio_annotation=SpeakerAnnotation.from_rttm(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
+            )
+        )
+
+        output.merge_features()
+        _validate_multimodal(output,
+            check_video_annotation=False,
+            check_voice_features=False,
+            check_transcription=False,
+            check_sentiment=False
+        )
+
+    
+    def test_merge_features_voice_features(self):
+        output = Multimodal(
+            filename=self.filepath,
+            duration=5.0,
+            fps=25,
+            fps_adjusted=5,
+            voice_features=VoiceFeatures.from_json(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_voice_features.json')
+            )
+        )
+
+        output.merge_features()
+        _validate_multimodal(output,
+            check_video_annotation=False,
+            check_audio_annotation=False,
+            check_transcription=False,
+            check_sentiment=False
+        )
+
+
+    def test_merge_features_transcription(self):
+        output = Multimodal(
+            filename=self.filepath,
+            duration=5.0,
+            fps=25,
+            fps_adjusted=5,
+            audio_annotation=SpeakerAnnotation.from_rttm(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
+            ),
+            transcription=AudioTranscription.from_srt(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_transcription.srt')
+            )
+        )
+
+        output.merge_features()
+        _validate_multimodal(output,
+            check_video_annotation=False,
+            check_voice_features=False,
+            check_sentiment=False
+        )
+
+
+    def test_merge_features_sentiment(self):
+        output = Multimodal(
+            filename=self.filepath,
+            duration=5.0,
+            fps=25,
+            fps_adjusted=5,
+            audio_annotation=SpeakerAnnotation.from_rttm(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
+            ),
+            transcription=AudioTranscription.from_srt(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_transcription.srt')
+            ),
+            sentiment=SentimentAnnotation.from_json(
+                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_sentiment.json')
+            )
+        )
+
+        output.merge_features()
+        _validate_multimodal(output,
+            check_video_annotation=False,
+            check_voice_features=False
+        )
+        
