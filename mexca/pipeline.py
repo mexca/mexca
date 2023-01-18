@@ -7,7 +7,8 @@ import os
 from typing import Optional, Tuple, Union
 from moviepy.editor import VideoFileClip
 from mexca.audio import SpeakerIdentifier, VoiceExtractor
-from mexca.container import AudioTranscriberContainer, FaceExtractorContainer, SentimentExtractorContainer, SpeakerIdentifierContainer, VoiceExtractorContainer
+from mexca.container import (AudioTranscriberContainer, FaceExtractorContainer, SentimentExtractorContainer,
+                             SpeakerIdentifierContainer, VoiceExtractorContainer)
 from mexca.data import Multimodal
 from mexca.text import AudioTranscriber, SentimentExtractor
 from mexca.utils import ClassInitMessage
