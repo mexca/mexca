@@ -25,12 +25,6 @@ class SpeakerIdentifier:
         a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``
         and ``pyannote/segmentation`` (if str).
 
-    Attributes
-    ----------
-    pipeline : pyannote.audio.Pipeline
-        The pretrained speaker diarization pipeline.
-        See `pyannote.audio.SpeakerDiarization <https://github.com/pyannote/pyannote-audio/blob/develop/pyannote/audio/pipelines/speaker_diarization.py#L56>`_ for details.
-
     Notes
     -----
     This class requires pretrained models for speaker diarization and segmentation from HuggingFace.
@@ -53,6 +47,9 @@ class SpeakerIdentifier:
     # Initialize pretrained models only when needed 
     @property
     def pipeline(self) -> Pipeline:
+        """The pretrained speaker diarization pipeline.
+        See `pyannote.audio.SpeakerDiarization <https://github.com/pyannote/pyannote-audio/blob/develop/pyannote/audio/pipelines/speaker_diarization.py#L56>`_ for details.
+        """
         if not self._pipeline:
             self._pipeline = Pipeline.from_pretrained(
                 "pyannote/speaker-diarization",
@@ -80,8 +77,8 @@ class SpeakerIdentifier:
 
         Returns
         -------
-        pyannote.core.Annotation
-            A pyannote annotation object that contains detected speech segments and speakers.
+        SpeakerAnnotation
+            A data class object that contains detected speech segments and speakers.
 
         """
 
@@ -99,6 +96,7 @@ class SpeakerIdentifier:
 
 def cli():
     """Command line interface for identifying speech segments and speakers.
+    See `identify-speakers -h` for details.
     """
 
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)

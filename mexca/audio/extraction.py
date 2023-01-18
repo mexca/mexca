@@ -13,29 +13,6 @@ from mexca.utils import ClassInitMessage
 
 class VoiceExtractor:
     """Extract voice features from an audio file.
-
-    Parameters
-    ----------
-    time_step: float or None, default=None
-        The interval between time points at which features are extracted.
-    features: dict or None, default=None
-        A dictionary of features with keys as the features names for the output and values as feature class instances.
-
-    Attributes
-    ----------
-    time_step
-    features
-
-    See Also
-    --------
-    mexca.audio.features.PitchF0 : Extract the voice pitch as the fundamental frequency F0.
-
-    Notes
-    -----
-    If `features=None` (the default), the class will be initiated to extract default voice features using the `set_default_features` method.
-    Currently, only a class for extracting the voice pitch as the fundamental frequency F0 is available as `mexca.audio.features.PitchF0`.
-    A tutorial on how to create a custom feature class will follow soon (TODO).
-
     """
 
 
@@ -44,28 +21,20 @@ class VoiceExtractor:
         self.logger.debug(ClassInitMessage())
 
 
-    def apply(self, filepath: str, time_step: float = 0.023):
+    def apply(self, filepath: str, time_step: float) -> VoiceFeatures:
         """Extract voice features from an audio file.
 
         Parameters
         ----------
-        filepath: str or path
+        filepath: str
             Path to the audio file.
-        time: list or numpy.ndarray or None
-            A list of floats or array containing time points at which voice features are extracted.
+        time_step: float
+            The interval between time points at which features are extracted.
 
         Returns
         -------
-        dict
-            A dictionary with keys corresponding to the names of the extracted features
-            and values as arrays containing the extracted feature values.
-
-        Raises
-        ------
-        TimeStepError
-            If `time=None` and `VoiceExtractor.time_step=None`.
-            Either the time points for extraction must be supplied or
-            the time points must be constructed with with the `time_step` attribute.
+        VoiceFeatures
+            A data class object containing the extracted voice features.
 
         """
         self.logger.debug('Loading audio file')
@@ -78,11 +47,12 @@ class VoiceExtractor:
 
         pitch_array = np.vectorize(pitch.get_value_at_time)(time)
 
-        return VoiceFeatures(frame=frame.tolist(), pitch_F0=pitch_array.tolist())
+        return VoiceFeatures(frame=frame.tolist(), pitch_f0=pitch_array.tolist())
 
 
 def cli():
     """Command line interface for extracting voice features.
+    See `extract-voice -h` for details.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

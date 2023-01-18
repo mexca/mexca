@@ -615,6 +615,7 @@ class FaceExtractor:
 
 def cli():
     """Command line interface for extracting facial features.
+    See `extract-faces -h` for details.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

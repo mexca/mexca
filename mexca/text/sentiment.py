@@ -26,10 +26,6 @@ class SentimentExtractor:
     tokenizer: transformers.PreTrainedTokenizer
         The pretrained tokenizer for sequence classification.
         Loaded automatically from `model_name`.
-    classifier: transformers.PreTrainedModel
-        The pretrained sequence classification model for sentiment prediction.
-        Loaded automatically from `model_name`.
-
 
     """
     def __init__(self, model_name: Optional[str] = None):
@@ -48,6 +44,9 @@ class SentimentExtractor:
     # Initialize pretrained models only when needed
     @property
     def classifier(self) -> XLMRobertaForSequenceClassification:
+        """The pretrained sequence classification model for sentiment prediction.
+        Loaded automatically from `model_name`.
+        """
         if not self._classifier:
             self._classifier = AutoModelForSequenceClassification.from_pretrained(self.model_name)
             self.logger.debug('Initialized sentiment extraction model')
@@ -65,22 +64,22 @@ class SentimentExtractor:
     def apply(self, transcription: AudioTranscription, show_progress: bool = True) -> SentimentAnnotation:
         """Extract the sentiment from text.
 
-        Iterates over the segments in the audio annotation and predicts the sentiment
-        (negative, neutral, positive) for each sentence in each segment.
+        Iterates over the sentences in the audio transcription and predicts the sentiment
+        (negative, neutral, positive).
 
         Parameters
         ----------
-        transcription: pyannote.core.Annotation
-            The annotation object of the audio file with the added transcription of each segment.
+        transcription: AudioTranscription
+            The transcription of the speech segments in the audio fie split into sentences.
             Returned by `AudioTranscriber`.
         show_progress: bool, optional, default=True
             Whether a progress bar is displayed or not.
 
         Returns
         -------
-        pyannote.core.Annotation
-            An annotation object with the positive, negative, and neutral sentiment scores
-            for each sentence in each transribed audio segment.
+        SentimentAnnotation
+            An data class object with the positive, negative, and neutral sentiment scores
+            for each sentence.
 
         """
 
@@ -106,6 +105,7 @@ class SentimentExtractor:
 
 def cli():
     """Command line interface for sentiment extraction.
+    See `extract-sentiment -h` for details.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

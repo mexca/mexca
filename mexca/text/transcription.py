@@ -34,11 +34,6 @@ class AudioTranscriber:
         the text at all '.', '?', '!', and ':' characters that are followed by whitespace characters. It
         omits single or multiple words abbreviated with dots (e.g., 'Nr. ' and 'e.g. ').
 
-    Attributes
-    ----------
-    transcriber: whisper.Whisper
-        The loaded whisper model for audio transcription.
-
     """
     def __init__(self,
         whisper_model: Optional[str] = 'small',
@@ -63,6 +58,8 @@ class AudioTranscriber:
     # Initialize pretrained models only when needed
     @property
     def transcriber(self) -> whisper.Whisper:
+        """The loaded whisper model for audio transcription.
+        """
         if not self._transcriber:
             self._transcriber = stable_whisper.load_model(
                 self.whisper_model,
@@ -83,17 +80,23 @@ class AudioTranscriber:
     def apply(self, # pylint: disable=too-many-locals
         filepath: str,
         audio_annotation: SpeakerAnnotation,
+        language: Optional[str] = None,
         options: Optional[whisper.DecodingOptions] = None,
         show_progress: bool = True
     ) -> AudioTranscription:
         """Transcribe speech in an audio file to text.
 
+        Transcribe each annotated speech segment in the audio file
+        and split the transcription into sentences according to `sentence_rule`.
+
         Parameters
         ----------
         filepath: str
             Path to the audio file.
-        audio_annotation: pyannote.core.Annotation
-            The audio annotation object returned by the pyannote.audio speaker diarization pipeline.
+        audio_annotation: SpeakerAnnotation
+            The audio annotation object returned the `SpeakerIdentifier` component.
+        language: str, optional, default=None
+            The language that is transcribed. Ignored if `options.language` is not `None`.
         options: whisper.DecodingOptions, optional
             Options for transcribing the audio file. If `None`, transcription is done without timestamps,
             and with a number format that depends on whether CUDA is available:
@@ -104,13 +107,13 @@ class AudioTranscriber:
 
         Returns
         -------
-        pyannote.core.Annotation
-            An annotation object containing segments with transcription.
+        AudioTranscription
+            A data class object containing transcribed speech segments split into sentences.
 
         """
         if not options:
             self.logger.debug('Using default options for whisper: No native timestamps and FP16 only if CUDA is available')
-            options = self.get_default_options()
+            options = self.get_default_options(language=language)
 
         audio = torch.Tensor(whisper.load_audio(filepath))
 
@@ -168,8 +171,10 @@ class AudioTranscriber:
 
 
     @staticmethod
-    def get_default_options() -> whisper.DecodingOptions:
+    def get_default_options(language: Optional[str] = None) -> whisper.DecodingOptions:
         """Set default options for transcription.
+
+        Sets language as well as `without_timestamps=False` and `fp16=torch.cuda.is_available()`.
 
         Returns
         -------
@@ -177,6 +182,7 @@ class AudioTranscriber:
 
         """
         return whisper.DecodingOptions(
+            language=language,
             without_timestamps=False,
             fp16=torch.cuda.is_available()
         )
@@ -186,6 +192,7 @@ class AudioTranscriber:
 # See: https://github.com/openai/whisper/blob/main/whisper/transcribe.py
 def cli():
     """Command line interface for audio transcription.
+    See `transcribe -h` for details.
     """
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
 

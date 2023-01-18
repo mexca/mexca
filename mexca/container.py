@@ -1,3 +1,5 @@
+"""Containers of pipeline components.
+"""
 
 import os
 from typing import List, Optional, Tuple, Union
@@ -7,6 +9,8 @@ from mexca.data import AudioTranscription, SentimentAnnotation, SpeakerAnnotatio
 
 
 class BaseContainer:
+    """Base class for container components. Only for internal use.
+    """
     def __init__(self, image_name: str):
         self.image_name = image_name
         self.client = docker.from_env()
@@ -57,6 +61,19 @@ class BaseContainer:
 
 
 class FaceExtractorContainer(BaseContainer):
+    """Container for `FaceExtractor` component.
+
+    Other Parameters
+    ----------------
+    image_name: str, default='mexca-face-extractor'
+        Name of the image to create a container from.
+        Pulls the image from Docker Hub if not found locally.
+
+    See Also
+    --------
+    FaceExtractor
+
+    """
     def __init__(self,
         num_faces: Optional[int],
         min_face_size: int = 20,
@@ -128,6 +145,19 @@ class FaceExtractorContainer(BaseContainer):
 
 
 class SpeakerIdentifierContainer(BaseContainer):
+    """Container for `SpeakerIdentifier` component.
+
+    Other Parameters
+    ----------------
+    image_name: str, default='mexca-speaker-identifier'
+        Name of the image to create a container from.
+        Pulls the image from Docker Hub if not found locally.
+
+    See Also
+    --------
+    SpeakerIdentifier
+
+    """
     def __init__(self,
         num_speakers: Optional[int] = None,
         use_auth_token: Union[bool, str] = True,
@@ -154,6 +184,19 @@ class SpeakerIdentifierContainer(BaseContainer):
 
 
 class VoiceExtractorContainer(BaseContainer):
+    """Container for `VoiceExtractor` component.
+
+    Other Parameters
+    ----------------
+    image_name: str, default='mexca-voice-extractor'
+        Name of the image to create a container from.
+        Pulls the image from Docker Hub if not found locally.
+
+    See Also
+    --------
+    VoiceExtractor
+
+    """
     def __init__(self, image_name: str = 'mexca-voice-extractor'):
         super().__init__(image_name=image_name)
 
@@ -170,6 +213,19 @@ class VoiceExtractorContainer(BaseContainer):
 
 
 class AudioTranscriberContainer(BaseContainer):
+    """Container for `AudioTrascriber` component.
+
+    Other Parameters
+    ----------------
+    image_name: str, default='mexca-audio-transcriber'
+        Name of the image to create a container from.
+        Pulls the image from Docker Hub if not found locally.
+
+    See Also
+    --------
+    AudioTranscriber
+
+    """
     def __init__(self,
         whisper_model: Optional[str] = 'small',
         device: Optional[Union[str, 'torch.device']] = 'cpu',
@@ -204,6 +260,19 @@ class AudioTranscriberContainer(BaseContainer):
 
 
 class SentimentExtractorContainer(BaseContainer):
+    """Container for `SentimentExtractor` component.
+
+    Other Parameters
+    ----------------
+    image_name: str, default='mexca-sentiment-extractor'
+        Name of the image to create a container from.
+        Pulls the image from Docker Hub if not found locally.
+
+    See Also
+    --------
+    SentimentExtractor
+
+    """
     def __init__(self, image_name: str = 'mexca-sentiment-extractor'):
         super().__init__(image_name=image_name)
 

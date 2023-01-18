@@ -1,4 +1,4 @@
-"""Create objects for storing multimodal data
+"""Objects for storing multimodal data.
 """
 
 import json
@@ -18,19 +18,19 @@ class VideoAnnotation:
 
     Parameters
     ----------
-    frame : list
+    frame : list, optional
         Index of each frame.
-    time : list
+    time : list, optional
         Timestamp of each frame in seconds.
-    face_box : list
+    face_box : list, optional
         Bounding box of a detected face. Is `numpy.nan` if no face was detected.
-    face_prob : list
+    face_prob : list, optional
         Probability of a detected face. Is `numpy.nan` if no face was detected.
-    face_landmarks : list
+    face_landmarks : list, optional
         Facial landmarks of a detected face. Is `numpy.nan` if no face was detected.
-    face_aus : list
+    face_aus : list, optional
         Facial action unit activations of a detected face. Is `numpy.nan` if no face was detected.
-    face_label : list
+    face_label : list, optional
         Label of a detected face. Is `numpy.nan` if no face was detected.
     face_confidence : list, optional
         Confidence of the `face_label` assignment. Is `numpy.nan` if no face was detected or
@@ -95,12 +95,12 @@ class VoiceFeatures:
     ----------
     frame: list
         The frame index for which features were extracted.
-    pitch_F0: list, optional
+    pitch_f0: list, optional
         The voice pitch measured as the fundamental frequency F0.
 
     """
     frame: List[int]
-    pitch_F0: Optional[List[float]] = field(default_factory=list)
+    pitch_f0: Optional[List[float]] = field(default_factory=list)
 
 
     @classmethod
@@ -148,6 +148,20 @@ def _get_rttm_header() -> List[str]:
 
 @dataclass
 class SegmentData:
+    """Class for storing speech segment data
+
+    Parameters
+    ----------
+    filename : str
+        Name of the file from which the segment was obtained.
+    channel : int
+        Channel index.
+    name : str, optional, default=None
+        Speaker label.
+    conf : float, optional, default=None
+        Confidence of speaker label.
+
+    """
     filename: str
     channel: int
     name: Optional[str] = None
@@ -155,6 +169,12 @@ class SegmentData:
 
 
 class SpeakerAnnotation(IntervalTree):
+    """Class for storing speaker and speech segment annotations.
+
+    Stores speech segments as ``intervaltree.Interval`` in an ``intervaltree.IntervalTree``.
+    Speaker labels are stored in `SegmentData` objects in the `data` attribute of each interval.
+
+    """
     def __str__(self, end: str = "\t", file: TextIO = sys.stdout, header: bool = True):
         if header:
             for h in _get_rttm_header():
@@ -181,6 +201,14 @@ class SpeakerAnnotation(IntervalTree):
 
     @classmethod
     def from_pyannote(cls, annotation: Any):
+        """Create a `SpeakerAnnotation` object from a ``pyannote.core.Annotation`` object.
+
+        Parameters
+        ----------
+        annotation : pyannote.core.Annotation
+            Annotation object containing speech segments and speaker labels.
+
+        """
         segment_tree = cls()
 
         for seg, _, spk in annotation.itertracks(yield_label=True):
@@ -199,6 +227,14 @@ class SpeakerAnnotation(IntervalTree):
 
     @classmethod
     def from_rttm(cls, filename: str):
+        """Load a speaker annotation from an RTTM file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the file. Must have an RTTM ending.
+
+        """
         with open(filename, "r", encoding='utf-8') as file:
             segment_tree = cls()
             for row in file:
@@ -218,6 +254,14 @@ class SpeakerAnnotation(IntervalTree):
 
 
     def write_rttm(self, filename: str):
+        """Write a speaker annotation to an RTTM file.
+
+        Parameters
+        ----------
+        filename : str
+            Path to the file. Must have an RTTM ending.
+
+        """
         with open(filename, "w", encoding='utf-8') as file:
             self.__str__(end=" ", file=file, header=False) #pylint: disable=unnecessary-dunder-call
 
@@ -285,6 +329,8 @@ class SentimentAnnotation:
 
 
 class Multimodal:
+    """Class for storing multimodal features.
+    """
     def __init__(self,
         filename: str,
         duration: Optional[float] = None,
@@ -384,7 +430,7 @@ class Multimodal:
             data_frames.append(pd.DataFrame(asdict(self.voice_features)).set_index('frame'))
 
 
-    def merge_features(self):
+    def merge_features(self) -> pd.DataFrame:
         """Merge multimodal features from pipeline components into a common data frame.
 
         Transforms and merges the available output stored in the `Multimodal` object
