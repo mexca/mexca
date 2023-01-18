@@ -5,7 +5,7 @@ import json
 import sys
 from dataclasses import asdict, dataclass, field, fields
 from functools import reduce
-from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
+from typing import Any, Dict, List, Optional, TextIO, Union
 import srt
 import numpy as np
 import pandas as pd
@@ -100,7 +100,7 @@ class VoiceFeatures:
 
     """
     frame: List[int]
-    pitch_F0: Optional[List[float]] = field(default_factory=list)
+    pitch_F0: Optional[List[float]] = field(default_factory=list) #pycodestyle: disable=N815
 
 
     @classmethod
@@ -219,7 +219,7 @@ class SpeakerAnnotation(IntervalTree):
 
     def write_rttm(self, filename: str):
         with open(filename, "w", encoding='utf-8') as file:
-            self.__str__(end=" ", file=file, header=False)
+            self.__str__(end=" ", file=file, header=False) #pylint: disable=unnecessary-dunder-call
 
 
 @dataclass

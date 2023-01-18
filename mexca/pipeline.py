@@ -69,7 +69,7 @@ class Pipeline:
             frame_batch_size: int = 1,
             skip_frames: int = 1,
             process_subclip: Tuple[Optional[float]] = (0, None),
-            language: Optional[str] = None,
+            language: Optional[str] = None, #pylint: disable=unused-argument
             keep_audiofile: bool = False,
             show_progress: bool = True
         ) -> 'Multimodal':

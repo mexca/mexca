@@ -1,11 +1,9 @@
 
-import json
 import os
 from typing import List, Optional, Tuple, Union
 import docker
-import srt
-from docker.types import Mount
-from mexca.data import AudioTranscription, SpeakerAnnotation, Sentiment, SentimentAnnotation, VideoAnnotation, VoiceFeatures
+from docker.types import Mount #pylint: disable=import-error
+from mexca.data import AudioTranscription, SpeakerAnnotation, SentimentAnnotation, VideoAnnotation, VoiceFeatures
 
 class BaseContainer:
     def __init__(self, image_name: str):
@@ -186,7 +184,7 @@ class AudioTranscriberContainer(BaseContainer):
 
     def apply(self,
         filepath: str,
-        audio_annotation: SpeakerAnnotation,
+        audio_annotation: SpeakerAnnotation, #pylint: disable=unused-argument
         show_progress: bool = True
     ) -> AudioTranscription:
         cmd_args = [
