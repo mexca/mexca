@@ -47,7 +47,7 @@ class VoiceExtractor:
 
         pitch_array = np.vectorize(pitch.get_value_at_time)(time)
 
-        return VoiceFeatures(frame=frame.tolist(), pitch_f0=pitch_array.tolist())
+        return VoiceFeatures(frame=frame.tolist(), time=time.tolist(), pitch_f0=pitch_array.tolist())
 
 
 def cli():

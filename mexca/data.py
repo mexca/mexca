@@ -95,11 +95,14 @@ class VoiceFeatures:
     ----------
     frame: list
         The frame index for which features were extracted.
+    time: list
+        The time stamp at which features were extracted.
     pitch_f0: list, optional
         The voice pitch measured as the fundamental frequency F0.
 
     """
     frame: List[int]
+    time: List[float]
     pitch_f0: Optional[List[float]] = field(default_factory=list)
 
 
@@ -357,13 +360,14 @@ class Multimodal:
 
     def _merge_video_annotation(self, data_frames: List):
         if self.video_annotation:
-            data_frames.append(pd.DataFrame(asdict(self.video_annotation)).set_index('frame'))
+            data_frames.append(pd.DataFrame(asdict(self.video_annotation)).set_index(['frame', 'time']))
 
 
     def _merge_audio_text_features(self, data_frames: List):
         if self.audio_annotation: #pylint: disable=too-many-nested-blocks
             audio_annotation_dict = {
                 "frame": [],
+                "time": [],
                 "segment_start": [],
                 "segment_end": [],
                 "segment_speaker_label": []
@@ -375,6 +379,7 @@ class Multimodal:
             if self.transcription:
                 text_features_dict = {
                     "frame": [],
+                    "time": [],
                     "span_start": [],
                     "span_end": [],
                     "span_text": []
@@ -388,6 +393,7 @@ class Multimodal:
             for i, t in zip(frame, time):
                 for seg in self.audio_annotation[t]:
                     audio_annotation_dict['frame'].append(i)
+                    audio_annotation_dict['time'].append(t)
                     audio_annotation_dict['segment_start'].append(seg.begin)
                     audio_annotation_dict['segment_end'].append(seg.end)
                     audio_annotation_dict['segment_speaker_label'].append(seg.data.name)
@@ -396,6 +402,7 @@ class Multimodal:
                     for span, sent in zip(self.transcription.subtitles, self.sentiment.sentiment):
                         if span.start.total_seconds() <= t <= span.end.total_seconds():
                             text_features_dict['frame'].append(i)
+                            text_features_dict['time'].append(t)
                             text_features_dict['span_start'].append(span.start.total_seconds())
                             text_features_dict['span_end'].append(span.end.total_seconds())
                             text_features_dict['span_text'].append(span.content)
@@ -409,16 +416,17 @@ class Multimodal:
                     for span in self.transcription.subtitles:
                         if span.start.total_seconds() <= t <= span.end.total_seconds():
                             text_features_dict['frame'].append(i)
+                            text_features_dict['time'].append(t)
                             text_features_dict['span_start'].append(span.start.total_seconds())
                             text_features_dict['span_end'].append(span.end.total_seconds())
                             text_features_dict['span_text'].append(span.content)
                     
-            audio_text_features_df = pd.DataFrame(audio_annotation_dict).set_index('frame')
+            audio_text_features_df = pd.DataFrame(audio_annotation_dict).set_index(['frame', 'time'])
 
             if self.transcription:
                 audio_text_features_df = audio_text_features_df.merge(
-                    pd.DataFrame(text_features_dict).set_index('frame'),
-                    on=['frame'],
+                    pd.DataFrame(text_features_dict).set_index(['frame', 'time']),
+                    on=['frame', 'time'],
                     how='left'
                 )
 
@@ -427,7 +435,7 @@ class Multimodal:
 
     def _merge_voice_features(self, data_frames: List):
         if self.voice_features:
-            data_frames.append(pd.DataFrame(asdict(self.voice_features)).set_index('frame'))
+            data_frames.append(pd.DataFrame(asdict(self.voice_features)).set_index(['frame', 'time']))
 
 
     def merge_features(self) -> pd.DataFrame:
@@ -455,7 +463,7 @@ class Multimodal:
         if len(dfs) > 0:
             self.features = reduce(lambda left, right:
                 pd.merge(left , right,
-                    on = ["frame"],
+                    on = ["frame", "time"],
                     how = "left"),
                 dfs
             ).reset_index()
