@@ -16,7 +16,7 @@ class TestAudioTranscription:
         'tests', 'test_files', 'test_video_audio_5_seconds.wav'
     )
     annotation_path = os.path.join(
-        'tests', 'reference_files', 'annotation_video_audio_5_seconds.rttm'
+        'tests', 'reference_files', 'test_video_audio_5_seconds_annotation.rttm'
     )
     
     annotation = SpeakerAnnotation.from_rttm(annotation_path)
