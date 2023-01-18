@@ -34,7 +34,7 @@ pydocstyle:
 
 pyflakes:
     disable: [
-        F401 # unused import in init files,
+        F401, # unused import in init files
         F821 # undefined name (for torch)
     ]
 
