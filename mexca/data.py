@@ -179,6 +179,10 @@ class SpeakerAnnotation(IntervalTree):
     Speaker labels are stored in `SegmentData` objects in the `data` attribute of each interval.
 
     """
+    def __init__(self, intervals: List[Interval] = None):
+        super().__init__(intervals)
+
+
     def __str__(self, end: str = "\t", file: TextIO = sys.stdout, header: bool = True):
         if header:
             for h in _get_rttm_header():
@@ -213,10 +217,10 @@ class SpeakerAnnotation(IntervalTree):
             Annotation object containing speech segments and speaker labels.
 
         """
-        segment_tree = cls()
+        segments = []
 
         for seg, _, spk in annotation.itertracks(yield_label=True):
-            segment_tree.add(Interval(
+            segments.append(Interval(
                 begin=seg.start,
                 end=seg.end,
                 data=SegmentData(
@@ -226,7 +230,7 @@ class SpeakerAnnotation(IntervalTree):
                 )
             ))
 
-        return segment_tree
+        return cls(intervals=segments)
 
 
     @classmethod
@@ -240,7 +244,7 @@ class SpeakerAnnotation(IntervalTree):
 
         """
         with open(filename, "r", encoding='utf-8') as file:
-            segment_tree = cls()
+            segments = []
             for row in file:
                 row_split = [None if cell == "<NA>" else cell for cell in row.split(" ")]
                 segment = Interval(
@@ -252,9 +256,9 @@ class SpeakerAnnotation(IntervalTree):
                         name=row_split[7],
                     )
                 )
-                segment_tree.add(segment)
+                segments.append(segment)
 
-            return segment_tree
+            return cls(segments)
 
 
     def write_rttm(self, filename: str):
@@ -325,7 +329,7 @@ class AudioTranscription:
 
 
 @dataclass
-class Sentiment:
+class SentimentData:
     index: int
     pos: float
     neg: float
@@ -333,34 +337,44 @@ class Sentiment:
 
 
 @dataclass
-class SentimentAnnotation:
-    sentiment: List[Sentiment] = field(default_factory=list)
-
-
-    @classmethod
-    def from_dict(cls, data: Dict):
-        field_names = [f.name for f in fields(cls)]
-        filtered_data = {k: v for k, v in data.items() if k in field_names}
-        filtered_data['sentiment'] = [Sentiment(
-            index=s['index'],
-            pos=s['pos'],
-            neg=s['neg'],
-            neu=s['neu']
-        ) for s in filtered_data['sentiment']]
-        return cls(**filtered_data)
+class SentimentAnnotation(IntervalTree):
+    def __init__(self, intervals: List[Interval] = None):
+        super().__init__(intervals)
 
 
     @classmethod
     def from_json(cls, filename: str):
         with open(filename, 'r', encoding='utf-8') as file:
-            data = json.load(file)
+            sentiment = json.load(file)
 
-        return cls.from_dict(data=data)
+            intervals = []
+
+            for sen in sentiment:
+                intervals.append(Interval(
+                    begin=sen['begin'],
+                    end=sen['end'],
+                    data=SentimentData(
+                        index=sen['index'],
+                        pos=sen['pos'],
+                        neg=sen['neg'],
+                        neu=sen['neu']
+                    )
+                ))
+
+            return cls(intervals=intervals)
 
 
     def write_json(self, filename: str):
         with open(filename, 'w', encoding='utf-8') as file:
-            json.dump(asdict(self), file, allow_nan=True)
+            sentiment = []
+
+            for iv in self.all_intervals:
+                data_dict = asdict(iv.data)
+                data_dict['begin'] = iv.begin
+                data_dict['end'] = iv.end
+                sentiment.append(data_dict)
+
+            json.dump(sentiment, file, allow_nan=True)
 
 
 class Multimodal:
@@ -457,26 +471,25 @@ class Multimodal:
                     audio_annotation_dict['segment_speaker_label'].append(seg.data.name)
 
                 if self.transcription and self.sentiment:
-                    for span, sent in zip(self.transcription.subtitles[t], self.sentiment.sentiment):
+                    for span, sent in zip(self.transcription.subtitles[t], self.sentiment[t]):
                         text_features_dict['frame'].append(i)
                         text_features_dict['time'].append(t)
-                        text_features_dict['span_start'].append(span.start.total_seconds())
-                        text_features_dict['span_end'].append(span.end.total_seconds())
-                        text_features_dict['span_text'].append(span.content)
+                        text_features_dict['span_start'].append(span.begin)
+                        text_features_dict['span_end'].append(span.end)
+                        text_features_dict['span_text'].append(span.data.text)
 
-                        if span.index == sent.index:
-                            text_features_dict['span_sent_pos'].append(sent.pos)
-                            text_features_dict['span_sent_neg'].append(sent.neg)
-                            text_features_dict['span_sent_neu'].append(sent.neu)
+                        if span.data.index == sent.data.index:
+                            text_features_dict['span_sent_pos'].append(sent.data.pos)
+                            text_features_dict['span_sent_neg'].append(sent.data.neg)
+                            text_features_dict['span_sent_neu'].append(sent.data.neu)
 
                 elif self.transcription:
-                    for span in self.transcription.subtitles:
-                        if span.start.total_seconds() <= t <= span.end.total_seconds():
-                            text_features_dict['frame'].append(i)
-                            text_features_dict['time'].append(t)
-                            text_features_dict['span_start'].append(span.start.total_seconds())
-                            text_features_dict['span_end'].append(span.end.total_seconds())
-                            text_features_dict['span_text'].append(span.content)
+                    for span in self.transcription.subtitles[t]:                   
+                        text_features_dict['frame'].append(i)
+                        text_features_dict['time'].append(t)
+                        text_features_dict['span_start'].append(span.begin)
+                        text_features_dict['span_end'].append(span.end)
+                        text_features_dict['span_text'].append(span.data.text)
                     
             audio_text_features_df = pd.DataFrame(audio_annotation_dict).set_index(['frame', 'time'])
 

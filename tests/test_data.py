@@ -7,7 +7,7 @@ import pytest
 import srt
 from intervaltree import Interval, IntervalTree
 from pyannote.core import Annotation, Segment
-from mexca.data import AudioTranscription, Multimodal, SegmentData, Sentiment, SentimentAnnotation, SpeakerAnnotation, TranscriptionData, VideoAnnotation, VoiceFeatures, _get_rttm_header
+from mexca.data import AudioTranscription, Multimodal, SegmentData, SentimentData, SentimentAnnotation, SpeakerAnnotation, TranscriptionData, VideoAnnotation, VoiceFeatures, _get_rttm_header
 from mexca.utils import _validate_multimodal
 
 
@@ -103,17 +103,22 @@ class TestAudioTranscription:
 class TestSentimentAnnotation:
     def test_write_from_json(self):
         filename = 'test.json'
-        sentiment = SentimentAnnotation(sentiment=[Sentiment(
-            index=0,
-            pos=0.4,
-            neg=0.4,
-            neu=0.2
+        sentiment = SentimentAnnotation([Interval(
+            begin=0,
+            end=1,
+            data=SentimentData(
+                index=0,
+                pos=0.4,
+                neg=0.4,
+                neu=0.2
+            )
         )])
         sentiment.write_json(filename)
         assert os.path.exists(filename)
         sentiment = SentimentAnnotation.from_json(filename=filename)
         assert isinstance(sentiment, SentimentAnnotation)
-        assert isinstance(sentiment.sentiment[0], Sentiment)
+        for sent in sentiment.items():
+            assert isinstance(sent.data, SentimentData)
         os.remove(filename)
 
 

@@ -7,8 +7,9 @@ import os
 from typing import Optional
 from scipy.special import softmax
 from tqdm import tqdm
+from intervaltree import Interval
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, XLMRobertaForSequenceClassification
-from mexca.data import AudioTranscription, Sentiment, SentimentAnnotation
+from mexca.data import AudioTranscription, SentimentData, SentimentAnnotation
 from mexca.utils import ClassInitMessage, str2bool
 
 
@@ -87,16 +88,19 @@ class SentimentExtractor:
 
         for i, sent in tqdm(enumerate(transcription.subtitles), total=len(transcription), disable=not show_progress):
             self.logger.debug('Extracting sentiment for sentence %s', i)
-            tokens = self.tokenizer(sent.content, return_tensors='pt')
+            tokens = self.tokenizer(sent.data.text, return_tensors='pt')
             output = self.classifier(**tokens)
             logits = output.logits.detach().numpy()
             scores = softmax(logits)[0]
-            sentiment_annotation.sentiment.append(Sentiment(
-                index=sent.index,
-                pos=float(scores[2]),
-                neg=float(scores[0]),
-                neu=float(scores[1])
-            ))
+            sentiment_annotation.add(Interval(
+                begin=sent.begin,
+                end=sent.end,
+                data=SentimentData(
+                    index=sent.data.index,
+                    pos=float(scores[2]),
+                    neg=float(scores[0]),
+                    neu=float(scores[1])
+            )))
 
         del self.classifier
 
