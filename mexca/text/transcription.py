@@ -1,71 +1,20 @@
 """Transcribe speech from audio to text.
 """
 
+import argparse
+import logging
+import os
 import re
-from dataclasses import asdict, dataclass
-from typing import Dict, List, Optional, Union
-import numpy as np
+from dataclasses import asdict
+from typing import Optional, Union
 import stable_whisper
 import torch
 import whisper
-from parselmouth import Sound
-from pyannote.core import Annotation, Segment
+from intervaltree import Interval, IntervalTree
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
-from mexca.core.exceptions import TimeStepError
-from mexca.core.utils import create_time_var_from_step
-from mexca.text.sentiment import SentimentExtractor
-
-
-@dataclass
-class Sentence:
-    """Annotate a sentence within a transcribed speech segment.
-
-    Parameters
-    ----------
-    text: str
-        The transcribed sentence.
-    start, end: float
-        The start and end of the sentence within in the segment (in seconds).
-    sent_pos, sent_neg, sent_neu: float, optional
-        The positive, negative, and neutral sentiment scores of the sentence.
-
-    """
-    text: str
-    start: float
-    end: float
-    sent_pos: Optional[float] = None
-    sent_neg: Optional[float] = None
-    sent_neu: Optional[float] = None
-
-
-class TranscribedSegment(Segment):
-    """Annotate an audio segment with transcribed text and sentiment.
-
-    Parameters
-    ----------
-    start, end: float
-        The start and end of the segment (in seconds).
-    text: str, optional
-        The transcribed text of speech within the segment.
-    lang: str, optional
-        The detected language of speech within the segment.
-    sents: list, optional
-        A list of sentences in the transcribed text.
-
-    """
-
-    def __init__(self, # pylint: disable=too-many-arguments
-        start: float,
-        end: float,
-        text: Optional[str] = None,
-        lang: Optional[str] = None,
-        sents: Optional[List[Sentence]] = None
-    ):
-        super().__init__(start, end)
-        self.text = text
-        self.lang = lang
-        self.sents = sents
+from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
+from mexca.utils import ClassInitMessage, optional_str, str2bool
 
 
 class AudioTranscriber:
@@ -84,130 +33,152 @@ class AudioTranscriber:
         the text at all '.', '?', '!', and ':' characters that are followed by whitespace characters. It
         omits single or multiple words abbreviated with dots (e.g., 'Nr. ' and 'e.g. ').
 
-    Attributes
-    ----------
-    transcriber: whisper.Whisper
-        The loaded whisper model for audio transcription.
-
     """
     def __init__(self,
         whisper_model: Optional[str] = 'small',
         device: Optional[Union[str, torch.device]] = 'cpu',
         sentence_rule: Optional[str] = None
     ):
+        self.logger = logging.getLogger('mexca.text.transcription.AudioTranscriber')
         self.whisper_model = whisper_model
         self.device = device
-        self.transcriber = stable_whisper.load_model(whisper_model, device)
+        # Lazy initialization
+        self._transcriber = None
 
         if not sentence_rule:
             self.sentence_rule = r"(?<!\w\.\w.)(?<![A-Z][a-z]\.)(?<=\.|\?|!|:)\s"
+            self.logger.debug('Using default sentence rule %s because "sentence_rule=None"', self.sentence_rule)
         else:
             self.sentence_rule = sentence_rule
+
+        self.logger.debug(ClassInitMessage())
+
+
+    # Initialize pretrained models only when needed
+    @property
+    def transcriber(self) -> whisper.Whisper:
+        """The loaded whisper model for audio transcription.
+        """
+        if not self._transcriber:
+            self._transcriber = stable_whisper.load_model(
+                self.whisper_model,
+                self.device
+            )
+            self.logger.debug('Initialized %s whisper model for audio transcription', self.whisper_model)
+
+        return self._transcriber
+
+
+    # Delete pretrained models when not needed anymore
+    @transcriber.deleter
+    def transcriber(self):
+        self._transcriber = None
+        self.logger.debug('Removed %s whisper model for audio transcription', self.whisper_model)
 
 
     def apply(self, # pylint: disable=too-many-locals
         filepath: str,
-        audio_annotation: Annotation,
+        audio_annotation: SpeakerAnnotation,
+        language: Optional[str] = None,
         options: Optional[whisper.DecodingOptions] = None,
         show_progress: bool = True
-    ) -> Annotation:
+    ) -> AudioTranscription:
         """Transcribe speech in an audio file to text.
+
+        Transcribe each annotated speech segment in the audio file
+        and split the transcription into sentences according to `sentence_rule`.
 
         Parameters
         ----------
         filepath: str
             Path to the audio file.
-        audio_annotation: pyannote.core.Annotation
-            The audio annotation object returned by the pyannote.audio speaker diarization pipeline.
+        audio_annotation: SpeakerAnnotation
+            The audio annotation object returned the `SpeakerIdentifier` component.
+        language: str, optional, default=None
+            The language that is transcribed. Ignored if `options.language` is not `None`.
         options: whisper.DecodingOptions, optional
             Options for transcribing the audio file. If `None`, transcription is done without timestamps,
             and with a number format that depends on whether CUDA is available:
             FP16 (half-precision floating points) if available,
             FP32 (single-precision floating points) otherwise.
-        show_progress: bool
+        show_progress: bool, optional, default=True
             Whether a progress bar is displayed or not.
 
         Returns
         -------
-        pyannote.core.Annotation
-            An annotation object containing segments with transcription.
+        AudioTranscription
+            A data class object containing transcribed speech segments split into sentences.
 
         """
         if not options:
-            options = self.get_default_options()
+            self.logger.debug('Using default options for whisper: No native timestamps and FP16 only if CUDA is available')
+            options = self.get_default_options(language=language)
 
         audio = torch.Tensor(whisper.load_audio(filepath))
 
-        new_annotation = Annotation()
+        transcription = AudioTranscription(
+            filename=filepath,
+            subtitles=IntervalTree()
+        )
 
-        for seg, trk, spk in tqdm( # segment, track, speaker
-            audio_annotation.itertracks(yield_label=True),
+        for i, seg in tqdm(
+            enumerate(audio_annotation),
             total=len(audio_annotation),
             disable=not show_progress
         ):
             # Get start and end frame
-            start = int(seg.start * SAMPLE_RATE)
+            start = int(seg.begin * SAMPLE_RATE)
             end = int(seg.end * SAMPLE_RATE)
 
             # Subset audio signal
             audio_sub = audio[start:end]
 
-            output = self.transcriber.transcribe(audio_sub, **asdict(options))
-
+            self.logger.debug('Transcribing segment %s from %s to %s', i, seg.begin, seg.end)
+            output = self.transcriber.transcribe(audio_sub, verbose=None, **asdict(options))
+            self.logger.debug('Detected language: %s', whisper.tokenizer.LANGUAGES[output['language']].title())
             segment_text = output['text'].strip()
 
             # Split text into sentences
             sents = re.split(self.sentence_rule, segment_text)
+            self.logger.debug('Segment text split into %s sentences', len(sents))
 
+            # Concatenate word timestamps from every segment
+            whole_word_timestamps = []
 
-            def annotate_sentences(sents, output, seg_start):
-                """Helper function to annotate sentence start and end timestamps.
-                """
-                # Concatenate word timestamps from every segment
-                whole_word_timestamps = []
+            for segment in output['segments']:
+                whole_word_timestamps.extend(segment['whole_word_timestamps'])
 
-                for segment in output['segments']:
-                    whole_word_timestamps.extend(segment['whole_word_timestamps'])
+            if len(whole_word_timestamps) > 0:
+                idx = 0
 
-                # Get sentence start and end timestamps
-                sents_ts = []
+                for j, sent in enumerate(sents):
+                    self.logger.debug('Processing sentence %s', j)
+                    sent_len = len(sent.split(" ")) - 1
 
-                # If word-level timestamps are available
-                if len(whole_word_timestamps) > 0:
-                    idx = 0
+                    sent_start = whole_word_timestamps[idx]['timestamp']
+                    sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
 
-                    for sent in sents:
-                        sent_len = len(sent.split(" ")) - 1
+                    transcription.subtitles.add(Interval(
+                        begin=seg.begin + sent_start,
+                        end=seg.begin + sent_end,
+                        data=TranscriptionData(
+                            index=i,
+                            text=sent
+                        )
+                    ))
 
-                        start = whole_word_timestamps[idx]['timestamp']
-                        end = whole_word_timestamps[idx + sent_len]['timestamp']
+                    idx += sent_len + 1
 
-                        sents_ts.append(Sentence(sent, seg_start + start, seg_start + end))
+        del self._transcriber
 
-                        idx += sent_len + 1
-
-                return sents_ts
-
-
-            sents_ts = annotate_sentences(sents, output, seg.start)
-
-            # Add new segment with text
-            new_seg = TranscribedSegment(
-                seg.start,
-                seg.end,
-                segment_text,
-                output['language'],
-                sents = sents_ts
-            )
-
-            new_annotation[new_seg, trk] = spk
-
-        return new_annotation
+        return transcription
 
 
     @staticmethod
-    def get_default_options() -> whisper.DecodingOptions:
+    def get_default_options(language: Optional[str] = None) -> whisper.DecodingOptions:
         """Set default options for transcription.
+
+        Sets language as well as `without_timestamps=False` and `fp16=torch.cuda.is_available()`.
 
         Returns
         -------
@@ -215,133 +186,54 @@ class AudioTranscriber:
 
         """
         return whisper.DecodingOptions(
+            language=language,
             without_timestamps=False,
             fp16=torch.cuda.is_available()
         )
 
 
-class AudioTextIntegrator:
-    """Integrate audio transcription and audio features.
-
-    Parameters
-    ----------
-    audio_transcriber: AudioTranscriber
-        A class instance for audio transcription.
-    sentiment_extractor: SentimentExtractor
-        A class instance for sentiment prediction.
-    time_step: float, optional
-        The interval at which transcribed text is matched to audio frames.
-        Must be > 0. Only used if the `apply` method has `time=None`.
-
+# Adapted from whisper.trascribe.cli
+# See: https://github.com/openai/whisper/blob/main/whisper/transcribe.py
+def cli():
+    """Command line interface for audio transcription.
+    See `transcribe -h` for details.
     """
-    def __init__(self,
-        audio_transcriber: AudioTranscriber,
-        sentiment_extractor: SentimentExtractor,
-        time_step: Optional[float] = None
-    ):
-        self.audio_transcriber = audio_transcriber
-        self.sentiment_extractor = sentiment_extractor
-        self.time_step = time_step
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-f', '--filepath', type=str, required=True)
+    parser.add_argument('-a', '--annotation-path', type=str, required=True, dest='annotation_path')
+    parser.add_argument('-o', '--outdir', type=str, required=True)
+    parser.add_argument("--model", default="small", choices=whisper.available_models())
+    parser.add_argument("--device", default="cpu")
+    parser.add_argument("--language", type=optional_str, default=None, choices=sorted(whisper.tokenizer.LANGUAGES.keys()) + sorted([k.title() for k in whisper.tokenizer.TO_LANGUAGE_CODE.keys()]))
+    parser.add_argument('--sentence-rule', type=optional_str, default=None, dest='sentence_rule')
+    parser.add_argument('--show-progress', type=str2bool, default=True, dest='show_progress')
+
+    args = parser.parse_args().__dict__
+
+    transcriber = AudioTranscriber(
+        whisper_model=args['model'],
+        device=args['device'],
+        sentence_rule=args['sentence_rule']
+    )
+
+    options = whisper.DecodingOptions(
+        language=args['language'],
+        without_timestamps=False,
+        fp16=torch.cuda.is_available()
+    )
+
+    audio_annotation = SpeakerAnnotation.from_rttm(args['annotation_path'])
+
+    output = transcriber.apply(
+        args['filepath'],
+        audio_annotation=audio_annotation,
+        options=options,
+        show_progress=args['show_progress']
+    )
+
+    output.write_srt(os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath']))[0] + '_transcription.srt'))
 
 
-    @property
-    def time_step(self) -> float:
-        return self._time_step
-
-
-    @time_step.setter
-    def time_step(self, new_time_step: float):
-        if new_time_step:
-            if new_time_step > 0.0:
-                self._time_step = new_time_step
-            else:
-                raise ValueError('Can only set "time_step" to values > zero')
-
-        self._time_step = new_time_step
-
-
-    def apply(self, # pylint: disable=too-many-arguments
-        filepath: str,
-        audio_annotation: Annotation,
-        time: Optional[Union[List[float], np.ndarray]] = None,
-        options: Optional[whisper.DecodingOptions] = None,
-        show_progress: bool = True
-    ) -> Dict:
-        """
-        Integrate audio transcription and audio features.
-
-        Parameters
-        ----------
-        filepath: str
-            Path to the audio file.
-        audio_annotation: pyannote.core.Annotation
-            An annotation object containing speech segments.
-        time: list or numpy.ndarray, optional
-            A list of floats or array containing time points to which the transcribed text is matched.
-            Is only optional if `AudioTextIntegrator.time_step` is not `None`.
-        options: whisper.DecodingOptions, optional
-            Options for transcribing the audio file. If `None`, transcription is done without timestamps,
-            and with a number format that depends on whether CUDA is available:
-            FP16 (half-precision floating points) if available,
-            FP32 (single-precision floating points) otherwise.
-        show_progress: bool
-            Whether a progress bar is displayed or not.
-
-        Returns
-        -------
-        dict
-            A dictionary with text features matched to audio features. Text features are 'segment_text',
-            'segment_sent_pos', 'segment_sent_neg', and 'segment_sent_neu'. They contain the segment
-            transcriptions as well as positive, negative, and neutral sentiment scores.
-
-        """
-        if time and not isinstance(time, (list, np.ndarray)):
-            raise TypeError('Argument "time" must be list or numpy.ndarray')
-
-        snd = Sound(filepath)
-
-        if not time and not self.time_step:
-            raise TimeStepError()
-
-        if not time:
-            end_time = snd.get_end_time()
-            time = create_time_var_from_step(self.time_step, end_time)
-
-        transcription = self.audio_transcriber.apply(filepath, audio_annotation, options, show_progress)
-        transcription = self.sentiment_extractor.apply(transcription)
-
-        audio_text_features = {
-            'time': time,
-            'segment_text': np.full_like(time, np.nan, dtype=np.chararray),
-            'segment_lang': np.full_like(time, np.nan, dtype=np.chararray),
-            'sentence_id': np.full_like(time, np.nan),
-            'sentence_start': np.full_like(time, np.nan),
-            'sentence_end': np.full_like(time, np.nan),
-            'sentence_text': np.full_like(time, np.nan, dtype=np.chararray),
-            'sentence_sent_pos': np.full_like(time, np.nan),
-            'sentence_sent_neg': np.full_like(time, np.nan),
-            'sentence_sent_neu': np.full_like(time, np.nan)
-        }
-
-        for seg in transcription.itersegments():
-            is_segment = np.logical_and(
-                np.less(time, seg.end), np.greater(time, seg.start)
-            )
-
-            audio_text_features['segment_text'][is_segment] = seg.text
-            audio_text_features['segment_lang'][is_segment] = seg.lang
-
-            for i, sent in enumerate(seg.sents):
-                is_sent = np.logical_and(
-                    np.less(time, sent.end), np.greater(time, sent.start)
-                )
-
-                audio_text_features['sentence_id'][is_sent] = i
-                audio_text_features['sentence_start'][is_sent] = sent.start
-                audio_text_features['sentence_end'][is_sent] = sent.end
-                audio_text_features['sentence_text'][is_sent] = sent.text
-                audio_text_features['sentence_sent_pos'][is_sent] = sent.sent_pos
-                audio_text_features['sentence_sent_neg'][is_sent] = sent.sent_neg
-                audio_text_features['sentence_sent_neu'][is_sent] = sent.sent_neu
-
-        return audio_text_features
+if __name__ == '__main__':
+    cli()

@@ -21,7 +21,8 @@ jobs:
       - uses: actions/checkout@v3
       - name: Download libsndfile
         run: |
-          sudo apt-get install libsndfile1
+          sudo apt-get update
+          sudo apt-get install --fix-missing libsndfile-dev ffmpeg
       - name: Set up Python 3.9
         uses: actions/setup-python@v3
         with:
@@ -36,7 +37,7 @@ jobs:
       - name: Upgrade pip and install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install .[dev]
+          python3 -m pip install .[vid,spe,voi,tra,sen,dev]
       - name: Check style against standards using prospector
         run: prospector
       - name: Check import order
@@ -58,8 +59,8 @@ jobs:
       - name: Download libsndfile and ffmpeg
         if: matrix.os == 'ubuntu-latest'
         run: |
-          sudo apt-get install libsndfile1
-          sudo apt-get install ffmpeg
+          sudo apt-get update
+          sudo apt-get install --fix-missing libsndfile-dev ffmpeg
       - name: Download ffmpeg
         if: matrix.os == 'macos-latest'
         run: brew install ffmpeg
@@ -77,7 +78,7 @@ jobs:
       - name: Upgrade pip and install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install .[dev,publishing]
+          python3 -m pip install .[vid,spe,voi,tra,sen,dev,publishing]
       - name: Run unit tests
         env:
           HF_TOKEN: ${{secrets.HF_TOKEN }} # Needed for Hugging Face authentication to download pyannote.audio models

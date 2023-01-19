@@ -1,25 +1,29 @@
-"""Identify speech segments and speakers in an audio file.
+"""Speech segment and speaker identification.
 """
 
+import argparse
+import logging
+import os
+from typing import Optional, Union
 from pyannote.audio import Pipeline
+from mexca.data import SpeakerAnnotation
+from mexca.utils import ClassInitMessage, bool_or_str, optional_int
 
 
 class SpeakerIdentifier:
-    """Extract speech segments and cluster speakers using speaker diarization.
+    """Identify speech segments and cluster speakers using speaker diarization.
+
+    Wrapper class for ``pyannote.audio.SpeakerDiarization``.
 
     Parameters
     ----------
-    num_speakers: int or None, default=None
-        The number of speakers to which speech segments will be assigned during the clustering
+    num_speakers : int, optional
+        Number of speakers to which speech segments will be assigned during the clustering
         (oracle speakers). If `None`, the number of speakers is estimated from the audio signal.
-    use_auth_token: bool or str, default=True
+    use_auth_token : bool or str, default=True
         Whether to use the HuggingFace authentication token stored on the machine (if bool) or
         a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``
         and ``pyannote/segmentation`` (if str).
-
-    Attributes
-    ----------
-    pyannote_audio
 
     Notes
     -----
@@ -28,64 +32,95 @@ class SpeakerIdentifier:
     `<hf.co/pyannote/segmentation>`_. Then generate an authentication token on `<hf.co/settings/tokens>`_.
 
     """
-    def __init__(self, num_speakers=None, use_auth_token=True) -> 'SpeakerIdentifier':
+    def __init__(self,
+        num_speakers: Optional[int] = None,
+        use_auth_token: Union[bool, str] = True
+    ):
+        self.logger = logging.getLogger('mexca.audio.identification.SpeakerIdentifier')
         self.num_speakers = num_speakers
-        self.pyannote_audio = Pipeline.from_pretrained(
-            "pyannote/speaker-diarization",
-            use_auth_token=use_auth_token
-        )
+        self.use_auth_token = use_auth_token
+        # Lazy initialization
+        self._pipeline = None
+        self.logger.debug(ClassInitMessage())
 
 
+    # Initialize pretrained models only when needed 
     @property
-    def num_speakers(self):
-        return self._num_speakers
-
-
-    @num_speakers.setter
-    def num_speakers(self, new_num_speakers):
-        if new_num_speakers:
-            if isinstance(new_num_speakers, (int, float)):
-                if new_num_speakers >= 2.0:
-                    self._num_speakers = int(new_num_speakers)
-                else:
-                    raise ValueError('Argument "num_speakers" must be >= 2 for speaker identification')
-            else:
-                raise TypeError('Can only set "num_speakers" to float or int')
-        else:
-            self._num_speakers = new_num_speakers
-
-
-    @property
-    def pyannote_audio(self):
-        """The pyannote speaker diarization pipeline. Must be instance of `Pipeline` class.
-        See `pyanote.audio <https://github.com/pyannote/pyannote-audio>`_ for details.
+    def pipeline(self) -> Pipeline:
+        """The pretrained speaker diarization pipeline.
+        See `pyannote.audio.SpeakerDiarization <https://github.com/pyannote/pyannote-audio/blob/develop/pyannote/audio/pipelines/speaker_diarization.py#L56>`_ for details.
         """
-        return self._pyannote_audio
+        if not self._pipeline:
+            self._pipeline = Pipeline.from_pretrained(
+                "pyannote/speaker-diarization",
+                use_auth_token=self.use_auth_token
+            )
+            self.logger.debug('Initialized speaker diarization pipeline')
+
+        return self._pipeline
 
 
-    @pyannote_audio.setter
-    def pyannote_audio(self, new_pyannote_audio):
-        if isinstance(new_pyannote_audio, Pipeline):
-            self._pyannote_audio = new_pyannote_audio
-        else:
-            raise TypeError('Can only set "pyannote_audio" to instance of "Pipeline" class')
+    # Delete pretrained models when not needed anymore
+    @pipeline.deleter
+    def pipeline(self):
+        self._pipeline = None
+        self.logger.debug('Removed speaker diarization pipeline')
 
 
-    def apply(self, filepath):
-        """Extract speech segments and speakers.
+    def apply(self, filepath: str) -> SpeakerAnnotation:
+        """Identify speech segments and speakers.
 
         Parameters
         ----------
-        filepath: str or path
+        filepath : str
             Path to the audio file.
 
         Returns
         -------
-        pyannote.core.Annotation
-            A pyannote annotation object that contains detected speech segments and speakers.
-            See https://pyannote.github.io/pyannote-core/reference.html#annotation for details.
+        SpeakerAnnotation
+            A data class object that contains detected speech segments and speakers.
 
         """
-        annotation = self.pyannote_audio(filepath, num_speakers=self.num_speakers)
 
-        return annotation
+        annotation = self.pipeline(filepath, num_speakers=self.num_speakers)
+
+        del self.pipeline
+
+        self.logger.info('Detected %s speakers', len(annotation.labels()))
+        self.logger.debug('Detected speaker chart: %s', annotation.chart())
+
+        return SpeakerAnnotation.from_pyannote(
+            annotation.rename_labels(generator='int')
+        )
+
+
+def cli():
+    """Command line interface for identifying speech segments and speakers.
+    See `identify-speakers -h` for details.
+    """
+
+    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+
+    parser.add_argument('-f', '--filepath', type=str, required=True)
+    parser.add_argument('-o', '--outdir', type=str, required=True)
+    parser.add_argument('--num-speakers', type=optional_int, default=None, dest='num_speakers')
+    parser.add_argument('--use-auth-token', type=bool_or_str, default=True, dest='use_auth_token')
+
+    args = parser.parse_args().__dict__
+
+    identifier = SpeakerIdentifier(
+        num_speakers=args['num_speakers'],
+        use_auth_token=args['use_auth_token']
+    )
+
+    output = identifier.apply(args['filepath'])
+
+    output.write_rttm(os.path.join(
+        args['outdir'],
+        os.path.splitext(os.path.basename(args['filepath']))[0] + '_audio_annotation.rttm'
+    ))
+
+
+if __name__ == '__main__':
+    cli()
+    

@@ -80,6 +80,7 @@ todo_include_todos = False
 # -- Use autoapi.extension to run sphinx-apidoc -------
 
 autoapi_dirs = ['../mexca']
+autoapi_options = [ 'members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members', ]
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -100,7 +101,8 @@ intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        # Commonly used libraries, uncomment when used in package
                        'numpy': ('http://docs.scipy.org/doc/numpy/', None),
                        'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-                       'pyannote.core': ('https://pyannote.github.io/pyannote-core/', None)
+                       'pyannote.core': ('https://pyannote.github.io/pyannote-core/', None),
+                       'torch': ('https://pytorch.org/docs/stable/', None)
                        # 'scikit-learn': ('https://scikit-learn.org/stable/', None),
                        # 'matplotlib': ('https://matplotlib.org/stable/', None),
                        # 'pandas': ('http://pandas.pydata.org/docs/', None),
