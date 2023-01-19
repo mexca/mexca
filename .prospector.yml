@@ -47,3 +47,4 @@ pylint:
         - no-name-in-module
         - redefined-builtin
         - too-many-arguments
+        - useless-parent-delegation # for intervaltree superclass

@@ -6,9 +6,7 @@ import logging
 import os
 import re
 from dataclasses import asdict
-from datetime import timedelta
 from typing import Optional, Union
-import srt
 import stable_whisper
 import torch
 import whisper

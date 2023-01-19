@@ -436,7 +436,7 @@ class Multimodal:
 
 
     def _merge_audio_text_features(self, data_frames: List):
-        if self.audio_annotation: #pylint: disable=too-many-nested-blocks
+        if self.audio_annotation:
             audio_annotation_dict = {
                 "frame": [],
                 "time": [],
