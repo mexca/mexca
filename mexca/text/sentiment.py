@@ -5,11 +5,11 @@ import argparse
 import logging
 import os
 from typing import Optional
+from intervaltree import Interval
 from scipy.special import softmax
 from tqdm import tqdm
-from intervaltree import Interval
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, XLMRobertaForSequenceClassification
-from mexca.data import AudioTranscription, SentimentData, SentimentAnnotation
+from mexca.data import AudioTranscription, SentimentAnnotation, SentimentData
 from mexca.utils import ClassInitMessage, str2bool
 
 
