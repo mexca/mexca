@@ -22,11 +22,15 @@ def cli():
         from mexca.video import FaceExtractor
 
         component = FaceExtractor(num_faces=2)
+        component.detector
+        component.encoder
+        component.extractor
 
     elif args.component == 'spe':
         from mexca.audio import SpeakerIdentifier
         use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
         component = SpeakerIdentifier(use_auth_token=use_auth_token)
+        component.pipeline
 
     elif args.component == 'voi':
         from mexca.audio import VoiceExtractor
@@ -37,11 +41,13 @@ def cli():
         from mexca.text import AudioTranscriber
 
         component = AudioTranscriber()
+        component.transcriber
 
     elif args.component == 'sen':
         from mexca.text import SentimentExtractor
 
         component = SentimentExtractor()
+        component.classifier
 
     else:
         raise Exception("Please specify a valid component: 'vid', 'spe', 'voi', 'tra', 'sen'")
