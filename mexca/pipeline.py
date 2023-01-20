@@ -203,7 +203,7 @@ class Pipeline:
                 self.logger.info('Transcribing speech segments to text')
                 transcription = self.audio_transcriber.apply(
                     audio_path,
-                    audio_annotation=audio_annotation,
+                    audio_annotation,
                     language=language,
                     show_progress=show_progress
                 )

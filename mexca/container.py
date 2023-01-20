@@ -244,11 +244,13 @@ class AudioTranscriberContainer(BaseContainer):
     def apply(self,
         filepath: str,
         _, # audio_annotation in AudioTranscriber.apply()
+        language: Optional[str] = None,
         show_progress: bool = True
     ) -> AudioTranscription:
         cmd_args = [
             '--show-progress', str(show_progress),
-            '--annotation-path', '../mnt/vol/' + os.path.splitext(os.path.basename(filepath))[0] + '_audio_annotation.rttm'
+            '--annotation-path', '../mnt/vol/' + os.path.splitext(os.path.basename(filepath))[0] + '_audio_annotation.rttm',
+            '--language', str(language)
         ]
         cmd = self._create_base_cmd(filepath=filepath)
 
