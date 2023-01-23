@@ -5,11 +5,13 @@ from mexca.pipeline import Pipeline
 from mexca.utils import _validate_multimodal
 
 
+@pytest.mark.skip_env('runner')
 class TestPipelineContainer:
     use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
     filepath = os.path.join(
         'tests', 'test_files', 'test_video_audio_5_seconds.mp4'
     )
+    components = ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
 
 
     @pytest.fixture
