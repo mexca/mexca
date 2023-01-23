@@ -89,7 +89,7 @@ class FaceExtractorContainer(BaseContainer):
         embeddings_model: str = 'vggface2',
         au_model: str = 'xgb',
         landmark_model: str = 'mobilefacenet',
-        image_name: str = 'mexca-face-extractor'
+        image_name: str = 'mexca/face-extractor'
     ):
         self.num_faces = num_faces
         self.min_face_size = min_face_size
@@ -163,7 +163,7 @@ class SpeakerIdentifierContainer(BaseContainer):
     def __init__(self,
         num_speakers: Optional[int] = None,
         use_auth_token: Union[bool, str] = True,
-        image_name: str = 'mexca-speaker-identifier'
+        image_name: str = 'mexca/speaker-identifier'
     ):
         self.num_speakers = num_speakers
         self.use_auth_token = use_auth_token
@@ -199,7 +199,7 @@ class VoiceExtractorContainer(BaseContainer):
     VoiceExtractor
 
     """
-    def __init__(self, image_name: str = 'mexca-voice-extractor'):
+    def __init__(self, image_name: str = 'mexca/voice-extractor'):
         super().__init__(image_name=image_name)
 
 
@@ -232,7 +232,7 @@ class AudioTranscriberContainer(BaseContainer):
         whisper_model: Optional[str] = 'small',
         device: Optional[Union[str, 'torch.device']] = 'cpu',
         sentence_rule: Optional[str] = None,
-        image_name: str = 'mexca-audio-transcriber'
+        image_name: str = 'mexca/audio-transcriber'
     ):
         self.whisper_model = whisper_model
         self.device = device
@@ -277,7 +277,7 @@ class SentimentExtractorContainer(BaseContainer):
     SentimentExtractor
 
     """
-    def __init__(self, image_name: str = 'mexca-sentiment-extractor'):
+    def __init__(self, image_name: str = 'mexca/sentiment-extractor'):
         super().__init__(image_name=image_name)
 
 
