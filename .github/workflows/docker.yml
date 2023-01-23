@@ -1,0 +1,33 @@
+name: Docker containers
+
+on:
+  workflow_dispatch: # For manual triggering
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  build:
+    name: Build Docker containers
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Build container
+        uses: docker/build-push-action@v3
+        with:
+          build-args:
+            - HF_TOKEN: ${{secrets.HF_TOKEN }}
+          context: ./docker/${{ matrix.component }}
+          push: false
+          tags: mexca/${{ matrix.component }}
