@@ -26,8 +26,7 @@ jobs:
       - name: Build container
         uses: docker/build-push-action@v3
         with:
-          build-args:
-            - HF_TOKEN: ${{secrets.HF_TOKEN }}
+          build-args: HF_TOKEN=${{secrets.HF_TOKEN }}
           context: ./docker/${{ matrix.component }}
           push: false
           tags: mexca/${{ matrix.component }}
