@@ -6,13 +6,8 @@ import logging.config
 import os
 from typing import Optional, Tuple, Union
 from moviepy.editor import VideoFileClip
-from mexca.audio import SpeakerIdentifier, VoiceExtractor
-from mexca.container import (AudioTranscriberContainer, FaceExtractorContainer, SentimentExtractorContainer,
-                             SpeakerIdentifierContainer, VoiceExtractorContainer)
 from mexca.data import Multimodal
-from mexca.text import AudioTranscriber, SentimentExtractor
 from mexca.utils import ClassInitMessage
-from mexca.video import FaceExtractor
 
 
 class Pipeline:
@@ -90,11 +85,11 @@ class Pipeline:
 
     """
     def __init__(self,
-        face_extractor: Optional[Union[FaceExtractor, FaceExtractorContainer]] = None,
-        speaker_identifier: Optional[Union[SpeakerIdentifier, SpeakerIdentifierContainer]] = None,
-        voice_extractor: Optional[Union[VoiceExtractor, VoiceExtractorContainer]] = None,
-        audio_transcriber: Optional[Union[AudioTranscriber, AudioTranscriberContainer]] = None,
-        sentiment_extractor: Optional[Union[SentimentExtractor, SentimentExtractorContainer]] = None
+        face_extractor: Optional[Union['FaceExtractor', 'FaceExtractorContainer']] = None,
+        speaker_identifier: Optional[Union['SpeakerIdentifier', 'SpeakerIdentifierContainer']] = None,
+        voice_extractor: Optional[Union['VoiceExtractor', 'VoiceExtractorContainer']] = None,
+        audio_transcriber: Optional[Union['AudioTranscriber', 'AudioTranscriberContainer']] = None,
+        sentiment_extractor: Optional[Union['SentimentExtractor', 'SentimentExtractorContainer']] = None
     ):
         self.logger = logging.getLogger('mexca.pipeline.Pipeline')
         self.face_extractor = face_extractor
@@ -203,7 +198,7 @@ class Pipeline:
                 self.logger.info('Transcribing speech segments to text')
                 transcription = self.audio_transcriber.apply(
                     audio_path,
-                    audio_annotation=audio_annotation,
+                    audio_annotation,
                     language=language,
                     show_progress=show_progress
                 )
