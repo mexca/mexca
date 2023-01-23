@@ -1,7 +1,7 @@
 Installation
 ============
 
-**Mexca** supports Python >=3.7 and Python <= 3.9. We recommend installing mexca via the terminal/command prompt.
+mexca requires a version of Python >=3.7 and <= 3.9. We recommend installing mexca via the terminal/command prompt.
 
 Installation Steps on Windows
 -----------------------------
