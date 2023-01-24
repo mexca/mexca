@@ -36,7 +36,7 @@ if sphinx.__version__ == '5.1.0':
 # -- Project information -----------------------------------------------------
 
 project = u"mexca"
-copyright = u"2022, Netherlands eScience Center and Hot Politics Lab, University of Amsterdam"
+copyright = u"2023, Netherlands eScience Center and Hot Politics Lab, University of Amsterdam"
 author = u"Malte Lüken and Eva Viviani"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -44,7 +44,7 @@ author = u"Malte Lüken and Eva Viviani"
 # built documents.
 #
 # The short X.Y version.
-version = "1.0.0"
+version = "0.2.0"
 # The full version, including alpha/beta/rc tags.
 release = version
 
