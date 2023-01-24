@@ -11,9 +11,9 @@ authors:
     family-names: Viviani
     given-names: Eva
     orcid: "https://orcid.org/0000-0002-1330-0585"
-date-released: 2022-08-15
-doi: 10.5281/zenodo.6962473
-version: "1.0.0"
+date-released: 2023-01-24
+doi: 10.5281/zenodo.6962472
+version: "0.2.0"
 repository-code: "https://github.com/mexca/mexca"
 keywords:
   - emotion
