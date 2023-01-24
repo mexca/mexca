@@ -1,8 +1,6 @@
 
 # Multimodal Emotion Expression Capture Amsterdam
 
-
-
 [![github license badge](https://img.shields.io/github/license/mexca/mexca)](https://github.com/mexca/mexca)
 [![RSD](https://img.shields.io/badge/rsd-mexca-00a3e3.svg)](https://research-software-directory.org/software/mexca)
 [![read the docs badge](https://readthedocs.org/projects/pip/badge/)](https://mexca.readthedocs.io/en/latest/index.html)
@@ -13,189 +11,129 @@
 [![cffconvert](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml)
 [![markdown-link-check](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml)
 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6962473.svg)](https://doi.org/10.5281/zenodo.6962473)
-[![docker build badge](https://img.shields.io/static/v1?label=docker&message=mexca&color=blue&style=flat&logo=docker)](https://hub.docker.com/repository/docker/mluken/mexca)
+[![docker hub badge](https://img.shields.io/static/v1?label=Docker%20Hub&message=mexca&color=blue&style=flat&logo=docker)](https://hub.docker.com/u/mexca)
+[![docker build badge](https://img.shields.io/github/actions/workflow/status/mexca/mexca/docker.yml?label=Docker%20build&logo=docker)](https://github.com/mexca/mexca/actions/workflows/docker.yml)
 
 <div align="center">
 <img src="mexca_logo.png">
 </div>
 
-Mexca is an open-source Python package which aims to capture emotion expression cues in human faces and speech by combining visual and auditory modalities (video/audio). 
+mexca is an open-source Python package which aims to capture human emotion expressions from videos in a single pipeline.
 
 ## How To Use Mexca
 
-Mexca provides a customizable yet easy-to-use pipeline for extracting emotion expression features from videos. It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and dialogue/spoken text). The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. This allows users to compare emotion expressions across speakers, time, and contexts.  
+mexca implements the customizable yet easy-to-use Multimodal Emotion eXpression Capture Amsterdam (MEXCA) pipeline for extracting emotion expression features from videos. 
+It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and dialogue/spoken text). 
+The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. 
+Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. 
+This allows users to compare emotion expressions across speakers, time, and contexts.
 
 Please cite mexca if you use it for scientific or commercial purposes.
 
-- Lüken, M., & Viviani, E. (2022). mexca: Capture emotion expressions from multiple modalities in videos (Version 1.0.0) [Computer software]. https://doi.org/10.5281/zenodo.6962473
+<div align="center">
+<img src="docs/mexca_flowchart.svg" width="600">
+</div>
 
+## Quick Installation
 
-## Installation
-Mexca supports Python >=3.7 and Python <= 3.9. We recommend installing mexca via the terminal/command prompt.
+Here, we explain briefly how to install mexca on your system. Detailed instructions can be found in the [Installation Details](https://mexca.readthedocs.io/en/latest/installation_details.html) section.
+mexca can be installed on Windows, macOS and Linux. We recommend Windows 10, macOS 12.6.x, or Ubuntu.
 
-### Installation Steps on Windows
-Open the terminal/command prompt (by right-clicking the Windows icon in the bottom-left corner of your screen, or with the keyboard shortcut `Windows Key` + `X`). We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following in the terminal:
+The package contains five components that must be explicitly installed [^1]. By default, only the base package is installed
+(which requires only a few dependencies). The components can still be used through Docker containers which must be downloaded
+from Docker Hub. We recommend this setup for users with little experience with installing Python packages or who simply want to
+quickly try out the package. Using the containers also adds stability to your program.
 
-```console
-python3 -m venv mexca-venv
-env/bin/activate
-```
+### Requirements
 
-Alternatively, if you use conda:
+mexca requires Python version >= 3.7 and <= 3.9. It further depends on [FFmpeg](https://ffmpeg.org/) (for video and audio processing), 
+which is usually automatically installed through the MoviePy package (i.e., its imageio dependency). In case the automatic install fails, 
+it must be installed manually.
 
-```console
-conda create -n mexca-venv
-conda activate mexca-venv
-```
-Once you have activated your virtual environment (mexca-venv) you can then install mexca from PyPi:
+To download and run the components as Docker containers, Docker must be installed on your system. Instructions on how to install
+Docker Desktop can be found [here](https://www.docker.com/get-started/).
 
-```console
-python3 -m pip install mexca
-```
+All components but the VoiceExtractor depend on PyTorch (version 1.12). Usually, it should be automatically installed when specifying any
+of these components. In case the installation fails, see the installation instructions on the PyTorch [web page](https://pytorch.org/get-started/locally/).
 
-To install mexca from the GitHub repository, do:
+For the SpeakerIdentifier component, the library [libsndfile](https://libsndfile.github.io/libsndfile/) must also be installed on Linux systems.
 
-```console
-git clone https://github.com/mexca/mexca.git
-cd mexca
-python3 -m pip install .
-```
+The SentimentExtractor component depends on the [sentencepiece](https://github.com/google/sentencepiece) library,
+which is automatically installed if [Git](https://git-scm.com/) is installed on the system.
 
-Or via:
+### Installation
 
-```console
-python3 -m pip install git+https://github.com/mexca/mexca.git
-```
-
-### Installation Steps on Unix/macOS
-Open the terminal (click the Launchpad icon in the Dock, type “Terminal” in the search field; otherwise, you can use the keyboard shortcut `Command` + `Space`, and type in “Terminal”).
-
-We recommend to install mexca in a new virtual environment, e.g., using `venv`, so type the following within the terminal:
+We recommend installing mexca in a new virtual environment to avoid dependency conflicts. The base package can be installed from PyPI via `pip`:
 
 ```console
-python3 -m venv mexca-venv
-source env/bin/activate
+pip install mexca
 ```
 
-Alternatively, if you use conda:
+The dependencies for the additional components can be installed via:
 
 ```console
-conda create -n mexca-venv
-conda activate mexca-venv
+pip install mexca[vid,spe,voi,tra,sen]
 ```
 
-Once you have activated your virtual environment (mexca-venv) you can then install mexca from PyPi:
+The abbreviations indicate:
+
+* `vid`: FaceExtractor
+* `spe`: SpeakerIdentifier
+* `voi`: VoiceExtractor
+* `tra`: AudioTranscriber
+* `sen`: SentimentExtractor
+
+To run the demo and example notebooks, install the Jupyter requirements via:
 
 ```console
-python3 -m pip install mexca
+pip install mexca[demo]
 ```
-
-To install mexca from the GitHub repository, do:
-
-```console
-git clone https://github.com/mexca/mexca.git
-cd mexca
-python3 -m pip install .
-```
-
-Or via:
-
-```console
-python3 -m pip install git+https://github.com/mexca/mexca.git
-```
-
-#### Issues installing mexca for M1 Macbook users
-
-Many deep learning libraries that we import in mexca do not fully support the Apple M1 yet, which can lead to several issues when installing mexca. We provide few workarounds for the most common issues. They have been tested on Python 3.9.0 in a conda environment (last update 3/10/2022).
-
-Error n. 1: 
-
-- OSError cannot load libsndfile.dylib (Github issue [#311](https://github.com/bastibe/python-soundfile/pull/311)):
-
-```console
-OSError: cannot load library '...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib': dlopen(...venv/lib/python3.9/site-packages/_soundfile_data/libsndfile.dylib, 2): image not found
-```
-
-To fix this:
-
-1. Make sure that you have installed libsndfile via brew, if not [install it](https://formulae.brew.sh/formula/libsndfile). 
-2. Copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘ 
-3. Restart the kernel.
-
-Error n. 2: 
-
-- OSError cannot load libllvmlite.dylib (Github issue [#650](https://github.com/numba/llvmlite/issues/650)):
-
-```console
-OSError: Could not load shared object file: libllvmlite.dylib
-```
-
-To fix this:
-
-1. Type in the terminal:
-
-```console
-conda install -c numba numba
-conda install -c numba llvmlite
-```
-
-2. Restart the kernel.
-
-*TIP:* Make sure to run those fixes in the terminal, or in the jupyter notebook in a cell preceded by the symbol '!'. Make sure that the activated environment you're running the fixes is the one where you are attempting to install mexca (i.e., if you followed the installation steps above, it will be 'mexca-venv').
 
 ## Getting Started
 
-If you would like to learn how to use mexca, the best place to start is our [demo](https://github.com/mexca/mexca/tree/main/examples) tutorial. Note that the demo runs in a [jupyter notebook](https://jupyter.org/). Jupyter lets users easily combine markdown text with executable Python code on a canvas called 'notebook'. For installing jupyter, and using the notebook please refer to the [official installation guide](https://docs.jupyter.org/en/latest/install/notebook-classic.html).
+If you would like to learn how to use mexca, take a look at our [example](https://github.com/mexca/mexca/tree/main/examples) notebook.
 
 *Note*: mexca builds on pretrained models from the pyannote.audio package. Since release 2.1.1, downloading the pretrained models requires the user to accept two user agreements on Hugging Face hub and generate an authentication token. Therefore, to run the mexca pipeline, please accept the user agreements on [here](https://huggingface.co/pyannote/speaker-diarization) and [here](https://huggingface.co/pyannote/segmentation). Then, generate an authentication token [here](https://huggingface.co/settings/tokens). Use this token to login to Hugging Face hub by running `notebook_login()` (from a jupyter notebook) or `huggingface-cli login` (from the command line). You only need to login when running mexca for the first time. See this [link](https://huggingface.co/docs/hub/models-adding-libraries) for details.
 
-Emotion expression features can be extracted with mexca using the following lines of code:
+Extract emotion expression features from a video file using the following lines of code:
 
 ```python
-from mexca.core.pipeline import Pipeline
+from mexca.container import (AudioTranscriberContainer, FaceExtractorContainer,
+                             SentimentExtractorContainer, SpeakerIdentifierContainer, 
+                             VoiceExtractorContainer)
+from mexca.pipeline import Pipeline
 
-# Path to video file (consider using os.path.join())
-filename = 'path/to/video'
+# Set path to video file
+filepath = 'path/to/video'
 
-# Create pipeline object from default constructor method
-pipeline = Pipeline().from_default(language='english')
+# Create standard pipeline with two faces and speakers
+pipeline = Pipeline(
+    face_extractor=FaceExtractorContainer(num_faces=2),
+    speaker_identifier=SpeakerIdentifierContainer(
+        num_speakers=2,
+        use_auth_token=True
+    ),
+    voice_extractor=VoiceExtractorContainer(),
+    audio_transcriber=AudioTranscriberContainer(),
+    sentiment_extractor=SentimentExtractorContainer()
+)
 
-# Apply pipeline to video file (may take a long time depending on video length)
-output = pipeline.apply(filename)
+# Apply pipeline to video file at `filepath`
+result = pipeline.apply(
+    filepath,
+    frame_batch_size=5,
+    skip_frames=5
+)
+
+# Print merged features
+print(result.features)
 ```
 
-Mexca's pipeline returns a `Multimodal` object that contains the extracted emotion expression features in the `feature` attribute. We can convert the features into a `pandas.DataFrame` for further inspection and processing.
+The result should be a pandas data frame printed to the console or notebook output. Details on the output and extracted features can be found [here](https://mexca.readthedocs.io/en/latest/output.html).
 
-```python
-df = pd.DataFrame(output.features)
-df
-```
+## Components
 
-This is what the output looks like:
-
-|      |   frame |   time | face_box                                          |   face_prob | face_landmarks                | face_aus                                                               |   face_id |   pitchF0 |   segment_id |   segment_start |   segment_end | track   | speaker_id   |   text_token_id | text_token               |   text_token_start |   text_token_end |   match_id |
-|-----:|--------:|-------:|:--------------------------------------------------|------------:|:------------------------------|:-----------------------------------------------------------------------|----------:|----------:|-------------:|----------------:|--------------:|:--------|:-------------|----------------:|:-------------------------|-------------------:|-----------------:|-----------:|
-|   0 |      0 |   0.52 | [254.80342   52.627777 339.73337  162.48317]     |    0.999263 | [253.81114993 106.13823438]   | [1.7722143e-01 9.6993530e-01 3.4657875e-03 5.7775569e-01 ...] |         7 |  114.05050 |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |       is                  |               0.52    |             0.60    |          1 |
-|   1 |      1 |   0.56 | [255.26508  52.85576 339.82748 162.45255]         |    0.999143 | [254.09605609 106.21201348]   | [1.7896292e-01 9.6784592e-01 3.4994783e-03 5.6765985e-01 ...] |         7 |  117.58867 |            1 |        0.497812 |       21.0178 | 0       | SPEAKER_00   |               0 |       is                  |               0.52    |             0.60    |          1 |
-
-## Structure and Performance
-
-Currently, mexca includes three independent submodules (video, audio and text). The `core` module is responsible for running a single pipeline which calls in turn all the other submodules.
-
-The video submodule supports the extraction of facial features (e.g., facial landmarks, action units). It relies on [pyfeat](https://py-feat.org/pages/intro.html)[^1] and [facenet-pytorch](https://github.com/timesler/facenet-pytorch)[^2]. It includes the following components:
-
-- Face detection with Multi-task Convolutional Neural Network (MTCNN; 0.95 on FDDB; 0.85 on WIDER FACE easy, 0.82 on medium, 0.61 on hard data subset; all AUC).
-- Face identification with Inception ResNet v1 (supervised: Acc = 0.9965 on LFW dataset when trained on VGGFace2).
-- Landmark detection (6.41$for Feat-PFLD; 6.00 for Feat-MobileFaceNet; 5.23 for Feat-MobileNet; all RMSE on 300W dataset).
-- Action unit detection (0.22 for Feat-JaaNET; 0.52 for Feat-Logistic; 0.57 for Feat-SVM; all average F1 on DisfaPlus dataset; Feat-RF is currently not available).
-
-The audio module relies on [praat-parselmouth](https://github.com/YannickJadoul/Parselmouth)[^3] for voice pitch analysis, and on [pyannote.audio](https://github.com/pyannote/pyannote-audio) for speaker diarization[^4]. It includes the following components:
-
-- Voice pitch as fundamental frequency (F0).
-- Speaker diarization with ECAPA-TDNN model (supervised: 2.65 with known # of speakers; 3.01 with estimated # of speakers; unsupervised: 18.2 with estimated # of speakers; all DER on AMI Mix-Headset only words test dataset).
-
-The text module supports text transcriptions for Dutch and English audio files. It relies on a pre-trained model made available by [HuggingSound](https://github.com/jonatasgrosman/huggingsound) that is the wav2vec-large model[^5] fine-tuned on Dutch (WER = 15.7; CER = 5.4 on Common Voice nl test set) and English (WER = 19.1; CER = 7.7 on Common Voice en test set).
-
+The pipeline components are described [here](https://mexca.readthedocs.io/en/latest/components.html).
 
 ## Documentation
 
@@ -216,12 +154,4 @@ Mexca is being developed by the [Netherlands eScience Center](https://www.escien
 
 This package was created with [Cookiecutter](https://github.com/audreyr/cookiecutter) and the [NLeSC/python-template](https://github.com/NLeSC/python-template).
 
-[^1]: Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. *arXiv*. https://doi.org/10.48550/arXiv.2104.03509
-
-[^2]: Schroff, F., Kalenichenko, D., & Philbin, J. (2015). FaceNet: A unified embedding for face recognition and clustering. *arXiv*. https://doi.org/10.48550/arXiv.1503.03832
-
-[^3]: Jadoul, Y., Thompson, B., & de Boer, B. (2018). Introducing Parselmouth: A Python interface to Praat. Journal of Phonetics, 71, 1-15. https://doi.org/10.1016/j.wocn.2018.07.001
-
-[^4]: Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. *arXiv*. https://doi.org/10.48550/arXiv.2104.04045
-
-[^5]: Schneider, S., Baevski, A., Collobert, R., & Auli, M. (2019). wav2vec: Unsupervised pre-training for speech recognition. *arXiv*. https://doi.org/10.48550/arXiv.1904.05862
+[^1]: We explain the rationale for this setup in the [Docker](https://mexca.readthedocs.io/en/latest/docker.html) section.
