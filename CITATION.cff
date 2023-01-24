@@ -11,8 +11,14 @@ authors:
     family-names: Viviani
     given-names: Eva
     orcid: "https://orcid.org/0000-0002-1330-0585"
+  - family-names: Pipal
+    given-names: Christian
+    orcid: "https://orcid.org/0000-0002-5395-2035"
+  - family-names: Schumacher
+    given-names: Gijs
+    orcid: "https://orcid.org/0000-0002-6503-4514"
 date-released: 2023-01-24
-doi: 10.5281/zenodo.6962472
+doi: 10.5281/zenodo.6976414
 version: "0.2.0"
 repository-code: "https://github.com/mexca/mexca"
 keywords:

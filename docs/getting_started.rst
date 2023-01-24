@@ -3,7 +3,7 @@ Getting Started
 
 This section gives a quick overview on how to use the mexca package. For detailed examples, check out the `example <https://github.com/mexca/mexca/tree/main/examples>`_ notebooks.
 
-To create and apply the MEXCA pipeline with container components to a video file run the following code in a Jupyter notebook or a Python script (requires the base packge and Docker):
+To create and apply the MEXCA pipeline with container components to a video file run the following code in a Jupyter notebook or a Python script (requires the base package and Docker):
 
 .. code-block:: python
     

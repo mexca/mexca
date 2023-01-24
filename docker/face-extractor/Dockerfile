@@ -1,7 +1,7 @@
 # syntax=docker/dockerfile-upstream:master-labs
 FROM python:3.9-slim
 ARG devel=true
-ADD --link https://github.com/mexca/mexca.git /mexca
+ADD --link https://github.com/mexca/mexca.git#main /mexca
 WORKDIR /mexca
 # Choose whether to install stable or development
 RUN pip install .[vid]

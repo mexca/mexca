@@ -10,7 +10,7 @@
 [![build](https://github.com/mexca/mexca/actions/workflows/build.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/build.yml)
 [![cffconvert](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/cffconvert.yml)
 [![markdown-link-check](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml/badge.svg)](https://github.com/mexca/mexca/actions/workflows/markdown-link-check.yml)
-[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.6962473.svg)](https://doi.org/10.5281/zenodo.6962473)
+[![DOI](https://zenodo.org/badge/500818250.svg)](https://zenodo.org/badge/latestdoi/500818250)
 [![docker hub badge](https://img.shields.io/static/v1?label=Docker%20Hub&message=mexca&color=blue&style=flat&logo=docker)](https://hub.docker.com/u/mexca)
 [![docker build badge](https://img.shields.io/github/actions/workflow/status/mexca/mexca/docker.yml?label=Docker%20build&logo=docker)](https://github.com/mexca/mexca/actions/workflows/docker.yml)
 
@@ -95,7 +95,7 @@ If you would like to learn how to use mexca, take a look at our [example](https:
 
 *Note*: mexca builds on pretrained models from the pyannote.audio package. Since release 2.1.1, downloading the pretrained models requires the user to accept two user agreements on Hugging Face hub and generate an authentication token. Therefore, to run the mexca pipeline, please accept the user agreements on [here](https://huggingface.co/pyannote/speaker-diarization) and [here](https://huggingface.co/pyannote/segmentation). Then, generate an authentication token [here](https://huggingface.co/settings/tokens). Use this token to login to Hugging Face hub by running `notebook_login()` (from a jupyter notebook) or `huggingface-cli login` (from the command line). You only need to login when running mexca for the first time. See this [link](https://huggingface.co/docs/hub/models-adding-libraries) for details.
 
-Extract emotion expression features from a video file using the following lines of code:
+To create and apply the MEXCA pipeline with container components to a video file run the following code in a Jupyter notebook or a Python script (requires the base package and Docker):
 
 ```python
 from mexca.container import (AudioTranscriberContainer, FaceExtractorContainer,
