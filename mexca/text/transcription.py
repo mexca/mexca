@@ -5,6 +5,7 @@ import argparse
 import logging
 import os
 import re
+import warnings
 from dataclasses import asdict
 from typing import Optional, Union
 import stable_whisper
@@ -16,6 +17,9 @@ from whisper.audio import SAMPLE_RATE
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.utils import ClassInitMessage, optional_str, str2bool
 
+
+# To filter out shift warnings which do not apply here
+warnings.simplefilter('ignore', category=UserWarning)
 
 class AudioTranscriber:
     """Transcribe speech from audio to text.
