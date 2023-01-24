@@ -6,24 +6,29 @@
 Welcome to mexca's Documentation!
 =================================
 
-**Mexca** is an open-source Python package which aims to capture human emotion expressions from videos in a single pipeline.
+mexca is an open-source Python package which aims to capture human emotion expressions from videos in a single pipeline.
 
-Check out our `features <https://mexca.readthedocs.io/en/latest/features.html>`_ page to get information on how **mexca** extracts emotion expressions and our `output <https://mexca.readthedocs.io/en/latest/output.html>`_ page on which features are captured.
+Check out our :ref:`Components` page to get information on how mexca extracts emotion expressions and our :ref:`Output` page on which features are captured.
 
-If you would like to learn how to use **mexca**, we recommend starting with one of our `examples <https://github.com/mexca/mexca/tree/main/examples>`_.
-Note that the demo runs in a `jupyter notebook <https://jupyter.org/>`_. Jupyter lets users easily combine markdown text with executable Python code on a canvas called 'notebook'. For installing jupyter, and using the notebook please refer to the `official installation guide <https://docs.jupyter.org/en/latest/install/notebook-classic.html>`_.
+Get started right away with a short example shown in the :ref:`Getting Started` section or our `demo <https://github.com/mexca/mexca/tree/main/examples/demo.ipynb>`_ notebook.
 
-Contents:
+If you would like to learn how to use mexca, we recommend starting with one of our `examples <https://github.com/mexca/mexca/tree/main/examples>`_. Note that the examples are written as `Jupyter <https://jupyter.org/>`_ notebooks.
+See the :ref:`Installation Details` on how to install and start Jupyter.
+
+Content:
 
 .. toctree::
-  :maxdepth: 2
+  :maxdepth: 1
 
   introduction
-  installation
+  quick_installation
+  getting_started
+  installation_details
   docker
-  command_line
-  features
+  components
   output
+  command_line
+  logging
 
 ==================
 

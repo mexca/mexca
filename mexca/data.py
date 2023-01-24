@@ -152,7 +152,7 @@ def _get_rttm_header() -> List[str]:
 
 @dataclass
 class SegmentData:
-    """Class for storing speech segment data
+    """Class for storing speech segment data.
 
     Parameters
     ----------
@@ -276,11 +276,32 @@ class SpeakerAnnotation(IntervalTree):
 
 @dataclass
 class TranscriptionData:
+    """Class for storing transcription data.
+
+    Parameters
+    ----------
+    index: int
+        Index of the transcribed sentence.
+    text: str
+        Transcribed text.
+
+    """
     index: int
     text: str
 
 
 class AudioTranscription:
+    """Class for storing audio transcriptions.
+
+    Parameters
+    ----------
+    filename: str
+        Name of the transcribed audio file.
+    subtitles: intervaltree.IntervalTree, optional, default=None
+        Interval tree containing the transcribed speech segments split into sentences as intervals.
+        The transcribed sentences are stored in the `data` attribute of each interval.
+
+    """
     def __init__(self,
         filename: str,
         subtitles: Optional[IntervalTree] = None
@@ -295,6 +316,14 @@ class AudioTranscription:
 
     @classmethod
     def from_srt(cls, filename: str):
+        """Load an audio transcription from an SRT file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the file to be loaded. Must have an .srt ending.
+
+        """
         with open(filename, 'r', encoding='utf-8') as file:
             subtitles = srt.parse(file)
 
@@ -314,6 +343,14 @@ class AudioTranscription:
 
 
     def write_srt(self, filename: str):
+        """Write an audio transcription to an SRT file
+
+        Parameters
+        ----------
+        filename: str
+            Name of the file to write to. Must have an .srt ending.
+
+        """
         subtitles = []
 
         for iv in self.subtitles.all_intervals:
@@ -330,6 +367,20 @@ class AudioTranscription:
 
 @dataclass
 class SentimentData:
+    """Class for storing sentiment data.
+
+    Parameters
+    ----------
+    index: int
+        Index of the sentence for which sentiment scores were predicted.
+    pos: float
+        Positive sentiment score.
+    neg: float
+        Negative sentiment score.
+    neu: float
+        Neutral sentiment score.
+
+    """
     index: int
     pos: float
     neg: float
@@ -338,12 +389,26 @@ class SentimentData:
 
 @dataclass
 class SentimentAnnotation(IntervalTree):
+    """Class for storing sentiment scores of transcribed sentences.
+
+    Stores sentiment scores as intervals in an interval tree. The scores are stored in the `data` attribute of each interval.
+
+    """
     def __init__(self, intervals: List[Interval] = None):
         super().__init__(intervals)
 
 
     @classmethod
     def from_json(cls, filename: str):
+        """Load a sentiment annotation from a JSON file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the JSON file from which the object should be loaded.
+            Must have a .json ending.
+
+        """
         with open(filename, 'r', encoding='utf-8') as file:
             sentiment = json.load(file)
 
@@ -365,6 +430,14 @@ class SentimentAnnotation(IntervalTree):
 
 
     def write_json(self, filename: str):
+        """Write a sentiment annotation to a JSON file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the destination file. Must have a .json ending.
+
+        """
         with open(filename, 'w', encoding='utf-8') as file:
             sentiment = []
 
@@ -380,8 +453,7 @@ class SentimentAnnotation(IntervalTree):
 class Multimodal:
     """Class for storing multimodal features.
 
-    See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_
-    section for details.
+    See the :ref:`Output` section for details.
 
     Parameters
     ----------
@@ -402,8 +474,10 @@ class Multimodal:
         Object containing voice features.
     transcription : AudioTranscription
         Object containing transcribed speech segments split into sentences.
-    Sentiment : SentimentAnnotation
+    sentiment : SentimentAnnotation
         Object containing sentiment scores for transcribed sentences.
+    features : pandas.DataFrame
+        Merged features.
 
     """
     def __init__(self,
