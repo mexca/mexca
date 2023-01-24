@@ -1,5 +1,4 @@
 """Extract voice features from an audio file.
-Currently, only the voice pitch as the fundamental frequency F0 can be extracted.
 """
 
 import argparse
@@ -13,6 +12,12 @@ from mexca.utils import ClassInitMessage
 
 class VoiceExtractor:
     """Extract voice features from an audio file.
+
+    Currently, only the voice pitch as the fundamental frequency F0 can be extracted.
+    The F0 is calculated using an autocorrelation function with a lower boundary of 75 Hz and an
+    upper boudnary of 600 Hz. See the praat 
+    `manual <https://www.fon.hum.uva.nl/praat/manual/Sound__To_Pitch___.html>`_ for details.
+
     """
 
 
@@ -43,7 +48,7 @@ class VoiceExtractor:
         frame = np.array(time * int(1/time_step), dtype=np.int32)
         
         self.logger.debug('Computing SHS voice pitch')
-        pitch = snd.to_pitch_shs()
+        pitch = snd.to_pitch()
 
         pitch_array = np.vectorize(pitch.get_value_at_time)(time)
 

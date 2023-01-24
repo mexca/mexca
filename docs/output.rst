@@ -35,7 +35,7 @@ A frame can have overlapping speakers for which features are extracted separatel
 - `segment_start`: The starting time stamp of the speech segment (in seconds).
 - `segment_end`: The ending time stamp of the speech segment (in seconds).
 - `segment_speaker_label`: The ID of the speaker returned by the clustering of the speaker embeddings (unique numbers).
-- `pitch_f0`: The voice pitch measured as the fundamental frequency F0.
+- `pitch_f0`: The voice pitch measured as the fundamental frequency F0. Calculated using the autocorrelation method described in Boersma (1993).
 
 
 Text
