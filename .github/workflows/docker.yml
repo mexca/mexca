@@ -26,11 +26,43 @@ jobs:
       - name: Build FaceExtractor
         uses: docker/build-push-action@v3
         with:
-          build-args: HF_TOKEN=${{secrets.HF_TOKEN }}
+          build-args: branch=github.ref_name
           context: ./docker/face-extractor
           load: true
           push: false
           tags: mexca/face-extractor
+      - name: Build SpeakerIdentifier
+        uses: docker/build-push-action@v3
+        with:
+          build-args: HF_TOKEN=${{secrets.HF_TOKEN }},branch=github.ref_name
+          context: ./docker/speaker-identifier
+          load: true
+          push: false
+          tags: mexca/speaker-identifier
+      - name: Build VoiceExtractor
+        uses: docker/build-push-action@v3
+        with:
+          build-args: branch=github.ref_name
+          context: ./docker/voice-extractor
+          load: true
+          push: false
+          tags: mexca/voice-extractor
+      - name: Build AudioTranscriber
+        uses: docker/build-push-action@v3
+        with:
+          build-args: branch=github.ref_name
+          context: ./docker/audio-transcriber
+          load: true
+          push: false
+          tags: mexca/audio-transcriber
+      - name: Build SentimentExtractor
+        uses: docker/build-push-action@v3
+        with:
+          build-args: branch=github.ref_name
+          context: ./docker/sentiment-extractor
+          load: true
+          push: false
+          tags: mexca/sentiment-extractor
       - name: Set up Python 3.9
         uses: actions/setup-python@v3
         with:
