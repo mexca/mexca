@@ -15,44 +15,38 @@ jobs:
   build:
     name: Build Docker containers
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
+    # strategy:
+    #   matrix:
+    #     component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
     steps:
       - name: Checkout
         uses: actions/checkout@v3
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Build container
+      - name: Build FaceExtractor
         uses: docker/build-push-action@v3
         with:
           build-args: HF_TOKEN=${{secrets.HF_TOKEN }}
-          context: ./docker/${{ matrix.component }}
+          context: ./docker/face-extractor
+          load: true
           push: false
-          tags: mexca/${{ matrix.component }}
-          outputs: type=docker,dest=/tmp/${{ matrix.component }}.tar
-      - name: Upload artifact
-        uses: actions/upload-artifact@v3
+          tags: mexca/face-extractor
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
         with:
-          name: ${{ matrix.component }}
-          path: /tmp/${{ matrix.component }}.tar
-
-  test:
-    name: Test Docker containers
-    needs: build
-    runs-on: ubuntu-latest
-    steps:
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v2
-      - name: Download artifacts
-        uses: actions/download-artifact@v3
-        with:
-          path: /tmp/
-      - name: Load images
+          python-version: "3.9"
+          cache: 'pip'
+          cache-dependency-path: setup.cfg
+      - name: Python info
+        shell: bash -l {0}
         run: |
-          docker load --input /tmp/face-extractor.tar
-          docker load --input /tmp/speaker-identifier.tar
-          docker load --input /tmp/voice-extractor.tar
-          docker load --input /tmp/audio-transcriber.tar
-          docker load --input /tmp/sentiment-extractor.tar
-          docker image ls -a
+          which python3
+          python3 --version
+      - name: Upgrade pip and install dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install .[dev]
+      - name: Run container tests
+        env:
+          HF_TOKEN: ${{secrets.HF_TOKEN }}
+        run: pytest -vv tests/test_container.py
