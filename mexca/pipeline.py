@@ -169,12 +169,12 @@ class Pipeline:
             self.logger.debug('Reading video file from %s to %s', subclip.start, subclip.end)
             output.duration = subclip.duration
             output.fps = subclip.fps
-            output.fps_adjusted = int(subclip.fps / skip_frames)
-            time_step = 1/int(subclip.fps / skip_frames)
+            output.fps_adjusted = subclip.fps / skip_frames
+            time_step = 1 / (subclip.fps / skip_frames)
 
             if self.speaker_identifier or self.voice_extractor:
                 self.logger.debug('Writing audio file')
-                subclip.audio.write_audiofile(audio_path, logger=None)
+                subclip.audio.write_audiofile(audio_path, logger=None, fps=16000)
                 self.logger.info('Wrote audio file to %s', audio_path)
 
         if self.face_extractor:
@@ -218,7 +218,8 @@ class Pipeline:
             self.logger.info('Extracting voice features')
             voice_features = self.voice_extractor.apply(
                 audio_path,
-                time_step=time_step
+                time_step=time_step,
+                skip_frames=skip_frames
             )
 
             output.voice_features = voice_features

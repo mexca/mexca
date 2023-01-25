@@ -26,7 +26,7 @@ class VoiceExtractor:
         self.logger.debug(ClassInitMessage())
 
 
-    def apply(self, filepath: str, time_step: float) -> VoiceFeatures:
+    def apply(self, filepath: str, time_step: float, skip_frames: int = 1) -> VoiceFeatures:
         """Extract voice features from an audio file.
 
         Parameters
@@ -35,6 +35,8 @@ class VoiceExtractor:
             Path to the audio file.
         time_step: float
             The interval between time points at which features are extracted.
+        skip_frames: int
+            Only process every nth frame, starting at 0.
 
         Returns
         -------
@@ -43,9 +45,11 @@ class VoiceExtractor:
 
         """
         self.logger.debug('Loading audio file')
+        self.logger.debug('Extracting features with time step: %s', time_step)
         snd = Sound(filepath)
-        time = np.arange(snd.start_time, snd.end_time, time_step, dtype=np.float32)
-        frame = np.array(time * int(1/time_step), dtype=np.int32)
+        self.logger.debug('End time: %s', snd.xmax)
+        time = np.arange(snd.xmin, snd.xmax, time_step, dtype=np.float32)
+        frame = np.array((time / time_step) * skip_frames, dtype=np.int32)
         
         self.logger.debug('Computing SHS voice pitch')
         pitch = snd.to_pitch()
@@ -64,12 +68,13 @@ def cli():
     parser.add_argument('-f', '--filepath', type=str, required=True)
     parser.add_argument('-o', '--outdir', type=str, required=True)
     parser.add_argument('-t', '--time-step', type=float, dest='time_step')
+    parser.add_argument('--skip-frames', type=int, default=1, dest='skip_frames')
 
     args = parser.parse_args().__dict__
 
     extractor = VoiceExtractor()
 
-    output = extractor.apply(args['filepath'], time_step=args['time_step'])
+    output = extractor.apply(args['filepath'], time_step=args['time_step'], skip_frames=args['skip_frames'])
 
     output.write_json(os.path.join(args['outdir'], os.path.splitext(os.path.basename(args['filepath']))[0] + '_voice_features.json'))
 
