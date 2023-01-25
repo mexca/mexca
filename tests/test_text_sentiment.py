@@ -39,7 +39,8 @@ class TestSentimentExtractor:
                     end=1,
                     data=TranscriptionData(
                         index=0,
-                        text='Today was a good day!'
+                        text='Today was a good day!',
+                        speaker='0'
                     )
                 )
             ])

@@ -203,8 +203,8 @@ class VoiceExtractorContainer(BaseContainer):
         super().__init__(image_name=image_name)
 
 
-    def apply(self, filepath: str, time_step: float = 0.023) -> VoiceFeatures:
-        cmd_args = ['--time-step', str(time_step)]
+    def apply(self, filepath: str, time_step: float, skip_frames: int = 1) -> VoiceFeatures:
+        cmd_args = ['--time-step', str(time_step), '--skip-frames', str(skip_frames)]
         cmd = self._create_base_cmd(filepath=filepath)
 
         outdir = self._create_mounts(filepath=filepath)

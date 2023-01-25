@@ -192,7 +192,7 @@ class SpeakerAnnotation(IntervalTree):
 
         for seg in self.items():
             for col in (
-                "SPEAKER", seg.data.filename, seg.data.channel, seg.begin, seg.end,
+                "SPEAKER", seg.data.filename, seg.data.channel, seg.begin, seg.end-seg.begin,
                 None, None, None, seg.data.name, seg.data.conf
             ):
                 if col is not None:
@@ -284,10 +284,13 @@ class TranscriptionData:
         Index of the transcribed sentence.
     text: str
         Transcribed text.
+    speaker: str
+        Speaker of the transcribed text.
 
     """
     index: int
     text: str
+    speaker: str
 
 
 class AudioTranscription:
@@ -330,12 +333,14 @@ class AudioTranscription:
             intervals = []
 
             for sub in subtitles:
+                content = sub.content.split('>')
                 intervals.append(Interval(
                     begin=sub.start.total_seconds(),
                     end=sub.end.total_seconds(),
                     data=TranscriptionData(
                         index=sub.index,
-                        text=sub.content
+                        text=content[1],
+                        speaker=content[0][1:]
                     )
                 ))
 
@@ -354,11 +359,12 @@ class AudioTranscription:
         subtitles = []
 
         for iv in self.subtitles.all_intervals:
+            content = f"<{iv.data.speaker}> {iv.data.text}"
             subtitles.append(srt.Subtitle(
                 index=iv.data.index,
                 start=timedelta(seconds=iv.begin),
                 end=timedelta(seconds=iv.end),
-                content=iv.data.text
+                content=content
             ))
 
         with open(filename, 'w', encoding='utf-8') as file:
@@ -526,7 +532,8 @@ class Multimodal:
                     "frame": [],
                     "span_start": [],
                     "span_end": [],
-                    "span_text": []
+                    "span_text": [],
+                    "segment_speaker_label": []
                 }
 
                 if self.sentiment:
@@ -555,6 +562,7 @@ class Multimodal:
                         text_features_dict['span_start'].append(span.begin)
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
+                        text_features_dict['segment_speaker_label'].append(span.data.speaker)
 
                         if span.data.index == sent.data.index:
                             text_features_dict['span_sent_pos'].append(sent.data.pos)
@@ -567,13 +575,14 @@ class Multimodal:
                         text_features_dict['span_start'].append(span.begin)
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
+                        text_features_dict['segment_speaker_label'].append(span.data.speaker)
                     
             audio_text_features_df = pd.DataFrame(audio_annotation_dict)
 
             if self.transcription:
                 audio_text_features_df = audio_text_features_df.merge(
                     pd.DataFrame(text_features_dict),
-                    on=['frame'],
+                    on=['frame', 'segment_speaker_label'],
                     how='left'
                 )
 

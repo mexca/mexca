@@ -83,7 +83,8 @@ class TestAudioTranscription:
                     end=1,
                     data=TranscriptionData(
                         index=0,
-                        text="Test"
+                        text="Test",
+                        speaker='1'
                     )
                 )
             ])
