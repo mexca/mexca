@@ -145,8 +145,8 @@ class VoiceFeatures:
 
 
 def _get_rttm_header() -> List[str]:
-    return ["type", "file", "chnl", "tbeg", 
-            "tdur", "ortho", "stype", "name", 
+    return ["type", "file", "chnl", "tbeg",
+            "tdur", "ortho", "stype", "name",
             "conf"]
 
 
@@ -168,7 +168,7 @@ class SegmentData:
     """
     filename: str
     channel: int
-    name: Optional[str] = None
+    name: Optional[int] = None
     conf: Optional[float] = None
 
 
@@ -193,7 +193,7 @@ class SpeakerAnnotation(IntervalTree):
         for seg in self.items():
             for col in (
                 "SPEAKER", seg.data.filename, seg.data.channel, seg.begin, seg.end-seg.begin,
-                None, None, None, seg.data.name, seg.data.conf
+                None, None, seg.data.name, seg.data.conf
             ):
                 if col is not None:
                     if isinstance(col, float):
@@ -284,13 +284,13 @@ class TranscriptionData:
         Index of the transcribed sentence.
     text: str
         Transcribed text.
-    speaker: str
+    speaker: str, optional
         Speaker of the transcribed text.
 
     """
     index: int
     text: str
-    speaker: str
+    speaker: Optional[str] = None
 
 
 class AudioTranscription:
@@ -549,7 +549,7 @@ class Multimodal:
                         audio_annotation_dict['frame'].append(i)
                         audio_annotation_dict['segment_start'].append(seg.begin)
                         audio_annotation_dict['segment_end'].append(seg.end)
-                        audio_annotation_dict['segment_speaker_label'].append(seg.data.name)
+                        audio_annotation_dict['segment_speaker_label'].append(str(seg.data.name))
                 else:
                     audio_annotation_dict['frame'].append(i)
                     audio_annotation_dict['segment_start'].append(np.NaN)
@@ -562,7 +562,7 @@ class Multimodal:
                         text_features_dict['span_start'].append(span.begin)
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
-                        text_features_dict['segment_speaker_label'].append(span.data.speaker)
+                        text_features_dict['segment_speaker_label'].append(str(span.data.speaker))
 
                         if span.data.index == sent.data.index:
                             text_features_dict['span_sent_pos'].append(sent.data.pos)
