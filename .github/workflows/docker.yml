@@ -18,15 +18,19 @@ jobs:
     # strategy:
     #   matrix:
     #     component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Get branch name
+        id: branch-name
+        uses: tj-actions/branch-names@v6
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
       - name: Build FaceExtractor
         uses: docker/build-push-action@v3
         with:
-          build-args: branch=github.ref_name
+          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
           context: ./docker/face-extractor
           load: true
           push: false
@@ -34,7 +38,7 @@ jobs:
       - name: Build SpeakerIdentifier
         uses: docker/build-push-action@v3
         with:
-          build-args: HF_TOKEN=${{secrets.HF_TOKEN }},branch=github.ref_name
+          build-args: HF_TOKEN=${{secrets.HF_TOKEN }},branch=${{ steps.branch-name.outputs.current_branch }}
           context: ./docker/speaker-identifier
           load: true
           push: false
@@ -42,7 +46,7 @@ jobs:
       - name: Build VoiceExtractor
         uses: docker/build-push-action@v3
         with:
-          build-args: branch=github.ref_name
+          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
           context: ./docker/voice-extractor
           load: true
           push: false
@@ -50,7 +54,7 @@ jobs:
       - name: Build AudioTranscriber
         uses: docker/build-push-action@v3
         with:
-          build-args: branch=github.ref_name
+          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
           context: ./docker/audio-transcriber
           load: true
           push: false
@@ -58,7 +62,7 @@ jobs:
       - name: Build SentimentExtractor
         uses: docker/build-push-action@v3
         with:
-          build-args: branch=github.ref_name
+          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
           context: ./docker/sentiment-extractor
           load: true
           push: false
