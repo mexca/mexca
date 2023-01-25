@@ -30,3 +30,29 @@ jobs:
           context: ./docker/${{ matrix.component }}
           push: false
           tags: mexca/${{ matrix.component }}
+          outputs: type=docker,dest=/tmp/${{ matrix.component }}.tar
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: ${{ matrix.component }}
+          path: /tmp/${{ matrix.component }}.tar
+
+  test:
+    name: Test Docker containers
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+      - name: Download artifacts
+        uses: actions/download-artifact@v3
+        with:
+          path: /tmp/
+      - name: Load images
+        run: |
+          docker load --input /tmp/face-extractor.tar
+          docker load --input /tmp/speaker-identifier.tar
+          docker load --input /tmp/voice-extractor.tar
+          docker load --input /tmp/audio-transcriber.tar
+          docker load --input /tmp/sentiment-extractor.tar
+          docker image ls -a
