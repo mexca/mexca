@@ -156,20 +156,26 @@ class AudioTranscriber:
                 idx = 0
 
                 for j, sent in enumerate(sents):
-                    self.logger.debug('Processing sentence %s', j)
                     sent_len = len(sent.split(" ")) - 1
 
                     sent_start = whole_word_timestamps[idx]['timestamp']
                     sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
+                    self.logger.debug(
+                        'Processing sentence %s from %s to %s with text: %s', j, seg.begin+sent_start, seg.begin+sent_end, sent
+                    )
 
-                    transcription.subtitles.add(Interval(
-                        begin=seg.begin + sent_start,
-                        end=seg.begin + sent_end,
-                        data=TranscriptionData(
-                            index=i,
-                            text=sent
-                        )
-                    ))
+                    if (sent_end - sent_start) > 0:
+                        transcription.subtitles.add(Interval(
+                            begin=seg.begin + sent_start,
+                            end=seg.begin + sent_end,
+                            data=TranscriptionData(
+                                index=i,
+                                text=sent,
+                                speaker=seg.data.name
+                            )
+                        ))
+                    else:
+                        self.logger.warning('Sentence has duration <= 0 and was not added to transcription')
 
                     idx += sent_len + 1
 
