@@ -506,26 +506,24 @@ class Multimodal:
 
     def _merge_video_annotation(self, data_frames: List):
         if self.video_annotation:
-            data_frames.append(pd.DataFrame(asdict(self.video_annotation)).set_index(['frame', 'time']))
+            data_frames.append(pd.DataFrame(asdict(self.video_annotation)))
 
 
     def _merge_audio_text_features(self, data_frames: List):
         if self.audio_annotation:
             audio_annotation_dict = {
                 "frame": [],
-                "time": [],
                 "segment_start": [],
                 "segment_end": [],
                 "segment_speaker_label": []
             }
 
             time = np.arange(0.0, self.duration, 1/self.fps_adjusted, dtype=np.float32)
-            frame = np.arange(0, self.duration*self.fps, self.fps_adjusted, dtype=np.int32)
+            frame = np.arange(0, self.duration*self.fps, self.fps/self.fps_adjusted, dtype=np.int32)
 
             if self.transcription:
                 text_features_dict = {
                     "frame": [],
-                    "time": [],
                     "span_start": [],
                     "span_end": [],
                     "span_text": []
@@ -537,17 +535,23 @@ class Multimodal:
                     text_features_dict['span_sent_neu'] = []
 
             for i, t in zip(frame, time):
-                for seg in self.audio_annotation[t]:
+                overlap_segments = self.audio_annotation[t]
+
+                if len(overlap_segments) > 0:
+                    for seg in overlap_segments:
+                        audio_annotation_dict['frame'].append(i)
+                        audio_annotation_dict['segment_start'].append(seg.begin)
+                        audio_annotation_dict['segment_end'].append(seg.end)
+                        audio_annotation_dict['segment_speaker_label'].append(seg.data.name)
+                else:
                     audio_annotation_dict['frame'].append(i)
-                    audio_annotation_dict['time'].append(t)
-                    audio_annotation_dict['segment_start'].append(seg.begin)
-                    audio_annotation_dict['segment_end'].append(seg.end)
-                    audio_annotation_dict['segment_speaker_label'].append(seg.data.name)
+                    audio_annotation_dict['segment_start'].append(np.NaN)
+                    audio_annotation_dict['segment_end'].append(np.NaN)
+                    audio_annotation_dict['segment_speaker_label'].append(np.NaN)
 
                 if self.transcription and self.sentiment:
                     for span, sent in zip(self.transcription.subtitles[t], self.sentiment[t]):
                         text_features_dict['frame'].append(i)
-                        text_features_dict['time'].append(t)
                         text_features_dict['span_start'].append(span.begin)
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
@@ -558,19 +562,18 @@ class Multimodal:
                             text_features_dict['span_sent_neu'].append(sent.data.neu)
 
                 elif self.transcription:
-                    for span in self.transcription.subtitles[t]:                   
+                    for span in self.transcription.subtitles[t]:      
                         text_features_dict['frame'].append(i)
-                        text_features_dict['time'].append(t)
                         text_features_dict['span_start'].append(span.begin)
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
                     
-            audio_text_features_df = pd.DataFrame(audio_annotation_dict).set_index(['frame', 'time'])
+            audio_text_features_df = pd.DataFrame(audio_annotation_dict)
 
             if self.transcription:
                 audio_text_features_df = audio_text_features_df.merge(
-                    pd.DataFrame(text_features_dict).set_index(['frame', 'time']),
-                    on=['frame', 'time'],
+                    pd.DataFrame(text_features_dict),
+                    on=['frame'],
                     how='left'
                 )
 
@@ -579,7 +582,14 @@ class Multimodal:
 
     def _merge_voice_features(self, data_frames: List):
         if self.voice_features:
-            data_frames.append(pd.DataFrame(asdict(self.voice_features)).set_index(['frame', 'time']))
+            data_frames.append(pd.DataFrame(asdict(self.voice_features)))
+
+
+    @staticmethod
+    def _delete_time_col(df: pd.DataFrame) -> pd.DataFrame:
+        if 'time' in df.columns:
+            del df['time']
+        return df
 
 
     def merge_features(self) -> pd.DataFrame:
@@ -605,11 +615,16 @@ class Multimodal:
         self._merge_voice_features(data_frames=dfs)
 
         if len(dfs) > 0:
+            dfs = map(self._delete_time_col, dfs)
             self.features = reduce(lambda left, right:
                 pd.merge(left , right,
-                    on = ["frame", "time"],
+                    on = ["frame"],
                     how = "left"),
                 dfs
-            ).reset_index()
+            )
+
+            time = self.features.frame * (1/self.fps)
+
+            self.features.insert(1, 'time', time)
 
         return self.features

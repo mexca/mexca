@@ -1,6 +1,7 @@
 """Utility functions.
 """
 
+import numpy as np
 import pandas as pd
 from mexca.data import (AudioTranscription, Multimodal, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation,
                         VoiceFeatures)
@@ -44,27 +45,80 @@ class ClassInitMessage:
         return self.message
 
 
-def _validate_speech_segments(features: pd.DataFrame):
-    assert features.segment_start.le(features.time, fill_value=0).all()
-    assert features.segment_end.ge(features.time, fill_value=features.time.max()).all()
-    assert features.segment_start.dropna().lt(features.segment_end.dropna()).all()
-    assert features.segment_start.isna().eq(features.segment_end.isna()).all()
-    assert features.segment_start.isna().eq(features.segment_speaker_label.isna()).all()
+def _validate_face_features(multimodal: Multimodal):
+    assert multimodal.features.face_box.dtype == 'object'
+    assert multimodal.features.face_prob.dtype == 'float64'
+    assert multimodal.features.face_landmarks.dtype == 'object'
+    assert multimodal.features.face_aus.dtype == 'object'
+    assert multimodal.features.face_label.dtype == 'float64'
+    assert multimodal.features.face_confidence.dtype == 'float64'
+
+    assert all(len(bbox) == 4 for bbox in multimodal.features.face_box.dropna())
+    assert all(len(lmks) == 68 for lmks in multimodal.features.face_landmarks.dropna())
+    assert all(len(aus) == 20 for aus in multimodal.features.face_aus.dropna())
+
+    assert multimodal.features.face_box.isna().eq(multimodal.features.face_prob.isna()).all()
+    assert multimodal.features.face_box.isna().eq(multimodal.features.face_landmarks.isna()).all()
+    assert multimodal.features.face_box.isna().eq(multimodal.features.face_aus.isna()).all()
+    assert multimodal.features.face_box.isna().eq(multimodal.features.face_label.isna()).all()
 
 
-def _validate_transcription(features: pd.DataFrame):
-    assert features.span_start.le(features.time, fill_value=0).all()
-    assert features.span_end.ge(features.time, fill_value=features.time.max()).all()
-    # assert features.span_start.le(features.segment_end, fill_value=0).all()
-    # assert features.span_end.le(features.segment_end, fill_value=0).all()
-    assert features.span_start.isna().eq(features.span_end.isna()).all()
-    assert features.span_start.isna().eq(features.span_text.isna()).all()
+def _validate_speech_segments(multimodal: Multimodal):
+    assert multimodal.features.segment_start.dtype == 'float64'
+    assert multimodal.features.segment_end.dtype == 'float64'
+    assert multimodal.features.segment_speaker_label.dtype == 'object'
+    assert multimodal.features.segment_start.le(multimodal.features.time, fill_value=0).all()
+    assert multimodal.features.segment_end.ge(multimodal.features.time, fill_value=multimodal.features.time.max()).all()
+    assert multimodal.features.segment_start.dropna().lt(multimodal.features.segment_end.dropna()).all()
+    assert multimodal.features.segment_start.isna().eq(multimodal.features.segment_end.isna()).all()
+    assert multimodal.features.segment_start.isna().eq(multimodal.features.segment_speaker_label.isna()).all()
+
+    for seg in multimodal.audio_annotation.items():
+        assert seg.begin in multimodal.features.segment_start.to_numpy()
+        assert seg.end in multimodal.features.segment_end.to_numpy()
+        assert seg.data.name in multimodal.features.segment_speaker_label.to_numpy()
 
 
-def _validate_sentiment(features: pd.DataFrame):
-    assert features.span_start.isna().eq(features.span_sent_pos.isna()).all()
-    assert features.span_start.isna().eq(features.span_sent_neg.isna()).all()
-    assert features.span_start.isna().eq(features.span_sent_neu.isna()).all()
+def _validate_voice_features(multimodal: Multimodal):
+    assert multimodal.features.pitch_f0.dtype == 'float64'
+    assert len(multimodal.features.pitch_f0.dropna()) > 0
+
+    for f0 in multimodal.voice_features.pitch_f0[:-1]:
+        if np.isfinite(f0):
+            assert f0 in multimodal.features.pitch_f0.to_numpy()
+
+
+def _validate_transcription(multimodal: Multimodal):
+    assert multimodal.features.span_start.dtype == 'float64'
+    assert multimodal.features.span_end.dtype == 'float64'
+    assert multimodal.features.span_text.dtype == 'object'
+    assert multimodal.features.span_start.le(multimodal.features.time, fill_value=0).all()
+    assert multimodal.features.span_end.ge(multimodal.features.time, fill_value=multimodal.features.time.max()).all()
+    # assert multimodal.features.span_start.le(multimodal.features.segment_end, fill_value=0).all()
+    # assert multimodal.features.span_end.le(multimodal.features.segment_end, fill_value=0).all()
+    assert multimodal.features.span_start.isna().eq(multimodal.features.span_end.isna()).all()
+    assert multimodal.features.span_start.isna().eq(multimodal.features.span_text.isna()).all()
+
+    for seg in multimodal.transcription.subtitles.items():
+        assert seg.begin in multimodal.features.span_start.to_numpy()
+        assert seg.end in multimodal.features.span_end.to_numpy()
+        assert seg.data.text in multimodal.features.span_text.to_numpy()
+
+
+def _validate_sentiment(multimodal: Multimodal):
+    assert multimodal.features.span_sent_pos.dtype == 'float64'
+    assert multimodal.features.span_sent_neg.dtype == 'float64'
+    assert multimodal.features.span_sent_neu.dtype == 'float64'
+    assert multimodal.features.span_start.isna().eq(multimodal.features.span_sent_pos.isna()).all()
+    assert multimodal.features.span_start.isna().eq(multimodal.features.span_sent_neg.isna()).all()
+    assert multimodal.features.span_start.isna().eq(multimodal.features.span_sent_neu.isna()).all()
+
+    for seg in multimodal.sentiment.items():
+        assert seg.begin in multimodal.features.span_start.to_numpy()
+        assert seg.end in multimodal.features.span_end.to_numpy()
+        assert seg.data.pos in multimodal.features.span_sent_pos.to_numpy()
+        assert seg.data.neg in multimodal.features.span_sent_neg.to_numpy()
+        assert seg.data.neu in multimodal.features.span_sent_neu.to_numpy()
 
 
 def _validate_multimodal(
@@ -79,17 +133,19 @@ def _validate_multimodal(
 
     if check_video_annotation:
         assert isinstance(output.video_annotation, VideoAnnotation)
+        _validate_face_features(output)
     if check_audio_annotation:
         assert isinstance(output.audio_annotation, SpeakerAnnotation)
-        _validate_speech_segments(output.features)
+        _validate_speech_segments(output)
     if check_voice_features:
         assert isinstance(output.voice_features, VoiceFeatures)
+        _validate_voice_features(output)
     if check_transcription:
         assert isinstance(output.transcription, AudioTranscription)
-        _validate_transcription(output.features)
+        _validate_transcription(output)
     if check_sentiment:
         assert isinstance(output.sentiment, SentimentAnnotation)
-        _validate_sentiment(output.features)
+        _validate_sentiment(output)
 
     assert isinstance(output.features, pd.DataFrame)
 
