@@ -76,7 +76,7 @@ def _validate_speech_segments(multimodal: Multimodal):
     for seg in multimodal.audio_annotation.items():
         assert seg.begin in multimodal.features.segment_start.to_numpy()
         assert seg.end in multimodal.features.segment_end.to_numpy()
-        assert seg.data.name in multimodal.features.segment_speaker_label.to_numpy()
+        assert str(seg.data.name) in multimodal.features.segment_speaker_label.to_numpy().astype(str)
 
 
 def _validate_voice_features(multimodal: Multimodal):
