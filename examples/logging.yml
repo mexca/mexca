@@ -1,0 +1,27 @@
+version: 1
+formatters:
+  file:
+    format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+  console:
+    format: '%(asctime)s - %(levelname)s - %(message)s'
+handlers:
+  file:
+    class: logging.FileHandler
+    level: DEBUG
+    mode: w
+    formatter: file
+    encoding: utf-8
+    filename: mexca.log
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: console
+    stream: ext://sys.stdout
+loggers:
+  mexca:
+    level: DEBUG
+    handlers: [file, console]
+    propagate: no
+root:
+  level: DEBUG
+  handlers: [file]
