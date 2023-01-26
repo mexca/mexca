@@ -71,7 +71,6 @@ def _validate_speech_segments(multimodal: Multimodal):
     assert multimodal.features.segment_end.ge(multimodal.features.time, fill_value=multimodal.features.time.max()).all()
     assert multimodal.features.segment_start.dropna().lt(multimodal.features.segment_end.dropna()).all()
     assert multimodal.features.segment_start.isna().eq(multimodal.features.segment_end.isna()).all()
-    print(multimodal.features.segment_start.isna().eq(multimodal.features.segment_speaker_label.isna()))
     assert multimodal.features.segment_start.isna().eq(multimodal.features.segment_speaker_label.isna()).all()
 
     for seg in multimodal.audio_annotation.items():
