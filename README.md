@@ -93,7 +93,7 @@ pip install mexca[demo]
 
 If you would like to learn how to use mexca, take a look at our [example](https://github.com/mexca/mexca/tree/main/examples) notebook.
 
-*Note*: mexca builds on pretrained models from the pyannote.audio package. Since release 2.1.1, downloading the pretrained models requires the user to accept two user agreements on Hugging Face hub and generate an authentication token. Therefore, to run the mexca pipeline, please accept the user agreements on [here](https://huggingface.co/pyannote/speaker-diarization) and [here](https://huggingface.co/pyannote/segmentation). Then, generate an authentication token [here](https://huggingface.co/settings/tokens). Use this token to login to Hugging Face hub by running `notebook_login()` (from a jupyter notebook) or `huggingface-cli login` (from the command line). You only need to login when running mexca for the first time. See this [link](https://huggingface.co/docs/hub/models-adding-libraries) for details.
+*Note*: mexca builds on pretrained models from the pyannote.audio package. Since release 2.1.1, downloading the pretrained models requires the user to accept two user agreements on Hugging Face hub and generate an authentication token. Therefore, to run the mexca pipeline, please accept the user agreements on [here](https://huggingface.co/pyannote/speaker-diarization) and [here](https://huggingface.co/pyannote/segmentation). Then, generate an authentication token [here](https://huggingface.co/settings/tokens). Use this token to login to Hugging Face hub by running `notebook_login()` (from a jupyter notebook) or `huggingface-cli login` (from the command line). You only need to login when running mexca for the first time. See this [link](https://huggingface.co/docs/hub/models-adding-libraries) for details. When running container components, you need to supply the token excplicitly as value for the `use_auth_token` argument. We recommend storing the token on your system and accessing it from Python.
 
 To create and apply the MEXCA pipeline with container components to a video file run the following code in a Jupyter notebook or a Python script (requires the base package and Docker):
 
@@ -111,7 +111,7 @@ pipeline = Pipeline(
     face_extractor=FaceExtractorContainer(num_faces=2),
     speaker_identifier=SpeakerIdentifierContainer(
         num_speakers=2,
-        use_auth_token=True
+        use_auth_token="HF_TOKEN" # Replace this string with your token
     ),
     voice_extractor=VoiceExtractorContainer(),
     audio_transcriber=AudioTranscriberContainer(),
