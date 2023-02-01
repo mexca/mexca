@@ -11,7 +11,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from feat.detector import Detector
 from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader
-from mexca.video import FaceExtractor, VideoAnnotation, VideoDataset
+from mexca.video import FaceExtractor, NotEnoughFacesError, VideoAnnotation, VideoDataset
 
 
 class TestVideoDataset:
@@ -123,6 +123,20 @@ class TestFaceExtractor:
         embeddings[8, :] = np.nan
         labels = extractor.identify(embeddings)
         assert labels.shape == (n_samples,)
+
+
+    def test_identify_not_enough_faces(self, extractor):
+        n_samples = 10
+        embeddings = np.random.uniform(0, 1, size=(n_samples, 512))
+        
+        with pytest.raises(NotEnoughFacesError):
+            extractor.identify(embeddings[0:3])
+
+        # When embeddings are not valid
+        embeddings[:7, :] = np.nan
+
+        with pytest.raises(NotEnoughFacesError):
+            extractor.identify(embeddings)
 
 
     def test_extract_xgb_mobilefacenet(self, extractor):
