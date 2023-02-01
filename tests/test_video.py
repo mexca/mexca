@@ -38,6 +38,15 @@ class TestVideoDataset:
         assert isinstance(item, dict)
         assert isinstance(item['Image'], torch.Tensor)
         assert item['Frame'] == 0
+        assert len(item['Image'].shape) == 3
+
+
+    def test_getitem_slice(self, video_dataset):
+        item = video_dataset[0:1]
+        assert isinstance(item, dict)
+        assert isinstance(item['Image'], torch.Tensor)
+        assert item['Frame'].shape[0] == 1
+        assert len(item['Image'].shape) == 4
 
 
 class TestFaceExtractor:
