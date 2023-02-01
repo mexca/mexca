@@ -15,7 +15,7 @@ from sklearn.metrics.pairwise import cosine_distances
 from spectralcluster import SpectralClusterer
 from torch import transpose
 from torch.utils.data import DataLoader, Dataset
-from torchvision.io import read_video
+from torchvision.io import read_video, read_video_timestamps
 from tqdm import tqdm
 from mexca.data import VideoAnnotation
 from mexca.utils import ClassInitMessage, optional_float, optional_int, str2bool
@@ -35,6 +35,9 @@ warnings.simplefilter('ignore', category=FutureWarning)
 # See: https://github.com/cosanlab/py-feat/blob/03337f44e98a915a8488388bce94154d2d5ba73c/feat/data.py#L2154
 class VideoDataset(Dataset):
     """Custom torch dataset for a video file.
+
+    Only reads the frame timestamps of the video but not the frames themselves when initialized.
+    Decodes the video frame-by-frame.
     
     Arguments
     ---------
@@ -51,8 +54,10 @@ class VideoDataset(Dataset):
     ----------
     file_name : str
         Name of the video file.
-    video : torch.Tensor
-        Loaded video frames.
+    video_pts : torch.Tensor
+        Timestamps of video frames.
+    video_frames_idx : torch.Tensor
+        Indices of video frames.
     video_fps: int
         Frames per second.
     video_frames : numpy.ndarray
@@ -61,17 +66,27 @@ class VideoDataset(Dataset):
     """
 
     def __init__(self, video_file: str, skip_frames: int = 1, start: float = 0, end: Optional[float] = None):
-        self.video, _, info = read_video(
-            video_file,
-            start_pts=start,
-            end_pts=end,
-            pts_unit='sec'
-        )
         self.logger = logging.getLogger('mexca.video.VideoDataset')
+        self.logger.debug('Reading video timestamps')
+        video_pts, video_fps = read_video_timestamps(video_file)
+
         self.file_name = os.path.basename(video_file)
-        self.video_fps = info['video_fps']
-        self.video_frames = np.arange(0, self.video.shape[0], skip_frames)
-        self.video = self.video[self.video_frames, :, :]
+        self._filepath = video_file # Store path to video for reading frames in __getitem__()
+
+        self.video_fps = video_fps
+
+        # Frame indices of start and end
+        start_idx = int(start * video_fps)
+        if end is None:
+            end_idx = len(video_pts)
+        else:
+            end_idx = int(end * video_fps)
+        
+        self.video_frames_idx = np.arange(start_idx, end_idx, skip_frames)
+
+        # Store timestamps of frames to be loaded
+        self.video_pts = torch.Tensor(video_pts)[self.video_frames_idx]
+
         self.logger.debug(ClassInitMessage())
 
 
@@ -83,13 +98,15 @@ class VideoDataset(Dataset):
 
 
     def __len__(self) -> int:
-        """Number of loaded video frames.
+        """Number of video frames.
         """
-        return self.video.shape[0]
+        return self.video_pts.shape[0]
 
 
     def __getitem__(self, idx: int) -> Dict[str, torch.Tensor]:
         """Get an item from the data set.
+
+        Loads the video frame into memory.
 
         Parameters
         ----------
@@ -104,9 +121,26 @@ class VideoDataset(Dataset):
 
         """
         self.logger.debug('Getting item %s', idx)
+        frame_pts = self.video_pts[idx]
+
+        # Read video frame at timestamp of idx
+        image, _, _ = read_video(
+            self._filepath,
+            start_pts=int(frame_pts.min()),
+            end_pts=int(frame_pts.max())
+        )
+
+        # Adjust slice if idx is slice
+        if isinstance(idx, slice):
+            zero_idx = slice(0, idx.stop - idx.start, idx.step)
+            return {
+                "Image": image[zero_idx, :, :, :],
+                "Frame": self.video_frames_idx[idx]
+            }
+
         return {
-            "Image": self.video[idx],
-            "Frame": self.video_frames[idx]
+            "Image": image.squeeze(), # Remove first dim
+            "Frame": self.video_frames_idx[idx]
         }
 
 
