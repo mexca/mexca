@@ -3,8 +3,10 @@
 import os
 import subprocess
 import pytest
+from huggingface_hub import HfFolder
 from pyannote.audio import Pipeline
 from mexca.audio import SpeakerIdentifier
+from mexca.audio.identification import AuthenticationError
 from mexca.data import SegmentData, SpeakerAnnotation
 
 
@@ -38,6 +40,29 @@ class TestSpeakerIdentifier:
         assert isinstance(speaker_identifier.pipeline, Pipeline)
         del speaker_identifier.pipeline
         assert not speaker_identifier._pipeline
+
+
+    hf_folder = HfFolder()
+
+
+    @pytest.mark.skipif(
+        hf_folder.get_token() is not None,
+        reason='Running test locally and a token might be cached'
+    )
+    def test_environment_error(self):
+        with pytest.raises(EnvironmentError):
+            speaker_identifier = SpeakerIdentifier(use_auth_token=True)
+            speaker_identifier.pipeline
+
+
+    def test_authentication_error(self):
+        with pytest.raises(AuthenticationError):
+            speaker_identifier = SpeakerIdentifier(use_auth_token='')
+            speaker_identifier.pipeline
+
+        with pytest.raises(AuthenticationError):
+            speaker_identifier = SpeakerIdentifier(use_auth_token='hf_riskdkdifseflskefssfjsfsjfsfjsfsfj') # dummy token
+            speaker_identifier.pipeline
 
 
     def test_apply(self, speaker_identifier):
