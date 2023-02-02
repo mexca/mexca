@@ -4,6 +4,7 @@
 import os
 from typing import List, Optional, Tuple, Union
 import docker
+from docker.errors import DockerException
 from docker.types import Mount
 from mexca.data import AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures
 
@@ -13,7 +14,13 @@ class BaseContainer:
     """
     def __init__(self, image_name: str):
         self.image_name = image_name
-        self.client = docker.from_env()
+        try:
+            self.client = docker.from_env()
+        except DockerException as exc:
+            raise DockerException(
+                "pypiwin32 package not correctly installed; running 'python pywin32_postinstall.py -install' might fix this issue"
+            ) from exc
+
         self.mount_dir = '/mnt/vol'
 
         try:

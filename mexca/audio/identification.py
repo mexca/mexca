@@ -10,6 +10,19 @@ from mexca.data import SpeakerAnnotation
 from mexca.utils import ClassInitMessage, bool_or_str, optional_int
 
 
+class AuthenticationError(Exception):
+    """Failed authentication to HuggingFace Hub.
+
+    Parameters
+    ----------
+    msg : str
+        Error message.
+
+    """
+    def __init__(self, msg: str):
+        super().__init__(msg)
+
+
 class SpeakerIdentifier:
     """Identify speech segments and cluster speakers using speaker diarization.
 
@@ -51,10 +64,24 @@ class SpeakerIdentifier:
         See `pyannote.audio.SpeakerDiarization <https://github.com/pyannote/pyannote-audio/blob/develop/pyannote/audio/pipelines/speaker_diarization.py#L56>`_ for details.
         """
         if not self._pipeline:
-            self._pipeline = Pipeline.from_pretrained(
-                "pyannote/speaker-diarization",
-                use_auth_token=self.use_auth_token
-            )
+            try:
+                self._pipeline = Pipeline.from_pretrained(
+                    "pyannote/speaker-diarization",
+                    use_auth_token=self.use_auth_token
+                )
+
+            except EnvironmentError as exc:
+                self.logger.exception('EnvironmentError: %s', exc)
+                raise exc
+
+            try:
+                if self._pipeline is None:
+                    raise AuthenticationError('Could not download pretrained "pyannote/speaker-diarization" pipeline; please provide a valid authentication token')
+
+            except AuthenticationError as exc:
+                self.logger.exception('Error: %s', exc)
+                raise exc
+
             self.logger.debug('Initialized speaker diarization pipeline')
 
         return self._pipeline

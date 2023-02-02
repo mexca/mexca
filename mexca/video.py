@@ -26,9 +26,33 @@ EMPTY_VALUE = np.nan
 """
 # Package versions are pinned so we can ignore future and deprecation warnings
 # Ignore warning from facenet_pytorch
+#
+# VisibleDeprecationWarning: Creating an ndarray from ragged nested sequences
+# (which is a list-or-tuple of lists-or-tuples-or ndarrays with different lengths or shapes)
+# is deprecated. If you meant to do this, you must specify 'dtype=object' when creating the ndarray.
+#    probs = np.array(probs)
 warnings.simplefilter('ignore', category=np.VisibleDeprecationWarning)
+
 # Ignore warning from spectralclusterer
+#
+# FutureWarning: The default value of `n_init` will change from 10 to 'auto' in 1.4. 
+# Set the value of `n_init` explicitly to suppress the warning
 warnings.simplefilter('ignore', category=FutureWarning)
+
+
+class NotEnoughFacesError(Exception):
+    """Less detected faces than `num_faces`.
+    
+    Cannot perform clustering if samples are less than the number of clusters.
+
+    Parameters
+    ----------
+    msg : str
+        Error message.
+    
+    """
+    def __init__(self, msg: str):
+        super().__init__(msg)
 
 
 # Adapted from pyfeat.data.VideoDataset
@@ -124,11 +148,19 @@ class VideoDataset(Dataset):
         frame_pts = self.video_pts[idx]
 
         # Read video frame at timestamp of idx
-        image, _, _ = read_video(
-            self._filepath,
-            start_pts=int(frame_pts.min()),
-            end_pts=int(frame_pts.max())
-        )
+        with warnings.catch_warnings():
+            # We can safely ignore this warning because we don't need accurate AV sync:
+            # https://github.com/pytorch/vision/issues/1931
+            #
+            # UserWarning: The pts_unit 'pts' gives wrong results. Please use
+            # pts_unit 'sec'
+            warnings.simplefilter("ignore", UserWarning)
+
+            image, _, _ = read_video(
+                self._filepath,
+                start_pts=int(frame_pts.min()),
+                end_pts=int(frame_pts.max())
+            )
 
         # Adjust slice if idx is slice
         if isinstance(idx, slice):
@@ -390,11 +422,23 @@ class FaceExtractor:
 
         """
         labels = np.full((embeddings.shape[0]), np.nan)
-        label_finite = np.all(np.isfinite(embeddings), 1)
+        labels_finite = np.all(np.isfinite(embeddings), 1)
+        embeddings_finite =  embeddings[labels_finite, :]
 
         self.logger.info('Clustering face embeddings')
-        labels[label_finite] = self.clusterer.predict(
-            embeddings[label_finite, :])
+
+        try:
+            if embeddings_finite.shape[0] < self.num_faces:
+                raise NotEnoughFacesError(
+                    "Not enough faces detected to perform clustering; consider reducing 'num_faces', 'min_face_size', or 'thresholds'"
+                )
+                
+        except NotEnoughFacesError as exc:
+            self.logger.exception('NotEnoughFacesError: %s', exc)
+            raise exc
+
+        labels[labels_finite] = self.clusterer.predict(
+            embeddings_finite)
 
         return labels
 
