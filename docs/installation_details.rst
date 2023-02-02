@@ -144,3 +144,25 @@ To run mexca on M1 devices, upgrading PyTorch to 1.13 is a potential solution, b
 
 .. note::
     Currently, components **cannot** be run as containers on M1 devices.
+
+Troubleshooting
+---------------
+
+This section mentions some reoccuring issues and how to solve them.
+
+Install pypiwin32 package
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+When running mexca on Windows and depending on the Python distribution, this error can occur when running containerized components for the first time:
+
+.. code-block:: console
+
+    docker.errors.DockerException: Install pypiwin32 package to enable npipe:// support
+
+A solution to this problem is running the pypiwin32 postinstall script manually. When mexca was installed in a virtual environment, this can be done via:
+
+.. code-block:: console
+
+    python mexca-venv\Scripts\pywin32_postinstall.py -install
+
+Otherwise, search for the location of the script and run it from there.
