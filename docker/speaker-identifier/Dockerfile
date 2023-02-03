@@ -7,5 +7,5 @@ ADD --link https://github.com/mexca/mexca.git#${branch} /mexca
 WORKDIR /mexca
 RUN pip install .[spe]
 # Download pretrained models to prevent download every time the container starts
-RUN python docker/download_models.py -c spe
+RUN python docker/download_models.py -c spe -t $HF_TOKEN
 ENTRYPOINT ["identify-speakers"]

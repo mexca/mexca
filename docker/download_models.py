@@ -13,6 +13,7 @@ def cli():
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-c', '--component', type=str, default='all')
+    parser.add_argument('-t', '--token', type=str, default='')
 
     args = parser.parse_args()
 
@@ -28,8 +29,8 @@ def cli():
 
     elif args.component == 'spe':
         from mexca.audio import SpeakerIdentifier
-        use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
-        component = SpeakerIdentifier(use_auth_token=use_auth_token)
+        
+        component = SpeakerIdentifier(use_auth_token=args.token)
         component.pipeline
 
     elif args.component == 'voi':
