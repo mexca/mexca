@@ -19,7 +19,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-6503-4514"
 date-released: 2023-01-24
 doi: 10.5281/zenodo.6976414
-version: "0.2.0"
+version: "0.2.1"
 repository-code: "https://github.com/mexca/mexca"
 keywords:
   - emotion
