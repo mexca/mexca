@@ -38,7 +38,9 @@ jobs:
       - name: Build SpeakerIdentifier
         uses: docker/build-push-action@v3
         with:
-          build-args: HF_TOKEN=${{secrets.HF_TOKEN }},branch=${{ steps.branch-name.outputs.current_branch }}
+          build-args: |
+            HF_TOKEN=${{secrets.HF_TOKEN }}
+            branch=${{ steps.branch-name.outputs.current_branch }}
           context: ./docker/speaker-identifier
           load: true
           push: false
