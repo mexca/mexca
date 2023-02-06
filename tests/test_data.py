@@ -108,7 +108,7 @@ class TestSentimentAnnotation:
             begin=0,
             end=1,
             data=SentimentData(
-                index=0,
+                text='test',
                 pos=0.4,
                 neg=0.4,
                 neu=0.2
@@ -127,28 +127,60 @@ class TestMultimodal:
     ref_dir = os.path.join('tests', 'reference_files')
     filepath = 'test_video_audio_5_seconds.mp4'
 
+
     @pytest.fixture
-    def multimodal(self) -> Multimodal:
+    def video_annotation(self) -> VideoAnnotation:
+        return VideoAnnotation.from_json(
+            os.path.join(self.ref_dir, 'test_video_audio_5_seconds_video_annotation.json')
+        )
+
+
+    @pytest.fixture
+    def audio_annotation(self) -> SpeakerAnnotation:
+        return SpeakerAnnotation([
+            Interval(begin=1.92, end=2.92, data=SegmentData(filename=self.filepath, channel=0, name=0)),
+            Interval(begin=3.86, end=4.87, data=SegmentData(filename=self.filepath, channel=0, name=0))
+        ])
+
+
+    @pytest.fixture
+    def voice_features(self) -> VoiceFeatures:
+        return VoiceFeatures.from_json(
+            os.path.join(self.ref_dir, 'test_video_audio_5_seconds_voice_features.json')
+        )
+
+
+    @pytest.fixture
+    def transcription(self) -> AudioTranscription:
+        return AudioTranscription(
+            filename=self.filepath,
+            subtitles=IntervalTree([
+                Interval(begin=2.00, end=2.41, data=TranscriptionData(index=0, text='Thank you, honey.', speaker='0')),
+                Interval(begin=4.47, end=4.67, data=TranscriptionData(index=1, text='I, uh...', speaker='0'))
+            ])
+        )
+
+
+    @pytest.fixture
+    def sentiment(self) -> SentimentAnnotation:
+        return SentimentAnnotation([
+            Interval(begin=2.00, end=2.41, data=SentimentData(text='Thank you, honey.', pos=0.88, neg=0.02, neu=0.1)),
+            Interval(begin=4.47, end=4.67, data=SentimentData(text='I, uh...', pos=0.1, neg=0.37, neu=0.53))
+        ])
+
+
+    @pytest.fixture
+    def multimodal(self, video_annotation, audio_annotation, voice_features, transcription, sentiment) -> Multimodal:
         return Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            video_annotation=VideoAnnotation.from_json(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_video_annotation.json')
-            ),
-            audio_annotation=SpeakerAnnotation.from_rttm(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
-            ),
-            voice_features=VoiceFeatures.from_json(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_voice_features.json')
-            ),
-            transcription=AudioTranscription.from_srt(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_transcription.srt')
-            ),
-            sentiment=SentimentAnnotation.from_json(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_sentiment.json')
-            )
+            video_annotation=video_annotation,
+            audio_annotation=audio_annotation,
+            voice_features=voice_features,
+            transcription=transcription,
+            sentiment=sentiment
         )
 
 
@@ -157,15 +189,13 @@ class TestMultimodal:
         _validate_multimodal(multimodal)
 
 
-    def test_merge_features_video_annotation(self):
+    def test_merge_features_video_annotation(self, video_annotation):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            video_annotation=VideoAnnotation.from_json(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_video_annotation.json')
-            )
+            video_annotation=video_annotation
         )
 
         output.merge_features()
@@ -177,15 +207,13 @@ class TestMultimodal:
         )
 
 
-    def test_merge_features_audio_annotation(self):
+    def test_merge_features_audio_annotation(self, audio_annotation):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            audio_annotation=SpeakerAnnotation.from_rttm(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
-            )
+            audio_annotation=audio_annotation
         )
 
         output.merge_features()
@@ -197,15 +225,13 @@ class TestMultimodal:
         )
 
     
-    def test_merge_features_voice_features(self):
+    def test_merge_features_voice_features(self, voice_features):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            voice_features=VoiceFeatures.from_json(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_voice_features.json')
-            )
+            voice_features=voice_features
         )
 
         output.merge_features()
@@ -217,18 +243,14 @@ class TestMultimodal:
         )
 
 
-    def test_merge_features_transcription(self):
+    def test_merge_features_transcription(self, audio_annotation, transcription):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            audio_annotation=SpeakerAnnotation.from_rttm(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
-            ),
-            transcription=AudioTranscription.from_srt(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_transcription.srt')
-            )
+            audio_annotation=audio_annotation,
+            transcription=transcription
         )
 
         output.merge_features()
@@ -239,21 +261,15 @@ class TestMultimodal:
         )
 
 
-    def test_merge_features_sentiment(self):
+    def test_merge_features_sentiment(self, audio_annotation, transcription, sentiment):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            audio_annotation=SpeakerAnnotation.from_rttm(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_audio_annotation.rttm')
-            ),
-            transcription=AudioTranscription.from_srt(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_transcription.srt')
-            ),
-            sentiment=SentimentAnnotation.from_json(
-                os.path.join(self.ref_dir, 'test_video_audio_5_seconds_sentiment.json')
-            )
+            audio_annotation=audio_annotation,
+            transcription=transcription,
+            sentiment=sentiment
         )
 
         output.merge_features()

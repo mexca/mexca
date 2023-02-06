@@ -377,8 +377,8 @@ class SentimentData:
 
     Parameters
     ----------
-    index: int
-        Index of the sentence for which sentiment scores were predicted.
+    text: str
+        Text of the sentence for which sentiment scores were predicted.
     pos: float
         Positive sentiment score.
     neg: float
@@ -387,7 +387,7 @@ class SentimentData:
         Neutral sentiment score.
 
     """
-    index: int
+    text: str
     pos: float
     neg: float
     neu: float
@@ -425,7 +425,7 @@ class SentimentAnnotation(IntervalTree):
                     begin=sen['begin'],
                     end=sen['end'],
                     data=SentimentData(
-                        index=sen['index'],
+                        text=sen['text'],
                         pos=sen['pos'],
                         neg=sen['neg'],
                         neu=sen['neu']
@@ -537,9 +537,13 @@ class Multimodal:
                 }
 
                 if self.sentiment:
-                    text_features_dict['span_sent_pos'] = []
-                    text_features_dict['span_sent_neg'] = []
-                    text_features_dict['span_sent_neu'] = []
+                    sentiment_dict = {
+                        "frame": [],
+                        "span_text": [],
+                        "span_sent_pos": [],
+                        "span_sent_neg": [],
+                        "span_sent_neu": []
+                    }
 
             for i, t in zip(frame, time):
                 overlap_segments = self.audio_annotation[t]
@@ -556,32 +560,35 @@ class Multimodal:
                     audio_annotation_dict['segment_end'].append(np.NaN)
                     audio_annotation_dict['segment_speaker_label'].append(np.NaN)
 
-                if self.transcription and self.sentiment:
-                    for span, sent in zip(self.transcription.subtitles[t], self.sentiment[t]):
-                        text_features_dict['frame'].append(i)
-                        text_features_dict['span_start'].append(span.begin)
-                        text_features_dict['span_end'].append(span.end)
-                        text_features_dict['span_text'].append(span.data.text)
-                        text_features_dict['segment_speaker_label'].append(str(span.data.speaker))
-
-                        if span.data.index == sent.data.index:
-                            text_features_dict['span_sent_pos'].append(sent.data.pos)
-                            text_features_dict['span_sent_neg'].append(sent.data.neg)
-                            text_features_dict['span_sent_neu'].append(sent.data.neu)
-
-                elif self.transcription:
+                if self.transcription:
                     for span in self.transcription.subtitles[t]:      
                         text_features_dict['frame'].append(i)
                         text_features_dict['span_start'].append(span.begin)
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
                         text_features_dict['segment_speaker_label'].append(span.data.speaker)
-                    
+
+                    if self.sentiment:
+                        for sent in self.sentiment[t]:
+                            sentiment_dict['frame'].append(i)
+                            sentiment_dict['span_text'].append(sent.data.text)
+                            sentiment_dict['span_sent_pos'].append(sent.data.pos)
+                            sentiment_dict['span_sent_neg'].append(sent.data.neg)
+                            sentiment_dict['span_sent_neu'].append(sent.data.neu)
+
             audio_text_features_df = pd.DataFrame(audio_annotation_dict)
 
             if self.transcription:
+                text_features_df =  pd.DataFrame(text_features_dict)
+                if self.sentiment:
+                    text_features_df = text_features_df.merge(
+                        pd.DataFrame(sentiment_dict),
+                        on=['frame', 'span_text'],
+                        how='left'
+                    )
+
                 audio_text_features_df = audio_text_features_df.merge(
-                    pd.DataFrame(text_features_dict),
+                    text_features_df,
                     on=['frame', 'segment_speaker_label'],
                     how='left'
                 )
