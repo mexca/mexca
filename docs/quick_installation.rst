@@ -52,6 +52,12 @@ The abbreviations indicate:
 * `tra`: AudioTranscriber
 * `sen`: SentimentExtractor
 
+All five components can be installed via:
+
+.. code-block:: console
+
+    pip install mexca[all]
+
 To run the demo and example notebooks, install the Jupyter requirements via:
 
 .. code-block:: console

@@ -37,7 +37,7 @@ jobs:
       - name: Upgrade pip and install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install .[vid,spe,voi,tra,sen,dev]
+          python3 -m pip install .[all,dev]
       - name: Check style against standards using prospector
         run: prospector
       - name: Check import order
@@ -78,7 +78,7 @@ jobs:
       - name: Upgrade pip and install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install .[vid,spe,voi,tra,sen,dev,publishing]
+          python3 -m pip install .[all,dev,publishing]
       - name: Run unit tests
         env:
           HF_TOKEN: ${{secrets.HF_TOKEN }} # Needed for Hugging Face authentication to download pyannote.audio models
