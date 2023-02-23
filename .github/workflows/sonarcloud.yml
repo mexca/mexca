@@ -36,7 +36,7 @@ jobs:
       - name: Install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
-          python3 -m pip install .[vid,spe,voi,tra,sen,dev]
+          python3 -m pip install .[all,dev]
       - name: Check style against standards using prospector
         run: prospector --zero-exit --output-format grouped --output-format pylint:pylint-report.txt
       - name: Run unit tests with coverage

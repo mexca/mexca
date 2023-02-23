@@ -84,6 +84,12 @@ The abbreviations indicate:
 * `tra`: AudioTranscriber
 * `sen`: SentimentExtractor
 
+All five components can be installed via:
+
+.. code-block:: console
+
+    pip install mexca[all]
+
 .. note::
 
     It is also possible to run some pipeline components with containers and others without.
