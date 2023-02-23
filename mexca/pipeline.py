@@ -174,7 +174,7 @@ class Pipeline:
 
             if self.speaker_identifier or self.voice_extractor:
                 self.logger.debug('Writing audio file')
-                subclip.audio.write_audiofile(audio_path, logger=None, fps=16000)
+                subclip.audio.write_audiofile(audio_path, logger=None, fps=16000, ffmpeg_params=["-ac", "1"])
                 self.logger.info('Wrote audio file to %s', audio_path)
 
         if self.face_extractor:

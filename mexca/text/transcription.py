@@ -138,7 +138,12 @@ class AudioTranscriber:
             audio_sub = audio[start:end]
 
             self.logger.debug('Transcribing segment %s from %s to %s', i, seg.begin, seg.end)
-            output = self.transcriber.transcribe(audio_sub, verbose=None, **asdict(options))
+            try:
+                output = self.transcriber.transcribe(audio_sub, verbose=None, **asdict(options))
+            except RuntimeError as exc:
+                self.logger.error('Audio waveform too short to be transcribed: %s', exc)
+                continue
+
             self.logger.debug('Detected language: %s', whisper.tokenizer.LANGUAGES[output['language']].title())
             segment_text = output['text'].strip()
 

@@ -96,7 +96,7 @@ class SentimentExtractor:
                 begin=sent.begin,
                 end=sent.end,
                 data=SentimentData(
-                    index=sent.data.index,
+                    text=sent.data.text,
                     pos=float(scores[2]),
                     neg=float(scores[0]),
                     neu=float(scores[1])
