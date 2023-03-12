@@ -86,6 +86,42 @@ class PitchFrames(BaseFrames):
         self.logger.debug(ClassInitMessage())
 
 
+class FormantFrames(BaseFrames):
+    max_formants = 5
+    lower = 50
+    upper = 5450
+    preemphasis_from =  50
+
+
+    def __init__(self, frames: np.ndarray, sr: int, frame_len: int, hop_len: int, ) -> None:
+        self.logger = logging.getLogger('mexca.audio.extraction.FormantFrames')
+        super().__init__(frames, sr, frame_len, hop_len)
+        self._calc_formants()
+        self.logger.debug(ClassInitMessage())
+
+
+    def _apply_window(self):
+        window = get_window(('gauss', 1.0), self.frame_len)
+        self.frames = np.multiply(self.frames, window)
+
+
+    def _preemphasize(self):
+        coef = math.exp(-2 * math.pi * self.preemphasis_from * (1/self.sr))
+        self.frames = librosa.effects.preemphasis(self.frames, coef)
+
+
+    def _calc_formants(self):
+        self._preemphasize()
+        self._apply_window()
+        coefs = librosa.lpc(self.frames, order=self.max_formants*2)
+        roots = np.array([np.roots(coef) for coef in coefs])
+        mask = np.imag(roots) > 0
+        roots[~mask] = np.nan
+        ang_freq = np.arctan2(np.imag(roots), np.real(roots))
+        self.formants = np.sort(ang_freq * (self.sr / (2 * math.pi)))
+        self.logger.debug("%s", self.formants)
+
+
 class AudioSignal(BaseSignal):
     def __init__(self, sig: np.ndarray, sr: float, filename: str, mono: bool) -> None:
         self.logger = logging.getLogger('mexca.audio.extraction.AudioSignal')
@@ -114,6 +150,15 @@ class AudioSignal(BaseSignal):
         
         return PitchFrames(frames=f0, flag=flag, prob=prob, sr=self.sr, lower=lower, upper=upper, 
                            frame_len=frame_len, hop_len=hop_len, method=method)
+    
+
+    def to_formants(self, frame_len: int) -> FormantFrames:
+        hop_len = frame_len//4
+        padding = [(0, 0) for _ in self.sig.shape]
+        padding[-1] = (frame_len // 2, frame_len // 2)
+        sig_pad = np.pad(self.sig, padding, mode='constant')
+        frames = librosa.util.frame(sig_pad, frame_length=frame_len, hop_length=hop_len, axis=0)
+        return FormantFrames(frames, self.sr, frame_len, hop_len)
 
 
 class BasePulses:
@@ -360,6 +405,23 @@ class FeatureShimmer(BasePitchPulsesFeature):
         return np.nan
 
 
+class FeatureFormantFreq(BaseFeature):
+    formants: FormantFrames = None
+
+
+    def __init__(self, n_formant: int):
+        self.n_formant = n_formant
+
+
+    def requires(self) -> Optional[Dict[str, type]]:
+        return {'formants': FormantFrames}
+    
+
+    def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
+        f_interp = interp1d(self.formants.ts, self.formants.formants[:, self.n_formant], kind='linear')
+        return f_interp(time)
+
+
 class VoiceExtractor:
     """Extract voice features from an audio file.
 
@@ -387,7 +449,8 @@ class VoiceExtractor:
         return {
             'pitch_f0': FeaturePitchF0(),
             'jitter_rel': FeatureJitter(),
-            'shimmer_rel': FeatureShimmer()
+            'shimmer_rel': FeatureShimmer(),
+            'f1_freq': FeatureFormantFreq(n_formant=0)
         }
 
 
@@ -419,8 +482,9 @@ class VoiceExtractor:
         
         pitch_frames = audio_signal.to_pitch_f0(frame_len=1024)
         pitch_pulses = PitchPulses(audio_signal=audio_signal, frames_obj=pitch_frames)
+        formants = audio_signal.to_formants(frame_len=1024)
 
-        requirements = [audio_signal, pitch_frames, pitch_pulses]
+        requirements = [audio_signal, pitch_frames, pitch_pulses, formants]
         requirements_types = [type(r) for r in requirements]
 
         extracted_features = VoiceFeatures(frame=frame.tolist(), time=time.tolist())
