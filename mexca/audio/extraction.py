@@ -5,7 +5,7 @@ import argparse
 import logging
 import math
 import os
-from dataclasses import dataclass
+from copy import copy
 from typing import Dict, List, Optional, Tuple, Union
 import librosa
 import numpy as np
@@ -72,6 +72,13 @@ class BaseFrames:
         return self._ts
 
 
+class SpecFrames(BaseFrames):
+    def __init__(self, frames: np.ndarray, sr: int, frame_len: int, hop_len: int, center: bool = True, pad_mode: str = 'constant') -> None:
+        self.logger = logging.getLogger('mexca.audio.extraction.SpecFrames')
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
+        self.logger.debug(ClassInitMessage())
+
+
 class PitchFrames(BaseFrames):
     def __init__(self, frames: np.ndarray, flag: np.ndarray, prob: np.ndarray, sr: int, 
                  lower: float, upper: float, frame_len: int, hop_len: int, method: str,
@@ -86,13 +93,39 @@ class PitchFrames(BaseFrames):
         self.logger.debug(ClassInitMessage())
 
 
+class PitchHarmonics:
+    def __init__(self, 
+            spec_frames: SpecFrames,
+            pitch_frames: PitchFrames,
+            n_harmonics: int = 12
+        ) -> None:
+        self.logger = logging.getLogger('mexca.audio.extraction.PitchHarmonicsFrames')
+        self.spec_frames = spec_frames
+        self.pitch_frames = pitch_frames
+        self.n_harmonics = n_harmonics
+        self.freqs = librosa.fft_frequencies(sr=self.spec_frames.sr, n_fft=self.spec_frames.frame_len)
+        self._harmonics = None
+        self.logger.debug(ClassInitMessage())
+
+
+    @property
+    def harmonics(self):
+        if self._harmonics is None:
+            self._calc_harmonics()
+        return self._harmonics
+
+
+    def _calc_harmonics(self):
+        self._harmonics = librosa.f0_harmonics(
+            np.abs(self.spec_frames.frames),
+            freqs=self.freqs,
+            f0=self.pitch_frames.frames,
+            harmonics=np.arange(self.n_harmonics) + 1, # Shift one up
+            axis=-1
+        )
+
+
 class FormantFrames(BaseFrames):
-    max_formants = 5
-    lower = 50
-    upper = 5450
-    preemphasis_from =  50
-
-
     def __init__(self,
             frames: np.ndarray,
             sr: int,
@@ -117,7 +150,7 @@ class FormantFrames(BaseFrames):
 
     def _preemphasize(self):
         coef = math.exp(-2 * math.pi * self.preemphasis_from * (1/self.sr))
-        self.frames = librosa.effects.preemphasis(self.frames, coef)
+        self.frames = librosa.effects.preemphasis(self.frames, coef=coef)
 
 
     def _apply_window(self):
@@ -177,8 +210,15 @@ class AudioSignal(BaseSignal):
         return librosa.pyin(self.sig, fmin=lower, fmax=upper, sr=self.sr, frame_length=frame_len, hop_length=hop_len)
 
 
+    def to_spectrogram(self, frame_len: int, window: Union[str, float, Tuple] = 'hamming') -> SpecFrames:
+        hop_len = frame_len // 4
+        spec_frames = librosa.stft(self.sig, n_fft=frame_len, hop_length=hop_len, window=window)
+        return SpecFrames(np.swapaxes(spec_frames, 0, 1), self.sr, frame_len, hop_len)
+
+
     def to_pitch_f0(self, frame_len: int, lower: float = 75.0, upper: float = 600.0, method: str = 'pyin') -> PitchFrames:
-        hop_len = frame_len//4
+        hop_len = frame_len // 4
+
         if method == 'pyin':
             f0, flag, prob = self._calc_pitch_pyin(frame_len=frame_len, hop_len=hop_len, lower=lower, upper=upper)
         else:
@@ -189,7 +229,7 @@ class AudioSignal(BaseSignal):
     
 
     def to_formants(self, frame_len: int) -> FormantFrames:
-        hop_len = frame_len//4
+        hop_len = frame_len // 4
         padding = [(0, 0) for _ in self.sig.shape]
         padding[-1] = (frame_len // 2, frame_len // 2)
         sig_pad = np.pad(self.sig, padding, mode='constant')
@@ -451,7 +491,7 @@ class FeatureFormantFreq(BaseFeature):
 
     def requires(self) -> Optional[Dict[str, type]]:
         return {'formants': FormantFrames}
-    
+        
 
     def _select_formant_attr(self, n_attr: int = 0) -> np.ndarray:
         return np.array([f[self.n_formant][n_attr] if len(f) > self.n_formant else np.nan for f in self.formants.formants])
@@ -467,6 +507,46 @@ class FeatureFormantBandwidth(FeatureFormantFreq):
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
         formants_bws = self._select_formant_attr(1)
         f_interp = interp1d(self.formants.ts, formants_bws, kind='linear')
+        return f_interp(time)
+
+
+class FeatureFormantAmplitude(FeatureFormantFreq):
+    harmonics: PitchHarmonics = None
+
+
+    def __init__(self, n_formant: int, lower: float = 0.8, upper: float = 1.2, rel_f0: bool = True):
+        self.lower = lower
+        self.upper = upper
+        self.rel_f0 = rel_f0
+        super().__init__(n_formant)
+
+
+    def requires(self) -> Optional[Dict[str, type]]:
+        return {'formants': FormantFrames, 'harmonics': PitchHarmonics}
+    
+
+    def _get_formant_amplitude(self, freqs: np.ndarray):
+        f0 = self.harmonics.pitch_frames.frames
+        harmonic_freqs = f0[:, None] * (np.arange(self.harmonics.n_harmonics) + 1)[None, :]
+        f0_amp = self.harmonics.harmonics[:, 0]
+        freqs_lower = self.lower * freqs
+        freqs_upper = self.upper * freqs
+        freq_in_bounds = np.logical_and(harmonic_freqs > freqs_lower[:, None], harmonic_freqs < freqs_upper[:, None])
+        harmonics_amp = copy(self.harmonics.harmonics)
+        harmonics_amp[~freq_in_bounds] = np.nan
+        harmonic_peaks = np.nanmax(harmonics_amp, axis=1)
+        harmonic_peaks_db = 20 * np.log10(harmonic_peaks)
+
+        if self.rel_f0:
+            harmonic_peaks_db = harmonic_peaks_db - 20 * np.log10(f0_amp)
+
+        return harmonic_peaks_db
+
+
+    def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
+        formants_freqs = self._select_formant_attr()
+        formants_amps = self._get_formant_amplitude(formants_freqs)
+        f_interp = interp1d(self.formants.ts, formants_amps, kind='linear')
         return f_interp(time)
 
 
@@ -499,7 +579,8 @@ class VoiceExtractor:
             'jitter_rel': FeatureJitter(),
             'shimmer_rel': FeatureShimmer(),
             'f1_freq': FeatureFormantFreq(n_formant=0),
-            'f1_bandwidth': FeatureFormantBandwidth(n_formant=0)
+            'f1_bandwidth': FeatureFormantBandwidth(n_formant=0),
+            'f1_amplitude': FeatureFormantAmplitude(n_formant=0)
         }
 
 
@@ -529,11 +610,13 @@ class VoiceExtractor:
         time = np.arange(audio_signal.ts.min(), audio_signal.ts.max(), time_step, dtype=np.float32)
         frame = np.array((time / time_step) * skip_frames, dtype=np.int32)
         
+        spec_frames = audio_signal.to_spectrogram(frame_len=1024)
         pitch_frames = audio_signal.to_pitch_f0(frame_len=1024)
         pitch_pulses = PitchPulses(audio_signal=audio_signal, frames_obj=pitch_frames)
         formants = audio_signal.to_formants(frame_len=1024)
+        pitch_harmonics = PitchHarmonics(spec_frames, pitch_frames, n_harmonics=100)
 
-        requirements = [audio_signal, pitch_frames, pitch_pulses, formants]
+        requirements = [audio_signal, pitch_frames, pitch_pulses, formants, pitch_harmonics]
         requirements_types = [type(r) for r in requirements]
 
         extracted_features = VoiceFeatures(frame=frame.tolist(), time=time.tolist())
