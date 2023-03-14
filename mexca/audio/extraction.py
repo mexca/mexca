@@ -6,7 +6,7 @@ import logging
 import math
 import os
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 import librosa
 import numpy as np
 from sklearn.linear_model import LinearRegression
@@ -93,16 +93,26 @@ class FormantFrames(BaseFrames):
     preemphasis_from =  50
 
 
-    def __init__(self, frames: np.ndarray, sr: int, frame_len: int, hop_len: int, ) -> None:
+    def __init__(self,
+            frames: np.ndarray,
+            sr: int,
+            frame_len: int,
+            hop_len: int,
+            max_formants: int = 5,
+            lower: float = 50.0,
+            upper: float = 5450.0,
+            preemphasis_from: float = 50.0,
+            window: Union[str, float, Tuple] = 'hamming'
+        ) -> None:
         self.logger = logging.getLogger('mexca.audio.extraction.FormantFrames')
+        self.max_formants = max_formants
+        self.lower = lower
+        self.upper = upper
+        self.preemphasis_from = preemphasis_from
+        self.window = window
         super().__init__(frames, sr, frame_len, hop_len)
-        self._calc_formants()
+        self._calc_formants_frames()
         self.logger.debug(ClassInitMessage())
-
-
-    def _apply_window(self):
-        window = get_window(('gauss', 1.0), self.frame_len)
-        self.frames = np.multiply(self.frames, window)
 
 
     def _preemphasize(self):
@@ -110,16 +120,42 @@ class FormantFrames(BaseFrames):
         self.frames = librosa.effects.preemphasis(self.frames, coef)
 
 
-    def _calc_formants(self):
-        self._preemphasize()
-        self._apply_window()
-        coefs = librosa.lpc(self.frames, order=self.max_formants*2)
-        roots = np.array([np.roots(coef) for coef in coefs])
+    def _apply_window(self):
+        window = get_window(self.window, self.frame_len)
+        self.frames = np.multiply(self.frames, window)
+
+
+    @staticmethod
+    def _calc_formants(coefs: np.ndarray, sr: int, lower: float = 50, upper: float = 5450) -> List:
+        # Function to compute complex norm
+        c_norm = lambda x: np.sqrt(np.abs(np.real(x)**2) + np.abs(np.imag(x)**2))
+        nf_pi = (sr / (2 * math.pi)) # sr/2 = Nyquist freq
+        # Find roots of linear coefficients
+        roots = np.roots(coefs)
+        # Select roots with positive imag part
         mask = np.imag(roots) > 0
-        roots[~mask] = np.nan
-        ang_freq = np.arctan2(np.imag(roots), np.real(roots))
-        self.formants = np.sort(ang_freq * (self.sr / (2 * math.pi)))
-        self.logger.debug("%s", self.formants)
+        roots = roots[mask]
+        # Calc angular frequency
+        ang_freq = np.abs(np.arctan2(np.imag(roots), np.real(roots)))
+        # Calc formant centre freq
+        formant_freqs = ang_freq * nf_pi
+        # Calc formant bandwidth
+        formant_bws = -np.log(np.apply_along_axis(c_norm, 0, roots)) * nf_pi
+        # Select formants within boundaries
+        in_bounds = np.logical_and(formant_freqs > lower, formant_freqs < upper)
+        formants_sorted = sorted(list(zip(formant_freqs[in_bounds], formant_bws[in_bounds])))
+        return formants_sorted
+
+
+    def _calc_formants_frames(self):
+        if self.preemphasis_from is not None:
+            self._preemphasize()
+        if self.window is not None:
+            self._apply_window()
+        # Calc linear predictive coefficients
+        coefs = librosa.lpc(self.frames, order=self.max_formants*2)
+        # Transform LPCs to formants
+        self.formants = [self._calc_formants(coef, self.sr, self.lower, self.upper) for coef in coefs]
 
 
 class AudioSignal(BaseSignal):
@@ -417,8 +453,20 @@ class FeatureFormantFreq(BaseFeature):
         return {'formants': FormantFrames}
     
 
+    def _select_formant_attr(self, n_attr: int = 0) -> np.ndarray:
+        return np.array([f[self.n_formant][n_attr] if len(f) > self.n_formant else np.nan for f in self.formants.formants])
+
+
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        f_interp = interp1d(self.formants.ts, self.formants.formants[:, self.n_formant], kind='linear')
+        formants_freqs = self._select_formant_attr()
+        f_interp = interp1d(self.formants.ts, formants_freqs, kind='linear')
+        return f_interp(time)
+
+
+class FeatureFormantBandwidth(FeatureFormantFreq):
+    def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
+        formants_bws = self._select_formant_attr(1)
+        f_interp = interp1d(self.formants.ts, formants_bws, kind='linear')
         return f_interp(time)
 
 
@@ -450,7 +498,8 @@ class VoiceExtractor:
             'pitch_f0': FeaturePitchF0(),
             'jitter_rel': FeatureJitter(),
             'shimmer_rel': FeatureShimmer(),
-            'f1_freq': FeatureFormantFreq(n_formant=0)
+            'f1_freq': FeatureFormantFreq(n_formant=0),
+            'f1_bandwidth': FeatureFormantBandwidth(n_formant=0)
         }
 
 
