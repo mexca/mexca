@@ -155,13 +155,15 @@ class FormantFrames(BaseFrames):
 
     def _apply_window(self):
         window = get_window(self.window, self.frame_len)
-        self.frames = np.multiply(self.frames, window)
+        self.frames = self.frames * window
 
 
     @staticmethod
     def _calc_formants(coefs: np.ndarray, sr: int, lower: float = 50, upper: float = 5450) -> List:
         # Function to compute complex norm
-        c_norm = lambda x: np.sqrt(np.abs(np.real(x)**2) + np.abs(np.imag(x)**2))
+        def complex_norm(x):
+            return np.sqrt(np.abs(np.real(x)**2) + np.abs(np.imag(x)**2))
+        
         nf_pi = (sr / (2 * math.pi)) # sr/2 = Nyquist freq
         # Find roots of linear coefficients
         roots = np.roots(coefs)
@@ -173,7 +175,7 @@ class FormantFrames(BaseFrames):
         # Calc formant centre freq
         formant_freqs = ang_freq * nf_pi
         # Calc formant bandwidth
-        formant_bws = -np.log(np.apply_along_axis(c_norm, 0, roots)) * nf_pi
+        formant_bws = -np.log(np.apply_along_axis(complex_norm, 0, roots)) * nf_pi
         # Select formants within boundaries
         in_bounds = np.logical_and(formant_freqs > lower, formant_freqs < upper)
         formants_sorted = sorted(list(zip(formant_freqs[in_bounds], formant_bws[in_bounds])))
@@ -186,7 +188,7 @@ class FormantFrames(BaseFrames):
         if self.window is not None:
             self._apply_window()
         # Calc linear predictive coefficients
-        coefs = librosa.lpc(self.frames, order=self.max_formants*2)
+        coefs = librosa.lpc(self.frames, order=self.max_formants * 2)
         # Transform LPCs to formants
         self.formants = [self._calc_formants(coef, self.sr, self.lower, self.upper) for coef in coefs]
 
@@ -228,26 +230,35 @@ class AudioSignal(BaseSignal):
                            frame_len=frame_len, hop_len=hop_len, method=method)
     
 
-    def to_formants(self, frame_len: int) -> FormantFrames:
+    def to_formants(self,
+            frame_len: int,
+            max_formants: int = 5,
+            lower: float = 50.0,
+            upper: float = 5450.0,
+            preemphasis_from: float = 50.0,
+            window: Union[str, float, Tuple] = 'hamming'
+        ) -> FormantFrames:
         hop_len = frame_len // 4
         padding = [(0, 0) for _ in self.sig.shape]
         padding[-1] = (frame_len // 2, frame_len // 2)
         sig_pad = np.pad(self.sig, padding, mode='constant')
         frames = librosa.util.frame(sig_pad, frame_length=frame_len, hop_length=hop_len, axis=0)
-        return FormantFrames(frames, self.sr, frame_len, hop_len)
+        return FormantFrames(frames, self.sr, frame_len, hop_len, max_formants, lower, upper, preemphasis_from, window)
 
 
-class BasePulses:
-    pulses: Optional[List] = None
-
-
+class PitchPulses:
     def __init__(self, audio_signal: AudioSignal, frames_obj: BaseFrames):
         self.logger = logging.getLogger('mexca.audio.extraction.BasePulses')
         self.audio_signal = audio_signal
         self.frames_obj = frames_obj
         self._sig = self.audio_signal.sig
         self._ts_sig = self.audio_signal.ts
-
+        self._sig_frames = None
+        self._ts_sig_frames = None
+        self._ts_mid_sig_frames = None
+        self._frames_interp_sig = None
+        self._frames_interp_sig_frames = None
+        self.pulses = []
         self._detect_pulses()
         self.logger.debug(ClassInitMessage())
 
@@ -286,8 +297,12 @@ class BasePulses:
         start: float,
         stop: float,
         left: bool = True,
-        pulses: List = []
+        pulses: Optional[List] = None
     ):
+        # Init pulses as list if first iter of recurrence and default
+        if pulses is None:
+            pulses = []
+
         # If interval [start, stop] reaches end of frame, exit recurrence
         if (left and start <= ts.min()) or (not left and stop >= ts.max()) or np.isnan(start) or np.isnan(stop):
             return pulses
@@ -318,10 +333,9 @@ class BasePulses:
 
         # Find next pulse in new interval
         return self._get_next_pulse(sig, ts, frames_interp, start, stop, left, pulses)
+    
 
-
-class PitchPulses(BasePulses):
-    def _detect_pulses_in_frame(self, frame_idx: int):
+    def _detect_pulses_in_frame(self, frame_idx: int) -> List[Tuple]:
         t0_mid = 1/self.frames_obj.frames[frame_idx]
         ts_mid = self.frames_obj.ts[frame_idx]
         sig_frame = self._sig_frames[frame_idx, :]
@@ -357,8 +371,12 @@ class BaseFeature:
         return None
 
 
-    def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        return None
+    def _get_interp_fun(self, ts: np.ndarray, feature: np.ndarray) -> np.ndarray:
+        return interp1d(ts, feature, kind='linear', bounds_error=False)
+
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return time
 
 
 class FeaturePitchF0(BaseFeature):
@@ -369,9 +387,8 @@ class FeaturePitchF0(BaseFeature):
         return {'pitch_frames': PitchFrames}
 
 
-    def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        f_interp = interp1d(self.pitch_frames.ts, self.pitch_frames.frames, kind='linear')
-        return f_interp(time)
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(self.pitch_frames.ts, self.pitch_frames.frames)(time)
 
 
 class BasePitchPulsesFeature(BaseFeature):
@@ -429,13 +446,12 @@ class BasePitchPulsesFeature(BaseFeature):
         self._feature = np.array([self._calc_feature_frame(i) for i in range(len(self.pitch_pulses.pulses))])
 
 
-    def _calc_feature_frame(self, idx: int) -> float:
-        return np.nan
+    def _calc_feature_frame(self, pulses_idx: int) -> float:
+        return pulses_idx
     
 
-    def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        f_interp = interp1d(self.pitch_pulses.frames_obj.ts, self.feature, kind='linear')
-        return f_interp(time)
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(self.pitch_pulses.frames_obj.ts, self.feature)(time)
 
 
 class FeatureJitter(BasePitchPulsesFeature):
@@ -499,15 +515,13 @@ class FeatureFormantFreq(BaseFeature):
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
         formants_freqs = self._select_formant_attr()
-        f_interp = interp1d(self.formants.ts, formants_freqs, kind='linear')
-        return f_interp(time)
+        return self._get_interp_fun(self.formants.ts, formants_freqs)(time)
 
 
 class FeatureFormantBandwidth(FeatureFormantFreq):
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
         formants_bws = self._select_formant_attr(1)
-        f_interp = interp1d(self.formants.ts, formants_bws, kind='linear')
-        return f_interp(time)
+        return self._get_interp_fun(self.formants.ts, formants_bws)(time)
 
 
 class FeatureFormantAmplitude(FeatureFormantFreq):
@@ -546,8 +560,7 @@ class FeatureFormantAmplitude(FeatureFormantFreq):
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
         formants_freqs = self._select_formant_attr()
         formants_amps = self._get_formant_amplitude(formants_freqs)
-        f_interp = interp1d(self.formants.ts, formants_amps, kind='linear')
-        return f_interp(time)
+        return self._get_interp_fun(self.formants.ts, formants_amps)(time)
 
 
 class VoiceExtractor:
