@@ -6,6 +6,7 @@ from typing import List, Optional, Tuple, Union
 import docker
 from docker.errors import DockerException
 from docker.types import Mount
+from mexca import __version__ as VERSION
 from mexca.data import AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures
 
 
@@ -13,7 +14,7 @@ class BaseContainer:
     """Base class for container components. Only for internal use.
     """
     def __init__(self, image_name: str):
-        self.image_name = image_name
+        self.image_name = image_name + ':v' + str(VERSION)
         try:
             self.client = docker.from_env()
         except DockerException as exc:
@@ -24,9 +25,9 @@ class BaseContainer:
         self.mount_dir = '/mnt/vol'
 
         try:
-            self.client.images.get(image_name)
+            self.client.images.get(self.image_name)
         except docker.errors.ImageNotFound:
-            self.client.images.pull(image_name)
+            self.client.images.pull(self.image_name)
 
 
     def _create_mounts(self, filepath: str):

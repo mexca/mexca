@@ -1,8 +1,16 @@
 import os
 import pytest
-from mexca.container import AudioTranscriberContainer, FaceExtractorContainer, SentimentExtractorContainer, SpeakerIdentifierContainer, VoiceExtractorContainer
+from docker.errors import NotFound
+from mexca.container import AudioTranscriberContainer, BaseContainer, FaceExtractorContainer, SentimentExtractorContainer, SpeakerIdentifierContainer, VoiceExtractorContainer
 from mexca.pipeline import Pipeline
 from mexca.utils import _validate_multimodal
+
+
+@pytest.mark.skip_env('runner')
+class TestBaseContainer:
+    def test_invalid_image_name(self):
+        with pytest.raises(NotFound):
+            BaseContainer(image_name='sdfsdf')
 
 
 @pytest.mark.skip_env('runner')

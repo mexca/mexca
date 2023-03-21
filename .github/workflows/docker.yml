@@ -18,7 +18,8 @@ jobs:
     # strategy:
     #   matrix:
     #     component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
-
+    env:
+      version: v0.2.1
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -34,7 +35,7 @@ jobs:
           context: ./docker/face-extractor
           load: true
           push: false
-          tags: mexca/face-extractor
+          tags: mexca/face-extractor:${{env.version}}
       - name: Build SpeakerIdentifier
         uses: docker/build-push-action@v3
         with:
@@ -44,7 +45,7 @@ jobs:
           context: ./docker/speaker-identifier
           load: true
           push: false
-          tags: mexca/speaker-identifier
+          tags: mexca/speaker-identifier:${{env.version}}
       - name: Build VoiceExtractor
         uses: docker/build-push-action@v3
         with:
@@ -52,7 +53,7 @@ jobs:
           context: ./docker/voice-extractor
           load: true
           push: false
-          tags: mexca/voice-extractor
+          tags: mexca/voice-extractor:${{env.version}}
       - name: Build AudioTranscriber
         uses: docker/build-push-action@v3
         with:
@@ -60,7 +61,7 @@ jobs:
           context: ./docker/audio-transcriber
           load: true
           push: false
-          tags: mexca/audio-transcriber
+          tags: mexca/audio-transcriber:${{env.version}}
       - name: Build SentimentExtractor
         uses: docker/build-push-action@v3
         with:
@@ -68,7 +69,7 @@ jobs:
           context: ./docker/sentiment-extractor
           load: true
           push: false
-          tags: mexca/sentiment-extractor
+          tags: mexca/sentiment-extractor:${{env.version}}
       - name: Set up Python 3.9
         uses: actions/setup-python@v3
         with:
