@@ -6,8 +6,7 @@ that can be used to extract voice features.
 There are two main types of classes: *Signal* (inherits from `BaseSignal`) and
 *Frames* (inherits from `BaseFrames`). Signals contain data about an entire
 signal (e.g., the audio signal itself) whereas Frames contain transformed and
-aggregated data about overlapping slices of the signal. Voice features are typically
-computed by interpolating Frames.
+aggregated data about overlapping slices of the signal.
 
 """
 
@@ -210,9 +209,9 @@ class BaseFrames:
 
 
 class PitchFrames(BaseFrames):
-    """Create and store pitch frames.
+    """Estimate and store pitch frames.
 
-    Calculate and store the voice pitch measured as the fundamental frequency F0 in Hz.
+    Estimate and store the voice pitch measured as the fundamental frequency F0 in Hz.
 
     Parameters
     ----------
@@ -652,9 +651,31 @@ class PitchHarmonicsFrames(BaseFrames):
 
 
 class FormantAmplitudeFrames(BaseFrames):
+    """Estimate and store formant amplitudes.
+
+    Parameters
+    ----------
+    frames: np.ndarray
+        Formant amplitude frames of shape (num_frames, max_formants) in dB.
+    lower: float
+        Lower boundary for peak amplitude search interval.
+    upper: float
+        Upper boundary for peak amplitude search interval.
+    rel_f0: bool
+        Whether the amplitude is relative to the fundamental frequency amplitude.
+
+    Notes
+    -----
+    Estimate the formant amplitude as the maximum amplitude of harmonics of the
+    fundamental frequency within an interval ``[lower*f, upper*f]`` where `f` is the
+    central frequency of the formant in each frame. If ``rel=True``, divide the amplitude by the amplitude of
+    the fundamental frequency.
+
+    """
+
     def __init__(
         self,
-        frames: List,
+        frames: np.ndarray,
         sr: int,
         frame_len: int,
         hop_len: int,
@@ -685,6 +706,21 @@ class FormantAmplitudeFrames(BaseFrames):
         upper: float = 1.2,
         rel_f0: bool = True,
     ):
+        """Estimate formant amplitudes from formant, pitch harmonics, and pitch frames.
+
+        Parameters
+        ----------
+        formant_frames_obj: FormantFrames
+            Formant frames object.
+        harmonics_frames_obj: PitchHarmonicsFrames
+        pitch_frames_obj: PitchFrames
+        lower: float, optional, default=0.8
+            Lower boundary for peak amplitude search interval.
+        upper: float, optional, default=1.2
+            Upper boundary for peak amplitude search interval.
+        rel_f0: bool, optional, default=True
+            Whether the amplitude is divide by the fundamental frequency amplitude.
+        """
         amp_frames = []
 
         for i in range(formant_frames_obj.max_formants):
@@ -725,6 +761,8 @@ class FormantAmplitudeFrames(BaseFrames):
 
 class PitchPulseFrames(BaseFrames):
     """Extract and store glottal pulse frames.
+
+    Glottal pulses are peaks in the signal corresponding to the fundamental frequency F0.
 
     Parameters
     ----------
@@ -981,6 +1019,29 @@ class JitterFrames(PitchPeriodFrames):
         upper: float,
         max_period_ratio: float,
     ):
+        """Extract and store voice jitter frames.
+
+        Parameters
+        ----------
+        frames: np.ndarray
+            Voice jitter frames of shape (num_frames,).
+        rel: bool
+            Whether the voice jitter is relative to the average period length.
+        lower: float
+            Lower limit for periods between glottal pulses.
+        upper: float
+            Upper limit for periods between glottal pulses.
+        max_period_ratio: float
+            Maximum ratio between consecutive periods used for jitter extraction.
+
+        Notes
+        -----
+        Compute jitter as the average absolute difference between consecutive fundamental periods with a ratio
+        below `max_period_ratio` for each frame. If ``rel=True``, jitter is divided by the average fundamental period
+        of each frame. Fundamental periods are calculated as the first-order temporal difference between consecutive
+        glottal pulses.
+
+        """
         self.logger = logging.getLogger("mexca.audio.extraction.JitterFrames")
         self.rel = rel
         self.max_period_ratio = max_period_ratio
@@ -995,6 +1056,21 @@ class JitterFrames(PitchPeriodFrames):
         upper: float = 0.02,
         max_period_ratio: float = 1.3,
     ):
+        """Extract voice jitter frames from glottal pulse frames.
+
+        Parameters
+        ----------
+        pitch_pulse_frames_obj: PitchPulseFrames
+            Glottal pulse frames object.
+        rel: bool, optional, default=True
+            Divide jitter by the average pitch period.
+        lower: float, optional, default=0.0001
+            Lower limit for periods between glottal pulses.
+        upper: float, optional, default=0.02
+            Upper limit for periods between glottal pulses.
+        max_period_ratio: float, optional, default=1.3
+            Maximum ratio between consecutive periods for jitter extraction.
+        """
         jitter_frames = np.array(
             [
                 cls._calc_jitter_frame(pulses, rel, lower, upper, max_period_ratio)
@@ -1056,6 +1132,32 @@ class JitterFrames(PitchPeriodFrames):
 
 
 class ShimmerFrames(PitchPeriodFrames):
+    """Extract and store voice shimmer frames.
+
+    Parameters
+    ----------
+    frames: np.ndarray
+        Voice shimmer frames of shape (num_frames,).
+    rel: bool
+        Whether the voice shimmer is relative to the average period length.
+    lower: float
+        Lower limit for periods between glottal pulses.
+    upper: float
+        Upper limit for periods between glottal pulses.
+    max_period_ratio: float
+        Maximum ratio between consecutive periods used for shimmer extraction.
+    max_amp_factor: float
+        Maximum ratio between consecutive amplitudes used for shimmer extraction.
+
+    Notes
+    -----
+    Compute shimmer as the average absolute difference between consecutive pitch amplitudes with a
+    fundamental period ratio below `max_period_ratio` and amplitude ratio below `max_amp_factor`
+    for each frame. If ``rel=True``, shimmer is divided by the average amplitude
+    of each frame. Fundamental periods are calculated as the first-order temporal difference
+    between consecutive glottal pulses. Amplitudes are signal amplitudes at the glottal pulses.
+    """
+
     def __init__(
         self,
         frames: List[Tuple],
@@ -1086,6 +1188,23 @@ class ShimmerFrames(PitchPeriodFrames):
         max_period_ratio: float = 1.3,
         max_amp_factor: float = 1.6,
     ):
+        """Extract voice shimmer frames from glottal pulse frames.
+
+        Parameters
+        ----------
+        pitch_pulse_frames_obj: PitchPulseFrames
+            Glottal pulse frames object.
+        rel: bool, optional, default=True
+            Divide shimmer by the average pitch period.
+        lower: float, optional, default=0.0001
+            Lower limit for periods between glottal pulses.
+        upper: float, optional, default=0.02
+            Upper limit for periods between glottal pulses.
+        max_period_ratio: float, optional, default=1.3
+            Maximum ratio between consecutive periods for shimmer extraction.
+        max_amp_factor: float, optional, default=1.6
+            Maximum ratio between consecutive amplitudes used for shimmer extraction.
+        """
         shimmer_frames = np.array(
             [
                 cls._calc_shimmer_frame(
@@ -1124,8 +1243,9 @@ class ShimmerFrames(PitchPeriodFrames):
             periods, mask = cls._calc_period_length(pulses, lower, upper)
             amps = cls._get_amplitude(pulses, mask)
 
-            # Calc avg of first order diff in period length
-            # only consider period pairs where ratio is < max_period_ratio
+            # Calc avg of first order diff in amplitude
+            # only consider period pairs where period ratio is < max_period_ratio and
+            # where amplitude ratio is < max_amp_factor
             avg_amp_diff = np.nanmean(
                 np.array(
                     [
@@ -1145,7 +1265,7 @@ class ShimmerFrames(PitchPeriodFrames):
                 )
             )
 
-            if rel:  # Relative to mean period length
+            if rel:  # Relative to mean amplitude
                 avg_amp = np.nanmean(
                     np.array([np.mean(amp) for amp in amps if len(amp) > 0])
                 )
