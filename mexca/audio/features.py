@@ -722,11 +722,6 @@ class FormantAmplitudeFrames(BaseFrames):
             rel_f0,
         )
 
-    def select_formant_amp(self, formant_idx: int) -> np.ndarray:
-        return np.array(
-            [f[formant_idx] if len(f) > formant_idx else np.nan for f in self.frames]
-        )
-
 
 class PitchPulseFrames(BaseFrames):
     """Extract and store glottal pulse frames.

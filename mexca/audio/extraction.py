@@ -90,8 +90,8 @@ class FeatureFormantAmplitude(BaseFeature):
         return {"formant_amp_frames": FormantAmplitudeFrames}
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        formants_amps = self.formant_amp_frames.select_formant_amp(self.n_formant)
-        return self._get_interp_fun(self.formant_amp_frames.ts, formants_amps)(time)
+        formants_amps = self.formant_amp_frames.frames
+        return self._get_interp_fun(self.formant_amp_frames.ts, formants_amps[:, self.n_formant])(time)
 
 
 class VoiceExtractor:
