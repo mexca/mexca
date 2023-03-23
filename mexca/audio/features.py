@@ -586,6 +586,7 @@ class PitchHarmonicsFrames(BaseFrames):
     frames: numpy.ndarray
         Harmonics frames with the shape (num_frames, n_harmonics)
     n_harmonics: int, default=100
+        Number of estimated harmonics.
 
     See Also
     --------
@@ -1006,6 +1007,29 @@ class PitchPeriodFrames(BaseFrames):
 
 
 class JitterFrames(PitchPeriodFrames):
+    """Extract and store voice jitter frames.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Voice jitter frames of shape (num_frames,).
+    rel: bool
+        Whether the voice jitter is relative to the average period length.
+    lower: float
+        Lower limit for periods between glottal pulses.
+    upper: float
+        Upper limit for periods between glottal pulses.
+    max_period_ratio: float
+        Maximum ratio between consecutive periods used for jitter extraction.
+
+    Notes
+    -----
+    Compute jitter as the average absolute difference between consecutive fundamental periods with a ratio
+    below `max_period_ratio` for each frame. If ``rel=True``, jitter is divided by the average fundamental period
+    of each frame. Fundamental periods are calculated as the first-order temporal difference between consecutive
+    glottal pulses.
+
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1019,29 +1043,6 @@ class JitterFrames(PitchPeriodFrames):
         upper: float,
         max_period_ratio: float,
     ):
-        """Extract and store voice jitter frames.
-
-        Parameters
-        ----------
-        frames: np.ndarray
-            Voice jitter frames of shape (num_frames,).
-        rel: bool
-            Whether the voice jitter is relative to the average period length.
-        lower: float
-            Lower limit for periods between glottal pulses.
-        upper: float
-            Upper limit for periods between glottal pulses.
-        max_period_ratio: float
-            Maximum ratio between consecutive periods used for jitter extraction.
-
-        Notes
-        -----
-        Compute jitter as the average absolute difference between consecutive fundamental periods with a ratio
-        below `max_period_ratio` for each frame. If ``rel=True``, jitter is divided by the average fundamental period
-        of each frame. Fundamental periods are calculated as the first-order temporal difference between consecutive
-        glottal pulses.
-
-        """
         self.logger = logging.getLogger("mexca.audio.extraction.JitterFrames")
         self.rel = rel
         self.max_period_ratio = max_period_ratio
@@ -1136,7 +1137,7 @@ class ShimmerFrames(PitchPeriodFrames):
 
     Parameters
     ----------
-    frames: np.ndarray
+    frames: numpy.ndarray
         Voice shimmer frames of shape (num_frames,).
     rel: bool
         Whether the voice shimmer is relative to the average period length.
