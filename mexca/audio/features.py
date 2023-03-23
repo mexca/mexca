@@ -1,4 +1,14 @@
 """Compute audio signal properties to extract voice features.
+
+This module contains classes and methods to compute and store properties of audio signals
+that can be used to extract voice features.
+
+There are two main types of classes: *Signal* (inherits from `BaseSignal`) and
+*Frames* (inherits from `BaseFrames`). Signals contain data about an entire
+signal (e.g., the audio signal itself) whereas Frames contain transformed and
+aggregated data about overlapping slices of the signal. Voice features are typically
+computed by interpolating Frames.
+
 """
 
 import logging
@@ -11,10 +21,20 @@ from mexca.utils import ClassInitMessage
 
 
 class BaseSignal:
+    """Store a signal.
+
+    Parameters
+    ----------
+    sig: numpy.ndarray
+        Signal.
+    sr: int
+        Sampling rate.
+    """
+
     _ts: Optional[np.ndarray] = None
     _idx: Optional[np.ndarray] = None
 
-    def __init__(self, sig: np.ndarray, sr: float) -> None:
+    def __init__(self, sig: np.ndarray, sr: int) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.BaseSignal")
         self.sig = sig
         self.sr = sr
@@ -22,19 +42,41 @@ class BaseSignal:
 
     @property
     def idx(self) -> np.ndarray:
+        """Sample indices (read-only)."""
         if self._idx is None:
             self._idx = np.arange(self.sig.shape[0])
         return self._idx
 
     @property
     def ts(self) -> np.ndarray:
+        """Sample timestamps (read-only)."""
         if self._ts is None:
             self._ts = librosa.samples_to_time(self.idx, sr=self.sr)
         return self._ts
 
 
 class AudioSignal(BaseSignal):
-    def __init__(self, sig: np.ndarray, sr: float, filename: str, mono: bool) -> None:
+    """Load and store an audio signal.
+
+    Parameters
+    ----------
+    sig: numpy.ndarray
+        Audio signal.
+    sr: int
+        Sampling rate.
+    mono: bool, default=True
+        Whether the signal has been converted to mono or not.
+    filename: str, optional
+        Name of the audio file associated with the signal.
+    """
+
+    def __init__(
+        self,
+        sig: np.ndarray,
+        sr: int,
+        mono: bool = True,
+        filename: Optional[str] = None,
+    ) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.AudioSignal")
         self.filename = filename
         self.mono = mono
@@ -42,12 +84,52 @@ class AudioSignal(BaseSignal):
         self.logger.debug(ClassInitMessage())
 
     @classmethod
-    def from_file(cls, filename: str, sr: Optional[int] = None, mono: bool = True):
+    def from_file(cls, filename: str, sr: Optional[float] = None, mono: bool = True):
+        """Load a signal from an audio file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the audio file.
+            File types must be supported by ``soundfile`` or ``audiofile``.
+            See :func:`librosa.load`.
+        sr: float, optional, default=None
+            Sampling rate. If `None`, is detected from the file, otherwise the signal is resampled.
+        mono: bool, default=True
+            Whether to convert the signal to mono.
+        """
         sig, nat_sr = librosa.load(path=filename, sr=sr, mono=mono)
-        return cls(sig, nat_sr, filename, mono)
+        return cls(sig, nat_sr, mono, filename)
 
 
 class BaseFrames:
+    """Create and store signal frames.
+
+    A frame is an (overlapping, padded) slice of a signal for which higher-order
+    features can be computed.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Signal frames. The first dimension should be the number of frames.
+    sr: int
+        Sampling rate.
+    frame_len: int
+        Number of samples per frame.
+    hop_len: int
+        Number of samples between frame starting points.
+    center: bool, default=True
+        Whether the signal has been centered and padded before framing.
+    pad_mode: str, default='constant'
+        How the signal has been padded before framing. See :func:`numpy.pad`.
+        Uses the default value 0 for `'constant'` padding.
+
+    See Also
+    --------
+    librosa.util.frame
+
+    """
+
     _ts: Optional[np.ndarray] = None
     _idx: Optional[np.ndarray] = None
 
@@ -71,12 +153,14 @@ class BaseFrames:
 
     @property
     def idx(self) -> np.ndarray:
+        """Frame indices (read-only)."""
         if self._idx is None:
             self._idx = np.arange(self.frames.shape[0])
         return self._idx
 
     @property
     def ts(self) -> np.ndarray:
+        """Frame timestamps (read-only)."""
         if self._ts is None:
             self._ts = librosa.frames_to_time(
                 self.idx, sr=self.sr, hop_length=self.hop_len
@@ -92,6 +176,22 @@ class BaseFrames:
         center: bool = True,
         pad_mode: str = "constant",
     ):
+        """Create frames from a signal.
+
+        Parameters
+        ----------
+        sig_obj: BaseSignal
+            Signal object.
+        frame_len: int
+            Number of samples per frame.
+        hop_len: int, optional, default=None
+            Number of samples between frame starting points. If `None`, uses `frame_len // 4`.
+        center: bool, default=True
+            Whether to center the frames and apply padding.
+        pad_mode: str, default='constant'
+            How the signal is padded before framing. See :func:`numpy.pad`.
+            Uses the default value 0 for `'constant'` padding. Ignored if `center=False`.
+        """
         if hop_len is None:
             hop_len = frame_len // 4
         sig = sig_obj.sig
@@ -109,6 +209,32 @@ class BaseFrames:
 
 
 class PitchFrames(BaseFrames):
+    """Create and store pitch frames.
+
+    Calculate and store the voice pitch measured as the fundamental frequency F0 in Hz.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Voice pitch frames in Hz with shape (num_frames,).
+    flag: numpy.ndarray
+        Boolean flags indicating which frames are voiced with shape (num_frames,).
+    prob: numpy.ndarray
+        Probabilities for frames being voiced with shape (num_frames,).
+    lower: float
+        Lower limit used for pitch estimation (in Hz).
+    upper: float
+        Upper limit used for pitch estimation (in Hz).
+    method: str
+        Method used for estimating voice pitch.
+
+    See Also
+    --------
+    librosa.pyin
+    librosa.yin
+
+    """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -144,6 +270,36 @@ class PitchFrames(BaseFrames):
         upper: float = 600.0,
         method: str = "pyin",
     ):
+        """Estimate the voice pitch frames from a signal.
+
+        Currently, voice pitch can only be extracted with the *pYIN* method.
+
+        Parameters
+        ----------
+        sig_obj: BaseSignal
+            Signal object.
+        frame_len: int
+            Number of samples per frame.
+        hop_len: int, optional, default=None
+            Number of samples between frame starting points. If `None`, uses `frame_len // 4`.
+        center: bool, default=True
+            Whether to center the frames and apply padding.
+        pad_mode: str, default='constant'
+            How the signal is padded before framing. See :func:`numpy.pad`.
+            Uses the default value 0 for `'constant'` padding. Ignored if `center=False`.
+        lower: float, default = 75.0
+            Lower limit for pitch estimation (in Hz).
+        upper: float, default = 600.0
+            Upper limit for pitch estimation (in Hz).
+        method: str, default = 'pyin'
+            Method for estimating voice pitch. Only `'pyin'` is currently available.
+
+        Raises
+        ------
+        NotImplementedError
+            If a method other than `'pyin'` is given.
+
+        """
         if method == "pyin":
             pitch_f0, flag, prob = librosa.pyin(
                 sig_obj.sig,
@@ -172,16 +328,40 @@ class PitchFrames(BaseFrames):
 
 
 class SpecFrames(BaseFrames):
+    """Create and store spectrogram frames.
+
+    Computes a spectrogram of a signal using the short-time Fourier transform (STFT).
+
+    Parameters
+    ----------
+    frames: np.ndarray
+        Spectrogram frames.
+    window: str
+        The window that was applied before the STFT.
+
+    Notes
+    -----
+    Frames contain complex arrays `x` where ``np.abs(x)`` is the magnitude and
+    ``np.angle(x)`` is the phase of the signal for different frequency bins.
+
+    See Also
+    --------
+    librosa.stft
+
+    """
+
     def __init__(
         self,
         frames: np.ndarray,
         sr: int,
+        window: str,
         frame_len: int,
         hop_len: int,
         center: bool = True,
         pad_mode: str = "constant",
     ) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.SpecFrames")
+        self.window = window
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
 
@@ -195,6 +375,24 @@ class SpecFrames(BaseFrames):
         pad_mode: str = "constant",
         window: Union[str, float, Tuple] = "hamming",
     ):
+        """Transform a signal into spectrogram frames.
+
+        Parameters
+        ----------
+        sig_obj: BaseSignal
+            Signal object.
+        frame_len: int
+            Number of samples per frame.
+        hop_len: int, optional, default=None
+            Number of samples between frame starting points. If `None`, uses `frame_len // 4`.
+        center: bool, default=True
+            Whether to center the frames and apply padding.
+        pad_mode: str, default='constant'
+            How the signal is padded before framing. See :func:`numpy.pad`.
+            Uses the default value 0 for `'constant'` padding. Ignored if `center=False`.
+        window: str
+            The window that is applied before the STFT.
+        """
         spec_frames = librosa.stft(
             sig_obj.sig,
             n_fft=frame_len,
@@ -206,6 +404,7 @@ class SpecFrames(BaseFrames):
         return cls(
             np.swapaxes(spec_frames, 0, 1),
             sig_obj.sr,
+            window,
             frame_len,
             hop_len,
             center,
@@ -214,9 +413,46 @@ class SpecFrames(BaseFrames):
 
 
 class FormantFrames(BaseFrames):
+    """Estimate and store formant frames.
+
+    Parameters
+    ----------
+    frames: list
+        Formant frames. Each frame contains a list of tuples for each formant, where the first item
+        is the central frequency and the second the bandwidth.
+    max_formants: int, default=5
+        The maximum number of formants that were extracted.
+    lower: float, default=50.0
+        Lower limit for formant frequencies (in Hz).
+    upper: float, default=5450.0
+        Upper limit for formant frequencies (in Hz).
+    preemphasis_from: float, default=50.0
+        Starting value for the applied preemphasis function.
+    window: str
+        Window function that was applied before formant estimation.
+
+    Notes
+    -----
+    Estimate formants of the signal in each frame:
+
+    1. Apply a preemphasis function with the coefficient
+       ``math.exp(-2 * math.pi * preemphasis_from * (1 / sr))``
+       to the signal.
+    2. Apply a window function to the signal.
+    3. Calculate linear predictive coefficients using :func:`librosa.lpc`
+       with order ``2 * max_formants``.
+    4. Find the roots of the coefficients.
+    5. Compute the formant central frequencies as
+       ``np.abs(np.arctan2(np.imag(roots), np.real(roots))) * sr / (2 * math.pi)``.
+    6. Compute the formant bandwidth as
+       ``np.sqrt(np.abs(np.real(roots) ** 2) + np.abs(np.imag(roots) ** 2)) * sr / (2 * math.pi)``.
+    7. Filter out formants outside the lower and upper limits.
+
+    """
+
     def __init__(
         self,
-        frames: np.ndarray,
+        frames: List,
         sr: int,
         frame_len: int,
         hop_len: int,
@@ -253,6 +489,24 @@ class FormantFrames(BaseFrames):
         preemphasis_from: float = 50.0,
         window: Union[str, float, Tuple] = "hamming",
     ):
+        """Extract formants from signal frames.
+
+        Parameters
+        ----------
+        sig_frames_obj: BaseFrames
+            Signal frames object.
+        max_formants: int, default=5
+            The maximum number of formants that were extracted.
+        lower: float, default=50.0
+            Lower limit for formant frequencies (in Hz).
+        upper: float, default=5450.0
+            Upper limit for formant frequencies (in Hz).
+        preemphasis_from: float, default=50.0
+            Starting value for the preemphasis function.
+        window: str
+            Window function.
+
+        """
         frames = sig_frames_obj.frames
 
         if preemphasis_from is not None:
@@ -313,6 +567,23 @@ class FormantFrames(BaseFrames):
 
 
 class PitchHarmonicsFrames(BaseFrames):
+    """Estimate and store voice pitch harmonics.
+
+    Compute the energy of the signal at harmonics (`nF0` for any integer n) of
+    the fundamental frequency.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Harmonics frames with the shape (num_frames, n_harmonics)
+    n_harmonics: int, default=100
+
+    See Also
+    --------
+    librosa.f0_harmonics
+
+    """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -330,9 +601,26 @@ class PitchHarmonicsFrames(BaseFrames):
 
     @classmethod
     def from_spec_and_pitch(
-        cls, spec_frames_obj: SpecFrames, pitch_frames_obj: PitchFrames, n_harmonics: int = 12
+        cls,
+        spec_frames_obj: SpecFrames,
+        pitch_frames_obj: PitchFrames,
+        n_harmonics: int = 100,
     ):
-        freqs = librosa.fft_frequencies(sr=spec_frames_obj.sr, n_fft=spec_frames_obj.frame_len)
+        """Estimate voice pitch harmonics from spectrogram frames and voice pitch frames.
+
+        Parameters
+        ----------
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+        pitch_frames_obj: PitchFrames
+            Pitch frames object.
+        n_harmonics: int, default=100
+            Number of harmonics to estimate.
+
+        """
+        freqs = librosa.fft_frequencies(
+            sr=spec_frames_obj.sr, n_fft=spec_frames_obj.frame_len
+        )
 
         harmonics = librosa.f0_harmonics(
             np.abs(spec_frames_obj.frames),
@@ -354,6 +642,34 @@ class PitchHarmonicsFrames(BaseFrames):
 
 
 class PitchPulseFrames(BaseFrames):
+    """Extract and store glottal pulse frames.
+
+    Parameters
+    ----------
+    frames: list
+        Pulse frames. Each frame contains a list of pulses or an empty list if no pulses are detected.
+        Pulses are stored as tuples (pulse timestamp, T0, amplitude).
+
+    Notes
+    -----
+    Extract glottal pulses with these steps:
+
+    1. Interpolate the fundamental frequency at the timestamps of the framed (padded) signal.
+    2. Start at the mid point `m` of each frame and create an interval [start, stop],
+       where ``start=m-T0/2`` and
+       ``stop=m+T0/2`` and `T0` is the fundamental period (1/F0).
+    3. Detect pulses in the interval by:
+        a. Find the maximum amplitude in an interval within the frame.
+        b. Compute the fundamental period `T0_new` at the timestamp of the maximum `m_new`.
+    4. Shift the interval recursively to the right or left until the edges of the frame are reached:
+        a. When shifting to the left, set ``start_new=m_new-1.25*T0_new``
+           and ``stop_new=m_new-0.8*T0_new``.
+        b. When shifting to the right, set ``start_new=m_new+0.8*T0_new``
+           and ``stop_new=m_new+1.25*T0_new``.
+    5. Filter out duplicate pulses.
+
+    """
+
     def __init__(
         self,
         frames: List[Tuple],
@@ -375,6 +691,16 @@ class PitchPulseFrames(BaseFrames):
 
     @classmethod
     def from_signal_and_pitch(cls, sig_obj: BaseSignal, pitch_frames_obj: PitchFrames):
+        """Extract glottal pulse frames from a signal and voice pitch frames.
+
+        Parameters
+        ----------
+        sig_obj: BaseSignal
+            Signal object.
+        pitch_frames_obj: PitchFrames
+            Voice pitch frames object.
+
+        """
         # Access to padded signal required so we transform it here again! Could go into separate private method perhaps
         padding = [(0, 0) for _ in sig_obj.sig.shape]
         padding[-1] = (pitch_frames_obj.frame_len // 2, pitch_frames_obj.frame_len // 2)
