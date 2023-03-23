@@ -13,6 +13,7 @@ computed by interpolating Frames.
 
 import logging
 import math
+from copy import copy
 from typing import List, Optional, Tuple, Union
 import librosa
 import numpy as np
@@ -532,6 +533,7 @@ class FormantFrames(BaseFrames):
             sig_frames_obj.hop_len,
             sig_frames_obj.center,
             sig_frames_obj.pad_mode,
+            max_formants,
             lower,
             upper,
             preemphasis_from,
@@ -564,6 +566,14 @@ class FormantFrames(BaseFrames):
             list(zip(formant_freqs[in_bounds], formant_bws[in_bounds]))
         )
         return formants_sorted
+
+    def select_formant_attr(self, formant_idx: int, attr_idx: int) -> np.ndarray:
+        return np.array(
+            [
+                f[formant_idx][attr_idx] if len(f) > formant_idx else np.nan
+                for f in self.frames
+            ]
+        )
 
 
 class PitchHarmonicsFrames(BaseFrames):
@@ -638,6 +648,83 @@ class PitchHarmonicsFrames(BaseFrames):
             spec_frames_obj.center,
             spec_frames_obj.pad_mode,
             n_harmonics,
+        )
+
+
+class FormantAmplitudeFrames(BaseFrames):
+    def __init__(
+        self,
+        frames: List,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        lower: float,
+        upper: float,
+        rel_f0: bool,
+    ):
+        self.lower = lower
+        self.upper = upper
+        self.rel_f0 = rel_f0
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
+
+    @property
+    def idx(self) -> np.ndarray:
+        if self._idx is None:
+            self._idx = np.arange(len(self.frames))
+        return self._idx
+
+    @classmethod
+    def from_formant_harmonics_and_pitch_frames(
+        cls,
+        formant_frames_obj: FormantFrames,
+        harmonics_frames_obj: PitchHarmonicsFrames,
+        pitch_frames_obj: PitchFrames,
+        lower: float = 0.8,
+        upper: float = 1.2,
+        rel_f0: bool = True,
+    ):
+        amp_frames = []
+
+        for i in range(formant_frames_obj.max_formants):
+            freqs = formant_frames_obj.select_formant_attr(i, 0)
+            f0 = pitch_frames_obj.frames
+            harmonic_freqs = (
+                f0[:, None] * (np.arange(harmonics_frames_obj.n_harmonics) + 1)[None, :]
+            )
+            f0_amp = harmonics_frames_obj.frames[:, 0]
+            freqs_lower = lower * freqs
+            freqs_upper = upper * freqs
+            freq_in_bounds = np.logical_and(
+                harmonic_freqs > freqs_lower[:, None],
+                harmonic_freqs < freqs_upper[:, None],
+            )
+            harmonics_amp = copy(harmonics_frames_obj.frames)
+            harmonics_amp[~freq_in_bounds] = np.nan
+            harmonic_peaks = np.nanmax(harmonics_amp, axis=1)
+            harmonic_peaks_db = 20 * np.log10(harmonic_peaks)
+
+            if rel_f0:
+                harmonic_peaks_db = harmonic_peaks_db - 20 * np.log10(f0_amp)
+
+            amp_frames.append(harmonic_peaks_db)
+
+        return cls(
+            np.array(amp_frames).T,
+            formant_frames_obj.sr,
+            formant_frames_obj.frame_len,
+            formant_frames_obj.hop_len,
+            formant_frames_obj.center,
+            formant_frames_obj.pad_mode,
+            lower,
+            upper,
+            rel_f0,
+        )
+
+    def select_formant_amp(self, formant_idx: int) -> np.ndarray:
+        return np.array(
+            [f[formant_idx] if len(f) > formant_idx else np.nan for f in self.frames]
         )
 
 
@@ -850,3 +937,235 @@ class PitchPulseFrames(BaseFrames):
         cls._get_next_pulse(sig_frame, ts_sig_frame, t0, start, stop, False, pulses)
 
         return list(sorted(set(pulses)))
+
+
+class PitchPeriodFrames(BaseFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        lower: float,
+        upper: float,
+    ):
+        self.logger = logging.getLogger("mexca.audio.extraction.PitchPeriodFrames")
+        self.lower = lower
+        self.upper = upper
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
+
+    @staticmethod
+    def _calc_period_length(
+        pulses: List[Tuple], lower: float, upper: float
+    ) -> Tuple[List, np.ndarray]:
+        # Calc period length as first order diff of pulse ts
+        periods = np.diff(np.array([puls[0] for puls in pulses]))
+
+        # Filter out too short and long periods
+        mask = np.logical_and(periods > lower, periods < upper)
+
+        # Split periods according to mask and remove masked periods
+        periods = np.array_split(periods[mask], np.where(~mask)[0])
+
+        return periods, mask
+
+
+class JitterFrames(PitchPeriodFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        rel: bool,
+        lower: float,
+        upper: float,
+        max_period_ratio: float,
+    ):
+        self.logger = logging.getLogger("mexca.audio.extraction.JitterFrames")
+        self.rel = rel
+        self.max_period_ratio = max_period_ratio
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode, lower, upper)
+
+    @classmethod
+    def from_pitch_pulse_frames(
+        cls,
+        pitch_pulse_frames_obj: PitchPulseFrames,
+        rel: bool = True,
+        lower: float = 0.0001,
+        upper: float = 0.02,
+        max_period_ratio: float = 1.3,
+    ):
+        jitter_frames = np.array(
+            [
+                cls._calc_jitter_frame(pulses, rel, lower, upper, max_period_ratio)
+                for pulses in pitch_pulse_frames_obj.frames
+            ]
+        )
+
+        return cls(
+            jitter_frames,
+            pitch_pulse_frames_obj.sr,
+            pitch_pulse_frames_obj.frame_len,
+            pitch_pulse_frames_obj.hop_len,
+            pitch_pulse_frames_obj.center,
+            pitch_pulse_frames_obj.pad_mode,
+            rel,
+            lower,
+            upper,
+            max_period_ratio,
+        )
+
+    @classmethod
+    def _calc_jitter_frame(
+        cls,
+        pulses: List[Tuple],
+        rel: bool,
+        lower: float,
+        upper: float,
+        max_period_ratio: float,
+    ):
+        if len(pulses) > 0:
+            # Calc period length as first order diff of pulse ts
+            periods, _ = cls._calc_period_length(pulses, lower, upper)
+
+            # Calc avg of first order diff in period length
+            # only consider period pairs where ratio is < max_period_ratio
+            avg_period_diff = np.nanmean(
+                np.array(
+                    [
+                        np.mean(
+                            np.abs(
+                                np.diff(period)[
+                                    (period[:-1] / period[1:]) < max_period_ratio
+                                ]
+                            )
+                        )
+                        for period in periods
+                        if len(period) > 0
+                    ]
+                )
+            )
+
+            if rel:  # Relative to mean period length
+                avg_period_len = np.nanmean(
+                    np.array([np.mean(period) for period in periods if len(period) > 0])
+                )
+                return avg_period_diff / avg_period_len
+            return avg_period_diff
+        return np.nan
+
+
+class ShimmerFrames(PitchPeriodFrames):
+    def __init__(
+        self,
+        frames: List[Tuple],
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        rel: bool,
+        lower: float,
+        upper: float,
+        max_period_ratio: float,
+        max_amp_factor: float,
+    ):
+        self.logger = logging.getLogger("mexca.audio.extraction.ShimmerFrames")
+        self.rel = rel
+        self.max_period_ratio = max_period_ratio
+        self.max_amp_factor = max_amp_factor
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode, lower, upper)
+
+    @classmethod
+    def from_pitch_pulse_frames(
+        cls,
+        pitch_pulse_frames_obj: PitchPulseFrames,
+        rel: bool = True,
+        lower: float = 0.0001,
+        upper: float = 0.02,
+        max_period_ratio: float = 1.3,
+        max_amp_factor: float = 1.6,
+    ):
+        shimmer_frames = np.array(
+            [
+                cls._calc_shimmer_frame(
+                    pulses, rel, lower, upper, max_period_ratio, max_amp_factor
+                )
+                for pulses in pitch_pulse_frames_obj.frames
+            ]
+        )
+
+        return cls(
+            shimmer_frames,
+            pitch_pulse_frames_obj.sr,
+            pitch_pulse_frames_obj.frame_len,
+            pitch_pulse_frames_obj.hop_len,
+            pitch_pulse_frames_obj.center,
+            pitch_pulse_frames_obj.pad_mode,
+            rel,
+            lower,
+            upper,
+            max_period_ratio,
+            max_amp_factor,
+        )
+
+    @classmethod
+    def _calc_shimmer_frame(
+        cls,
+        pulses: List[Tuple],
+        rel: bool,
+        lower: float,
+        upper: float,
+        max_period_ratio: float,
+        max_amp_factor: float,
+    ) -> float:
+        if len(pulses) > 0:
+            # Calc period length as first order diff of pulse ts
+            periods, mask = cls._calc_period_length(pulses, lower, upper)
+            amps = cls._get_amplitude(pulses, mask)
+
+            # Calc avg of first order diff in period length
+            # only consider period pairs where ratio is < max_period_ratio
+            avg_amp_diff = np.nanmean(
+                np.array(
+                    [
+                        np.mean(
+                            np.abs(
+                                np.diff(amp)[
+                                    np.logical_and(
+                                        (period[:-1] / period[1:]) < max_period_ratio,
+                                        (amp[:-1] / amp[1:]) < max_amp_factor,
+                                    )
+                                ]
+                            )
+                        )
+                        for amp, period in zip(amps, periods)
+                        if len(period) > 0
+                    ]
+                )
+            )
+
+            if rel:  # Relative to mean period length
+                avg_amp = np.nanmean(
+                    np.array([np.mean(amp) for amp in amps if len(amp) > 0])
+                )
+                return avg_amp_diff / avg_amp
+            return avg_amp_diff
+        return np.nan
+
+    @staticmethod
+    def _get_amplitude(pulses: List[Tuple], mask: List[bool]) -> List:
+        # Get amplitudes
+        amps = np.array([puls[2] for puls in pulses])[
+            1:
+        ]  # Skip first amplitude to align with periods
+
+        # Split periods according to mask and remove masked periods
+        amps = np.array_split(amps[mask], np.where(~mask)[0])
+
+        return amps
