@@ -610,7 +610,7 @@ class PitchHarmonicsFrames(BaseFrames):
         self.logger.debug(ClassInitMessage())
 
     @classmethod
-    def from_spec_and_pitch(
+    def from_spec_and_pitch_frames(
         cls,
         spec_frames_obj: SpecFrames,
         pitch_frames_obj: PitchFrames,
@@ -811,7 +811,7 @@ class PitchPulseFrames(BaseFrames):
         return self._idx
 
     @classmethod
-    def from_signal_and_pitch(cls, sig_obj: BaseSignal, pitch_frames_obj: PitchFrames):
+    def from_signal_and_pitch_frames(cls, sig_obj: BaseSignal, pitch_frames_obj: PitchFrames):
         """Extract glottal pulse frames from a signal and voice pitch frames.
 
         Parameters

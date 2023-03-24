@@ -150,7 +150,7 @@ class TestPitchHarmonicsFrames(TestPitchFrames, TestSpecFrames):
 
     @pytest.fixture
     def harmonics_frames_obj(self, spec_frames_obj, pitch_frames_obj):
-        return PitchHarmonicsFrames.from_spec_and_pitch(
+        return PitchHarmonicsFrames.from_spec_and_pitch_frames(
             spec_frames_obj, pitch_frames_obj, self.n_harmonics
         )
 
@@ -177,6 +177,10 @@ class TestFormantAmplitudeFrames(TestFormantFrames, TestPitchHarmonicsFrames):
             formant_frames_obj, harmonics_frames_obj, pitch_frames_obj
         )
 
+    @pytest.fixture
+    def frames_scope(self, formant_amp_frames_obj):
+        return formant_amp_frames_obj
+
     def test_formant_amplitude(self, formant_amp_frames_obj, formant_frames_obj):
         amp = formant_amp_frames_obj.frames
         assert isinstance(amp, np.ndarray)
@@ -191,7 +195,11 @@ class TestFormantAmplitudeFrames(TestFormantFrames, TestPitchHarmonicsFrames):
 class TestPitchPulseFrames(TestPitchFrames):
     @pytest.fixture
     def pulses_frames_obj(self, sig_obj, pitch_frames_obj):
-        return PitchPulseFrames.from_signal_and_pitch(sig_obj, pitch_frames_obj)
+        return PitchPulseFrames.from_signal_and_pitch_frames(sig_obj, pitch_frames_obj)
+
+    @pytest.fixture
+    def frames_scope(self, pulses_frames_obj):
+        return pulses_frames_obj
 
     def test_pulses(self, pulses_frames_obj):
         pulses = pulses_frames_obj.frames
@@ -232,6 +240,10 @@ class TestJitterFrames(TestPitchPulseFrames):
     def jitter_frames_obj(self, pulses_frames_obj):
         return JitterFrames.from_pitch_pulse_frames(pulses_frames_obj)
 
+    @pytest.fixture
+    def frames_scope(self, jitter_frames_obj):
+        return jitter_frames_obj
+
     def test_jitter(self, jitter_frames_obj):
         jitter = jitter_frames_obj.frames
         assert jitter.shape == jitter_frames_obj.ts.shape == jitter_frames_obj.idx.shape
@@ -253,6 +265,10 @@ class TestShimmerFrames(TestPitchPulseFrames):
     @pytest.fixture
     def shimmer_frames_obj(self, pulses_frames_obj):
         return ShimmerFrames.from_pitch_pulse_frames(pulses_frames_obj)
+
+    @pytest.fixture
+    def frames_scope(self, shimmer_frames_obj):
+        return shimmer_frames_obj
 
     def test_shimmer(self, shimmer_frames_obj):
         shimmer = shimmer_frames_obj.frames

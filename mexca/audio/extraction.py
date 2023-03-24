@@ -166,13 +166,13 @@ class VoiceExtractor:
         pitch_frames = PitchFrames.from_signal(
             audio_signal, frame_len=1024, hop_len=1024 // 4
         )
-        pulses_frames = PitchPulseFrames.from_signal_and_pitch(
+        pulses_frames = PitchPulseFrames.from_signal_and_pitch_frames(
             audio_signal, pitch_frames
         )
         jitter_frames = JitterFrames.from_pitch_pulse_frames(pulses_frames)
         shimmer_frames = ShimmerFrames.from_pitch_pulse_frames(pulses_frames)
         formant_frames = FormantFrames.from_frames(sig_frames)
-        pitch_harmonics = PitchHarmonicsFrames.from_spec_and_pitch(
+        pitch_harmonics = PitchHarmonicsFrames.from_spec_and_pitch_frames(
             spec_frames, pitch_frames, n_harmonics=100
         )
         formant_amp_frames = (
