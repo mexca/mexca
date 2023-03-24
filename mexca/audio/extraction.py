@@ -7,7 +7,7 @@ import os
 from typing import Dict, Optional
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames, JitterFrames,
+from mexca.audio.features import (AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames, JitterFrames, HnrFrames,
                                   PitchFrames, PitchHarmonicsFrames, PitchPulseFrames, ShimmerFrames, SpecFrames)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
@@ -58,6 +58,16 @@ class FeatureShimmer(BaseFeature):
         return self._get_interp_fun(self.shimmer_frames.ts, self.shimmer_frames.frames)(
             time
         )
+
+
+class FeatureHnr(BaseFeature):
+    hnr_frames: Optional[HnrFrames] = None
+
+    def requires(self) -> Optional[Dict[str, type]]:
+        return {'hnr_frames': HnrFrames}
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(self.hnr_frames.ts, self.hnr_frames.frames)(time)
 
 
 class FeatureFormantFreq(BaseFeature):
@@ -123,7 +133,7 @@ class VoiceExtractor:
             "f1_freq": FeatureFormantFreq(n_formant=0),
             "f1_bandwidth": FeatureFormantBandwidth(n_formant=0),
             "f1_amplitude": FeatureFormantAmplitude(n_formant=0),
-            # 'loudness': FeatureLoudness()
+            "hnr": FeatureHnr()
         }
 
     def apply(
@@ -171,6 +181,7 @@ class VoiceExtractor:
         )
         jitter_frames = JitterFrames.from_pitch_pulse_frames(pulses_frames)
         shimmer_frames = ShimmerFrames.from_pitch_pulse_frames(pulses_frames)
+        hnr_frames = HnrFrames.from_frames(sig_frames)
         formant_frames = FormantFrames.from_frames(sig_frames)
         pitch_harmonics = PitchHarmonicsFrames.from_spec_and_pitch_frames(
             spec_frames, pitch_frames, n_harmonics=100
@@ -187,6 +198,7 @@ class VoiceExtractor:
             pulses_frames,
             jitter_frames,
             shimmer_frames,
+            hnr_frames,
             formant_frames,
             pitch_harmonics,
             formant_amp_frames,
