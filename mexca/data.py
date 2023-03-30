@@ -113,13 +113,13 @@ class VoiceFeatures:
             try:
                 feature = feature.tolist()
             except Exception as exc:
-                raise exc('Feature must be a list, not %s', type(feature))
+                raise Exception(f'Feature must be a list, not {type(feature)}') from exc
         
         feature_len = len(feature)
         if not feature_len == len(self.frame) and feature_len != 1:
-            raise Exception('Feature must have same length as frame attribute or length 1 but has length %s', feature_len)
+            raise Exception(f'Feature must have same length as frame attribute or length 1 but has length {feature_len}')
         
-        self.__setattr__(name, feature)
+        setattr(self, name, feature)
 
 
     @classmethod

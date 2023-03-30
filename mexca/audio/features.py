@@ -643,7 +643,7 @@ class PitchHarmonicsFrames(BaseFrames):
         # )
 
         harmonics = cls._calc_f0_harmonics(
-            spec_frames_obj.frames, freqs, pitch_frames_obj.frames, n_harmonics + 1 # Shift one up
+            spec_frames_obj.frames, freqs, pitch_frames_obj.frames, n_harmonics
         )
 
         return cls(
@@ -676,7 +676,8 @@ class PitchHarmonicsFrames(BaseFrames):
 
         xfunc = np.vectorize(mag_interp_fun, signature="(f),(h)->(h)")
         harmonics_frames = xfunc(
-            np.abs(spec_frames), np.multiply.outer(f0_frames, np.arange(n_harmonics))
+            np.abs(spec_frames),
+            np.multiply.outer(f0_frames, np.arange(n_harmonics) + 1),  # Shift one up
         )
 
         return harmonics_frames
@@ -729,7 +730,7 @@ class FormantAmplitudeFrames(BaseFrames):
         return self._idx
 
     @classmethod
-    def from_formant_harmonics_and_pitch_frames(
+    def from_formant_harmonics_and_pitch_frames(  # pylint: disable=too-many-locals
         cls,
         formant_frames_obj: FormantFrames,
         harmonics_frames_obj: PitchHarmonicsFrames,
@@ -757,9 +758,9 @@ class FormantAmplitudeFrames(BaseFrames):
 
         for i in range(formant_frames_obj.max_formants):
             freqs = formant_frames_obj.select_formant_attr(i, 0)
-            f0 = pitch_frames_obj.frames
             harmonic_freqs = (
-                f0[:, None] * (np.arange(harmonics_frames_obj.n_harmonics) + 1)[None, :]
+                pitch_frames_obj.frames[:, None]
+                * (np.arange(harmonics_frames_obj.n_harmonics) + 1)[None, :]
             )
             f0_amp = harmonics_frames_obj.frames[:, 0]
             freqs_lower = lower * freqs
@@ -935,8 +936,7 @@ class PitchPulseFrames(BaseFrames):
         if (
             (left and start <= ts.min())
             or (not left and stop >= ts.max())
-            or np.isnan(start)
-            or np.isnan(stop)
+            or any(np.isnan((start, stop)))
         ):
             return pulses
 

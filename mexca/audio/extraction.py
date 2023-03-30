@@ -7,8 +7,9 @@ import os
 from typing import Dict, Optional
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames, JitterFrames, HnrFrames,
-                                  PitchFrames, PitchHarmonicsFrames, PitchPulseFrames, ShimmerFrames, SpecFrames)
+from mexca.audio.features import (AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames, HnrFrames,
+                                  JitterFrames, PitchFrames, PitchHarmonicsFrames, PitchPulseFrames, ShimmerFrames,
+                                  SpecFrames)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
 
@@ -64,7 +65,7 @@ class FeatureHnr(BaseFeature):
     hnr_frames: Optional[HnrFrames] = None
 
     def requires(self) -> Optional[Dict[str, type]]:
-        return {'hnr_frames': HnrFrames}
+        return {"hnr_frames": HnrFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
         return self._get_interp_fun(self.hnr_frames.ts, self.hnr_frames.frames)(time)
@@ -101,7 +102,9 @@ class FeatureFormantAmplitude(BaseFeature):
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
         formants_amps = self.formant_amp_frames.frames
-        return self._get_interp_fun(self.formant_amp_frames.ts, formants_amps[:, self.n_formant])(time)
+        return self._get_interp_fun(
+            self.formant_amp_frames.ts, formants_amps[:, self.n_formant]
+        )(time)
 
 
 class VoiceExtractor:
@@ -133,10 +136,10 @@ class VoiceExtractor:
             "f1_freq": FeatureFormantFreq(n_formant=0),
             "f1_bandwidth": FeatureFormantBandwidth(n_formant=0),
             "f1_amplitude": FeatureFormantAmplitude(n_formant=0),
-            "hnr": FeatureHnr()
+            "hnr": FeatureHnr(),
         }
 
-    def apply(
+    def apply(  # pylint: disable=too-many-locals
         self, filepath: str, time_step: float, skip_frames: int = 1
     ) -> VoiceFeatures:
         """Extract voice features from an audio file.
@@ -211,7 +214,7 @@ class VoiceExtractor:
         for key, feat in self.features.items():
             for attr, req in feat.requires().items():
                 idx = requirements_types.index(req)
-                feat.__setattr__(attr, requirements[idx])
+                setattr(feat, attr, requirements[idx])
 
             self.logger.debug("Extracting feature %s", key)
             extracted_features.add_feature(key, feat.apply(time))
