@@ -663,6 +663,8 @@ class PitchHarmonicsFrames(BaseFrames):
         f0_frames: np.ndarray,
         n_harmonics: int,
     ) -> np.ndarray:
+        # Adapted from librosa.f0_harmonics, see:
+        # https://librosa.org/doc/latest/generated/librosa.f0_harmonics.html#librosa.f0_harmonics
         is_valid = np.isfinite(freqs)
 
         def mag_interp_fun(spec_frames, f0_harmonic_freqs):
@@ -670,6 +672,9 @@ class PitchHarmonicsFrames(BaseFrames):
                 freqs[is_valid],
                 spec_frames[is_valid],
                 axis=0,
+                copy=False,
+                assume_sorted=False,
+                bounds_error=False,
                 fill_value=0,
             )
             return interp(f0_harmonic_freqs)
