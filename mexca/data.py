@@ -126,7 +126,12 @@ class VoiceFeatures:
     def _from_dict(cls, data: Dict):
         field_names = [f.name for f in fields(cls)]
         filtered_data = {k: v for k, v in data.items() if k in field_names}
-        return cls(**filtered_data)
+        remaining_data = {k: v for k, v in data.items() if k not in field_names}
+        obj = cls(**filtered_data)
+        obj.add_attributes(remaining_data.keys())
+        for key in remaining_data:
+            obj.add_feature(key, remaining_data[key])
+        return obj
 
 
     @classmethod
