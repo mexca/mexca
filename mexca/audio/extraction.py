@@ -185,7 +185,8 @@ class VoiceExtractor:
         jitter_frames = JitterFrames.from_pitch_pulse_frames(pulses_frames)
         shimmer_frames = ShimmerFrames.from_pitch_pulse_frames(pulses_frames)
         hnr_frames = HnrFrames.from_frames(sig_frames)
-        formant_frames = FormantFrames.from_frames(sig_frames)
+        # TODO: Fix preemphasis for entire signal, not per frame
+        formant_frames = FormantFrames.from_frames(sig_frames, preemphasis_from=None)
         pitch_harmonics = PitchHarmonicsFrames.from_spec_and_pitch_frames(
             spec_frames, pitch_frames, n_harmonics=100
         )

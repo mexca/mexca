@@ -440,7 +440,9 @@ class FormantFrames(BaseFrames):
     1. Apply a preemphasis function with the coefficient
        ``math.exp(-2 * math.pi * preemphasis_from * (1 / sr))``
        to the signal.
-    2. Apply a window function to the signal.
+    2. Apply a window function to the signal. By default, the same Gaussian window as in
+       Praat is used: ``(np.exp(-48.0 * (n - ((N + 1)/2)**2 / (N + 1)**2) - np.exp(-12.0)) / (1.0 - np.exp(-12.0))``,
+       where `N` is the length of the window and `n` the index of each sample.
     3. Calculate linear predictive coefficients using :func:`librosa.lpc`
        with order ``2 * max_formants``.
     4. Find the roots of the coefficients.
@@ -480,6 +482,17 @@ class FormantFrames(BaseFrames):
         if self._idx is None:
             self._idx = np.arange(len(self.frames))
         return self._idx
+    
+
+    @staticmethod
+    def _praat_gauss_window(frame_len: int):
+        # This is the Gaussian window that is used in Praat for formant estimation
+        # See: https://github.com/YannickJadoul/Parselmouth/blob/master/praat/fon/Sound_to_Formant.cpp
+        sample_idx = np.arange(frame_len)+1
+        idx_mid = 0.5 * (frame_len + 1)
+        edge = np.exp(-12.0)
+        return (np.exp(-48.0 * (sample_idx - idx_mid)**2 / (frame_len)**2) - edge) / (1.0 - edge)
+
 
     @classmethod
     def from_frames(
@@ -489,7 +502,7 @@ class FormantFrames(BaseFrames):
         lower: float = 50.0,
         upper: float = 5450.0,
         preemphasis_from: float = 50.0,
-        window: Union[str, float, Tuple] = "hamming",
+        window: Union[str, float, Tuple] = "praat_gaussian",
     ):
         """Extract formants from signal frames.
 
@@ -517,7 +530,10 @@ class FormantFrames(BaseFrames):
             )
             frames = librosa.effects.preemphasis(sig_frames_obj.frames, coef=pre_coef)
         if window is not None:
-            win = get_window(window, sig_frames_obj.frame_len, fftbins=False)
+            if window == "praat_gaussian":
+                win = cls._praat_gauss_window(sig_frames_obj.frame_len)
+            else:
+                win = get_window(window, sig_frames_obj.frame_len, fftbins=False)
             frames = frames * win
 
         # Calc linear predictive coefficients
