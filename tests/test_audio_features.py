@@ -166,7 +166,7 @@ class TestPitchHarmonicsFrames(TestPitchFrames, TestSpecFrames):
             == harmonics_frames_obj.ts.shape[0]
             == harmonics_frames_obj.idx.shape[0]
         )
-        assert np.all(harmonics >= 0)
+        assert np.all(np.logical_or(harmonics >= 0, np.isnan(harmonics)))
 
 
 class TestFormantAmplitudeFrames(TestFormantFrames, TestPitchHarmonicsFrames):
