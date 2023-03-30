@@ -465,8 +465,8 @@ class FormantFrames(BaseFrames):
         max_formants: int = 5,
         lower: float = 50.0,
         upper: float = 5450.0,
-        preemphasis_from: float = 50.0,
-        window: Union[str, float, Tuple] = "hamming",
+        preemphasis_from: Optional[float] = 50.0,
+        window: Optional[Union[str, float, Tuple]] = "praat_gaussian"
     ) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.FormantFrames")
         self.max_formants = max_formants
@@ -501,8 +501,8 @@ class FormantFrames(BaseFrames):
         max_formants: int = 5,
         lower: float = 50.0,
         upper: float = 5450.0,
-        preemphasis_from: float = 50.0,
-        window: Union[str, float, Tuple] = "praat_gaussian",
+        preemphasis_from: Optional[float] = 50.0,
+        window: Optional[Union[str, float, Tuple]] = "praat_gaussian"
     ):
         """Extract formants from signal frames.
 
@@ -1333,7 +1333,7 @@ class ShimmerFrames(PitchPeriodFrames):
         return np.nan
 
     @staticmethod
-    def _get_amplitude(pulses: List[Tuple], mask: List[bool]) -> List:
+    def _get_amplitude(pulses: List[Tuple], mask: np.ndarray) -> List:
         # Get amplitudes
         amps = np.array([puls[2] for puls in pulses])[
             1:

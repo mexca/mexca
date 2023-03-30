@@ -26,7 +26,7 @@ class BaseFeature:
 
 
 class FeaturePitchF0(BaseFeature):
-    pitch_frames: PitchFrames = None
+    pitch_frames: Optional[PitchFrames] = None
 
     def requires(self) -> Optional[Dict[str, type]]:
         return {"pitch_frames": PitchFrames}
@@ -72,7 +72,7 @@ class FeatureHnr(BaseFeature):
 
 
 class FeatureFormantFreq(BaseFeature):
-    formants: FormantFrames = None
+    formants: Optional[FormantFrames] = None
 
     def __init__(self, n_formant: int):
         self.n_formant = n_formant

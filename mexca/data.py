@@ -116,7 +116,7 @@ class VoiceFeatures:
                 raise Exception(f'Feature must be a list, not {type(feature)}') from exc
         
         feature_len = len(feature)
-        if not feature_len == len(self.frame) and feature_len != 1:
+        if feature_len != len(self.frame) and feature_len != 1:
             raise Exception(f'Feature must have same length as frame attribute or length 1 but has length {feature_len}')
         
         setattr(self, name, feature)
