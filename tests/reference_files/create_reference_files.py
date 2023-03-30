@@ -2,6 +2,8 @@
 """
 
 import os
+from mexca.audio import VoiceExtractor
+from mexca.pipeline import Pipeline
 from mexca.video import FaceExtractor
 # from moviepy.editor import VideoFileClip
 
@@ -35,3 +37,19 @@ video_annotation_xgb_mobilefacenet.face_landmarks_mobilenet = video_annotation_s
 video_annotation_xgb_mobilefacenet.face_landmarks_pfld = video_annotation_xgb_pfld.face_landmarks
 
 video_annotation_xgb_mobilefacenet.write_json(video_reference_path)
+
+audio_filepath = os.path.join(
+    'tests', 'test_files', 'test_video_audio_5_seconds.wav'
+)
+
+audio_reference_path = os.path.join(
+    'tests', 'reference_files', 'test_video_audio_5_seconds_voice_features.json'
+)
+
+extractor = VoiceExtractor()
+
+pipeline = Pipeline(voice_extractor=extractor)
+
+features = pipeline.apply(filepath=video_filepath, skip_frames=5)
+
+features.voice_features.write_json(audio_reference_path)
