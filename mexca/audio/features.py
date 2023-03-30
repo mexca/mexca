@@ -16,6 +16,7 @@ from copy import copy
 from typing import List, Optional, Tuple, Union
 import librosa
 import numpy as np
+from scipy.interpolate import interp1d
 from scipy.signal import find_peaks
 from scipy.signal.windows import get_window
 from mexca.utils import ClassInitMessage
@@ -633,12 +634,16 @@ class PitchHarmonicsFrames(BaseFrames):
             sr=spec_frames_obj.sr, n_fft=spec_frames_obj.frame_len
         )
 
-        harmonics = librosa.f0_harmonics(
-            np.abs(spec_frames_obj.frames),
-            freqs=freqs,
-            f0=pitch_frames_obj.frames,
-            harmonics=np.arange(n_harmonics) + 1,  # Shift one up
-            axis=-1,
+        # harmonics = librosa.f0_harmonics(
+        #     np.abs(spec_frames_obj.frames),
+        #     freqs=freqs,
+        #     f0=pitch_frames_obj.frames,
+        #     harmonics=np.arange(n_harmonics) + 1,  # Shift one up
+        #     axis=-1,
+        # )
+
+        harmonics = cls._calc_f0_harmonics(
+            spec_frames_obj.frames, freqs, pitch_frames_obj.frames, n_harmonics + 1 # Shift one up
         )
 
         return cls(
@@ -650,6 +655,31 @@ class PitchHarmonicsFrames(BaseFrames):
             spec_frames_obj.pad_mode,
             n_harmonics,
         )
+
+    @staticmethod
+    def _calc_f0_harmonics(
+        spec_frames: np.ndarray,
+        freqs: np.ndarray,
+        f0_frames: np.ndarray,
+        n_harmonics: int,
+    ) -> np.ndarray:
+        is_valid = np.isfinite(freqs)
+
+        def mag_interp_fun(spec_frames, f0_harmonic_freqs):
+            interp = interp1d(
+                freqs[is_valid],
+                spec_frames[is_valid],
+                axis=0,
+                fill_value=0,
+            )
+            return interp(f0_harmonic_freqs)
+
+        xfunc = np.vectorize(mag_interp_fun, signature="(f),(h)->(h)")
+        harmonics_frames = xfunc(
+            np.abs(spec_frames), np.multiply.outer(f0_frames, np.arange(n_harmonics))
+        )
+
+        return harmonics_frames
 
 
 class FormantAmplitudeFrames(BaseFrames):
@@ -812,7 +842,9 @@ class PitchPulseFrames(BaseFrames):
         return self._idx
 
     @classmethod
-    def from_signal_and_pitch_frames(cls, sig_obj: BaseSignal, pitch_frames_obj: PitchFrames):
+    def from_signal_and_pitch_frames(
+        cls, sig_obj: BaseSignal, pitch_frames_obj: PitchFrames
+    ):
         """Extract glottal pulse frames from a signal and voice pitch frames.
 
         Parameters
@@ -1032,6 +1064,7 @@ class JitterFrames(PitchPeriodFrames):
     glottal pulses.
 
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -1314,7 +1347,18 @@ class HnrFrames(BaseFrames):
     5. Compute the HNR as `R0/(1-R0)` and convert to dB.
 
     """
-    def __init__(self, frames: np.ndarray, sr: int, frame_len: int, hop_len: int, center: bool, pad_mode: str, lower: float, rel_silence_threshold):
+
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        lower: float,
+        rel_silence_threshold,
+    ):
         self.logger = logging.getLogger("mexca.audio.extraction.HnrFrames")
         self.lower = lower
         self.rel_silence_threshold = rel_silence_threshold
@@ -1322,7 +1366,12 @@ class HnrFrames(BaseFrames):
         self.logger.debug(ClassInitMessage())
 
     @classmethod
-    def from_frames(cls, sig_frames_obj: BaseFrames, lower: float = 75.0, rel_silence_threshold: float = 0.1):
+    def from_frames(
+        cls,
+        sig_frames_obj: BaseFrames,
+        lower: float = 75.0,
+        rel_silence_threshold: float = 0.1,
+    ):
         """Estimate the HNR from signal frames.
 
         Parameters
@@ -1336,20 +1385,37 @@ class HnrFrames(BaseFrames):
 
         """
         auto_cor = librosa.autocorrelate(sig_frames_obj.frames)
-        harmonic_strength = np.apply_along_axis(cls._find_max_peak, 1, auto_cor[:, 1:], sr=sig_frames_obj.sr, lower=lower)
+        harmonic_strength = np.apply_along_axis(
+            cls._find_max_peak, 1, auto_cor[:, 1:], sr=sig_frames_obj.sr, lower=lower
+        )
         harmonic_comp = harmonic_strength / auto_cor[:, 0]
         hnr = harmonic_comp / (1 - harmonic_comp)
-        silence_mask = np.max(np.abs(sig_frames_obj.frames), axis=1) > rel_silence_threshold*np.max(np.abs(sig_frames_obj.frames))
+        silence_mask = np.max(
+            np.abs(sig_frames_obj.frames), axis=1
+        ) > rel_silence_threshold * np.max(np.abs(sig_frames_obj.frames))
         hnr[~silence_mask] = np.nan
         hnr_db = 10 * np.log10(hnr)
-        return cls(hnr_db, sig_frames_obj.sr, sig_frames_obj.frame_len, sig_frames_obj.hop_len, sig_frames_obj.center, sig_frames_obj.pad_mode,
-                   lower, rel_silence_threshold)
+        return cls(
+            hnr_db,
+            sig_frames_obj.sr,
+            sig_frames_obj.frame_len,
+            sig_frames_obj.hop_len,
+            sig_frames_obj.center,
+            sig_frames_obj.pad_mode,
+            lower,
+            rel_silence_threshold,
+        )
 
     @staticmethod
     def _find_max_peak(auto_cor: np.ndarray, sr: int, lower: float) -> float:
         auto_cor_peak_lags = find_peaks(auto_cor)[0]
         auto_cor_peaks = auto_cor[auto_cor_peak_lags]
-        auto_cor_peak_periods = 1/auto_cor_peak_lags * sr
-        auto_cor_max_peak_lag = np.argmax(auto_cor_peaks[np.logical_and(auto_cor_peak_periods > lower, auto_cor_peak_periods < sr/2)])
+        auto_cor_peak_periods = 1 / auto_cor_peak_lags * sr
+        auto_cor_max_peak_lag = np.argmax(
+            auto_cor_peaks[
+                np.logical_and(
+                    auto_cor_peak_periods > lower, auto_cor_peak_periods < sr / 2
+                )
+            ]
+        )
         return auto_cor[auto_cor_max_peak_lag]
-    
