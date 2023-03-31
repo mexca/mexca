@@ -3,7 +3,7 @@
 
 import json
 import sys
-from dataclasses import asdict, dataclass, field, fields
+from dataclasses import asdict, dataclass, field, fields, make_dataclass
 from datetime import timedelta
 from functools import reduce
 from typing import Any, Dict, List, Optional, TextIO, Union
@@ -98,20 +98,40 @@ class VoiceFeatures:
         The frame index for which features were extracted.
     time: list
         The time stamp at which features were extracted.
-    pitch_f0: list, optional
-        The voice pitch measured as the fundamental frequency F0.
 
     """
     frame: List[int]
     time: List[float]
-    pitch_f0: Optional[List[float]] = field(default_factory=list)
+
+
+    def add_attributes(self, attr_names: List[str]):
+        self.__class__ = make_dataclass('VoiceFeatures', fields=attr_names, bases=(self.__class__,))
+
+
+    def add_feature(self, name: str, feature: List):
+        if not isinstance(feature, list):
+            try:
+                feature = feature.tolist()
+            except Exception as exc:
+                raise Exception(f'Feature must be a list, not {type(feature)}') from exc
+        
+        feature_len = len(feature)
+        if feature_len != len(self.frame) and feature_len != 1:
+            raise Exception(f'Feature must have same length as frame attribute or length 1 but has length {feature_len}')
+        
+        setattr(self, name, feature)
 
 
     @classmethod
     def _from_dict(cls, data: Dict):
         field_names = [f.name for f in fields(cls)]
         filtered_data = {k: v for k, v in data.items() if k in field_names}
-        return cls(**filtered_data)
+        remaining_data = {k: v for k, v in data.items() if k not in field_names}
+        obj = cls(**filtered_data)
+        obj.add_attributes(remaining_data.keys())
+        for key in remaining_data:
+            obj.add_feature(key, remaining_data[key])
+        return obj
 
 
     @classmethod

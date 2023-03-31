@@ -19,6 +19,7 @@ class AuthenticationError(Exception):
         Error message.
 
     """
+
     def __init__(self, msg: str):
         super().__init__(msg)
 
@@ -45,19 +46,20 @@ class SpeakerIdentifier:
     `<hf.co/pyannote/segmentation>`_. Then generate an authentication token on `<hf.co/settings/tokens>`_.
 
     """
-    def __init__(self,
+
+    def __init__(
+        self,
         num_speakers: Optional[int] = None,
-        use_auth_token: Union[bool, str] = True
+        use_auth_token: Union[bool, str] = True,
     ):
-        self.logger = logging.getLogger('mexca.audio.identification.SpeakerIdentifier')
+        self.logger = logging.getLogger("mexca.audio.identification.SpeakerIdentifier")
         self.num_speakers = num_speakers
         self.use_auth_token = use_auth_token
         # Lazy initialization
         self._pipeline = None
         self.logger.debug(ClassInitMessage())
 
-
-    # Initialize pretrained models only when needed 
+    # Initialize pretrained models only when needed
     @property
     def pipeline(self) -> Pipeline:
         """The pretrained speaker diarization pipeline.
@@ -66,33 +68,32 @@ class SpeakerIdentifier:
         if not self._pipeline:
             try:
                 self._pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization",
-                    use_auth_token=self.use_auth_token
+                    "pyannote/speaker-diarization", use_auth_token=self.use_auth_token
                 )
 
             except EnvironmentError as exc:
-                self.logger.exception('EnvironmentError: %s', exc)
+                self.logger.exception("EnvironmentError: %s", exc)
                 raise exc
 
             try:
                 if self._pipeline is None:
-                    raise AuthenticationError('Could not download pretrained "pyannote/speaker-diarization" pipeline; please provide a valid authentication token')
+                    raise AuthenticationError(
+                        'Could not download pretrained "pyannote/speaker-diarization" pipeline; please provide a valid authentication token'
+                    )
 
             except AuthenticationError as exc:
-                self.logger.exception('Error: %s', exc)
+                self.logger.exception("Error: %s", exc)
                 raise exc
 
-            self.logger.debug('Initialized speaker diarization pipeline')
+            self.logger.debug("Initialized speaker diarization pipeline")
 
         return self._pipeline
-
 
     # Delete pretrained models when not needed anymore
     @pipeline.deleter
     def pipeline(self):
         self._pipeline = None
-        self.logger.debug('Removed speaker diarization pipeline')
-
+        self.logger.debug("Removed speaker diarization pipeline")
 
     def apply(self, filepath: str) -> SpeakerAnnotation:
         """Identify speech segments and speakers.
@@ -113,11 +114,11 @@ class SpeakerIdentifier:
 
         del self.pipeline
 
-        self.logger.info('Detected %s speakers', len(annotation.labels()))
-        self.logger.debug('Detected speaker chart: %s', annotation.chart())
+        self.logger.info("Detected %s speakers", len(annotation.labels()))
+        self.logger.debug("Detected speaker chart: %s", annotation.chart())
 
         return SpeakerAnnotation.from_pyannote(
-            annotation.rename_labels(generator='int')
+            annotation.rename_labels(generator="int")
         )
 
 
@@ -126,28 +127,35 @@ def cli():
     See `identify-speakers -h` for details.
     """
 
-    parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser = argparse.ArgumentParser(
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+    )
 
-    parser.add_argument('-f', '--filepath', type=str, required=True)
-    parser.add_argument('-o', '--outdir', type=str, required=True)
-    parser.add_argument('--num-speakers', type=optional_int, default=None, dest='num_speakers')
-    parser.add_argument('--use-auth-token', type=bool_or_str, default=True, dest='use_auth_token')
+    parser.add_argument("-f", "--filepath", type=str, required=True)
+    parser.add_argument("-o", "--outdir", type=str, required=True)
+    parser.add_argument(
+        "--num-speakers", type=optional_int, default=None, dest="num_speakers"
+    )
+    parser.add_argument(
+        "--use-auth-token", type=bool_or_str, default=True, dest="use_auth_token"
+    )
 
     args = parser.parse_args().__dict__
 
     identifier = SpeakerIdentifier(
-        num_speakers=args['num_speakers'],
-        use_auth_token=args['use_auth_token']
+        num_speakers=args["num_speakers"], use_auth_token=args["use_auth_token"]
     )
 
-    output = identifier.apply(args['filepath'])
+    output = identifier.apply(args["filepath"])
 
-    output.write_rttm(os.path.join(
-        args['outdir'],
-        os.path.splitext(os.path.basename(args['filepath']))[0] + '_audio_annotation.rttm'
-    ))
+    output.write_rttm(
+        os.path.join(
+            args["outdir"],
+            os.path.splitext(os.path.basename(args["filepath"]))[0]
+            + "_audio_annotation.rttm",
+        )
+    )
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     cli()
-    

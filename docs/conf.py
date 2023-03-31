@@ -100,6 +100,7 @@ html_theme = "sphinx_rtd_theme"
 
 intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
                        # Commonly used libraries, uncomment when used in package
+                       'librosa': ('https://librosa.org/doc/', None),
                        'numpy': ('http://docs.scipy.org/doc/numpy/', None),
                        'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
                        'pyannote.core': ('https://pyannote.github.io/pyannote-core/', None),
