@@ -31,8 +31,8 @@ jobs:
             HF_TOKEN=${{ secrets.HF_TOKEN }}
             branch=${{ github.ref }}
           context: ./docker/${{ matrix.component }}
-          load: true
           push: true
+          no-cache: true
           tags: mexca/${{ matrix.component }}:${{ github.ref }}
       - name: Build component from main as 'latest' tag
         uses: docker/build-push-action@v3
@@ -42,6 +42,6 @@ jobs:
             HF_TOKEN=${{ secrets.HF_TOKEN }}
             branch=${{ github.ref }}
           context: ./docker/${{ matrix.component }}
-          load: true
           push: true
+          no-cache: true
           tags: mexca/${{ matrix.component }}:latest
