@@ -35,6 +35,7 @@ jobs:
           context: ./docker/face-extractor
           load: true
           push: false
+          no-cache: true
           tags: mexca/face-extractor:${{env.version}}
       - name: Build SpeakerIdentifier
         uses: docker/build-push-action@v3
@@ -45,6 +46,7 @@ jobs:
           context: ./docker/speaker-identifier
           load: true
           push: false
+          no-cache: true
           tags: mexca/speaker-identifier:${{env.version}}
       - name: Build VoiceExtractor
         uses: docker/build-push-action@v3
@@ -53,6 +55,7 @@ jobs:
           context: ./docker/voice-extractor
           load: true
           push: false
+          no-cache: true
           tags: mexca/voice-extractor:${{env.version}}
       - name: Build AudioTranscriber
         uses: docker/build-push-action@v3
@@ -61,6 +64,7 @@ jobs:
           context: ./docker/audio-transcriber
           load: true
           push: false
+          no-cache: true
           tags: mexca/audio-transcriber:${{env.version}}
       - name: Build SentimentExtractor
         uses: docker/build-push-action@v3
@@ -69,6 +73,7 @@ jobs:
           context: ./docker/sentiment-extractor
           load: true
           push: false
+          no-cache: true
           tags: mexca/sentiment-extractor:${{env.version}}
       - name: Set up Python 3.9
         uses: actions/setup-python@v3

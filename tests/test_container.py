@@ -13,6 +13,12 @@ class TestBaseContainer:
             BaseContainer(image_name='sdfsdf')
 
 
+    def test_get_latest_tag(self):
+        container = VoiceExtractorContainer(get_latest_tag=True)
+        assert isinstance(container, VoiceExtractorContainer)
+        assert container.image_name == 'mexca/voice-extractor:latest'
+
+
 @pytest.mark.skip_env('runner')
 class TestPipelineContainer:
     use_auth_token = os.environ['HF_TOKEN'] if 'HF_TOKEN' in os.environ else True
