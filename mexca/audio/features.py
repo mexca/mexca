@@ -1429,14 +1429,22 @@ class HnrFrames(BaseFrames):
 
     @staticmethod
     def _find_max_peak(auto_cor: np.ndarray, sr: int, lower: float) -> float:
+        if np.all(np.isnan(auto_cor)):
+            return np.nan
+        
         auto_cor_peak_lags = find_peaks(auto_cor)[0]
         auto_cor_peaks = auto_cor[auto_cor_peak_lags]
         auto_cor_peak_periods = 1 / auto_cor_peak_lags * sr
+        auto_cor_peaks_voiced = auto_cor_peaks[
+            np.logical_and(
+                auto_cor_peak_periods > lower, auto_cor_peak_periods < sr / 2
+            )
+        ]
+
+        if len(auto_cor_peaks_voiced) == 0:
+            return np.nan
+        
         auto_cor_max_peak_lag = np.argmax(
-            auto_cor_peaks[
-                np.logical_and(
-                    auto_cor_peak_periods > lower, auto_cor_peak_periods < sr / 2
-                )
-            ]
+            auto_cor_peaks_voiced
         )
         return auto_cor[auto_cor_max_peak_lag]

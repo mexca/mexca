@@ -17,7 +17,7 @@ class TestVoiceExtractor:
         assert isinstance(features, VoiceFeatures)
         assert np.issubdtype(np.array(features.frame).dtype, np.int_)
         assert np.all(np.array(features.frame) >= 0) and np.all(np.array(features.frame) <= 125)
-        assert len(features.frame) == len(features.pitch_f0)
+        assert len(features.frame) == len(features.pitch_f0_hz)
 
 
     def test_cli(self):
