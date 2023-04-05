@@ -15,20 +15,60 @@ from mexca.utils import ClassInitMessage
 
 
 class BaseFeature:
+    """Base class for features.
+    
+    Can be used to create custom voice feature extraction classes.
+    """
     def requires(self) -> Optional[Dict[str, type]]:
+        """Specify objects required for feature extraction.
+
+        This method can be overwritten to return a dictionary with keys as the names of objects
+        required for computing features and values the types of these objects. The `VoiceExtractor`
+        object will look for objects with the specified types and add them as attributes to the feature
+        class with the names of the dictionary keys.
+
+        Returns
+        -------
+        dict
+            Dictionary where keys are the names and values the types of required objects.
+
+        """
         return None
 
     def _get_interp_fun(self, ts: np.ndarray, feature: np.ndarray) -> np.ndarray:
         return interp1d(ts, feature, kind="linear", bounds_error=False)
 
     def apply(self, time: np.ndarray) -> np.ndarray:
+        """Extract features at time points by linear interpolation.
+
+        Parameters
+        ----------
+        time: numpy.ndarray
+            Time points.
+
+        Returns
+        -------
+        numpy.ndarray
+            Feature values interpolated at time points.
+
+        """
         return time
 
 
 class FeaturePitchF0(BaseFeature):
+    """Extract voice pitch as the fundamental frequency F0 in Hz.
+    """
     pitch_frames: Optional[PitchFrames] = None
 
-    def requires(self) -> Optional[Dict[str, type]]:
+    def requires(self) -> Optional[Dict[str, PitchFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `pitch_frames`.
+
+        """
         return {"pitch_frames": PitchFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -38,9 +78,19 @@ class FeaturePitchF0(BaseFeature):
 
 
 class FeatureJitter(BaseFeature):
+    """Extract local jitter relative to the fundamental frequency.
+    """
     jitter_frames: Optional[JitterFrames] = None
 
-    def requires(self) -> Optional[Dict[str, type]]:
+    def requires(self) -> Optional[Dict[str, JitterFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `jitter_frames`.
+
+        """
         return {"jitter_frames": JitterFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -50,9 +100,19 @@ class FeatureJitter(BaseFeature):
 
 
 class FeatureShimmer(BaseFeature):
+    """Extract local shimmer relative to the fundamental frequency.
+    """
     shimmer_frames: Optional[ShimmerFrames] = None
 
-    def requires(self) -> Optional[Dict[str, type]]:
+    def requires(self) -> Optional[Dict[str, ShimmerFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `shimmer_frames`.
+
+        """
         return {"shimmer_frames": ShimmerFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -62,9 +122,19 @@ class FeatureShimmer(BaseFeature):
 
 
 class FeatureHnr(BaseFeature):
+    """Extract the harmonicity-to-noise ratio in dB.
+    """
     hnr_frames: Optional[HnrFrames] = None
 
-    def requires(self) -> Optional[Dict[str, type]]:
+    def requires(self) -> Optional[Dict[str, HnrFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `hnr_frames`.
+
+        """
         return {"hnr_frames": HnrFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -72,32 +142,72 @@ class FeatureHnr(BaseFeature):
 
 
 class FeatureFormantFreq(BaseFeature):
-    formants: Optional[FormantFrames] = None
+    """Extract formant central frequency in Hz.
+
+    Parameters
+    ----------
+    n_formant: int
+        Index of the formant (starting at 0).
+
+    """
+    formant_frames: Optional[FormantFrames] = None
 
     def __init__(self, n_formant: int):
         self.n_formant = n_formant
 
-    def requires(self) -> Optional[Dict[str, type]]:
-        return {"formants": FormantFrames}
+    def requires(self) -> Optional[Dict[str, FormantFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `formant_frames`.
+
+        """
+        return {"formant_frames": FormantFrames}
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        formants_freqs = self.formants.select_formant_attr(self.n_formant, 0)
-        return self._get_interp_fun(self.formants.ts, formants_freqs)(time)
+        formants_freqs = self.formant_frames.select_formant_attr(self.n_formant, 0)
+        return self._get_interp_fun(self.formant_frames.ts, formants_freqs)(time)
 
 
 class FeatureFormantBandwidth(FeatureFormantFreq):
+    """Extract formant frequency bandwidth in Hz.
+
+    Parameters
+    ----------
+    n_formant: int
+        Index of the formant (starting at 0).
+
+    """
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        formants_bws = self.formants.select_formant_attr(self.n_formant, 1)
-        return self._get_interp_fun(self.formants.ts, formants_bws)(time)
+        formants_bws = self.formant_frames.select_formant_attr(self.n_formant, 1)
+        return self._get_interp_fun(self.formant_frames.ts, formants_bws)(time)
 
 
 class FeatureFormantAmplitude(BaseFeature):
+    """Extract formant amplitude relative to F0 harmonic amplitude.
+
+    Parameters
+    ----------
+    n_formant: int
+        Index of the formant (starting at 0).
+
+    """
     formant_amp_frames: Optional[FormantAmplitudeFrames] = None
 
     def __init__(self, n_formant: int):
         self.n_formant = n_formant
 
-    def requires(self) -> Optional[Dict[str, type]]:
+    def requires(self) -> Optional[Dict[str, FormantAmplitudeFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `formant_amp_frames`.
+
+        """
         return {"formant_amp_frames": FormantAmplitudeFrames}
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
@@ -110,10 +220,13 @@ class FeatureFormantAmplitude(BaseFeature):
 class VoiceExtractor:
     """Extract voice features from an audio file.
 
-    Currently, only the voice pitch as the fundamental frequency F0 can be extracted.
-    The F0 is calculated using an autocorrelation function with a lower boundary of 75 Hz and an
-    upper boudnary of 600 Hz. See the praat
-    `manual <https://www.fon.hum.uva.nl/praat/manual/Sound__To_Pitch___.html>`_ for details.
+    For default features, see the :ref:`Output <voice_features_output>` section.
+
+    Parameters
+    ----------
+    features: dict, optional, default=None
+        Dictionary with keys as feature names and values as feature extraction objects. If `None`,
+        default features are extracted.
 
     """
 
@@ -130,13 +243,13 @@ class VoiceExtractor:
     @staticmethod
     def _set_default_features():
         return {
-            "pitch_f0": FeaturePitchF0(),
-            "jitter_rel": FeatureJitter(),
-            "shimmer_rel": FeatureShimmer(),
-            "f1_freq": FeatureFormantFreq(n_formant=0),
-            "f1_bandwidth": FeatureFormantBandwidth(n_formant=0),
-            "f1_amplitude": FeatureFormantAmplitude(n_formant=0),
-            "hnr": FeatureHnr(),
+            "pitch_f0_hz": FeaturePitchF0(),
+            "jitter_local_rel_f0": FeatureJitter(),
+            "shimmer_local_rel_f0": FeatureShimmer(),
+            "hnr_db": FeatureHnr(),
+            "f1_freq_hz": FeatureFormantFreq(n_formant=0),
+            "f1_bandwidth_hz": FeatureFormantBandwidth(n_formant=0),
+            "f1_amplitude_rel_f0": FeatureFormantAmplitude(n_formant=0),
         }
 
     def apply(  # pylint: disable=too-many-locals
