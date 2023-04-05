@@ -26,17 +26,29 @@ In this case, each face is shown in a separate row with the same `frame` and `ti
 - `face_confidence`: A confidence score of the `face_label` assignment between 0 and 1: The normalized distance from each face embedding vector to it's cluster centroid relative to the distance to the nearest other cluster centroid.
 
 
+.. _voice_features_output:
+
 Voice
 -----
 
-Output of the audio processing contains voice features (currently only `pitch_f0`) and information about the speaker.
+Output of the audio processing contains voice features and information about the speaker.
 A frame can have overlapping speakers for which features are extracted separately and added as separate rows.
 
 - `segment_start`: The starting time stamp of the speech segment (in seconds).
 - `segment_end`: The ending time stamp of the speech segment (in seconds).
-- `segment_speaker_label`: The ID of the speaker returned by the clustering of the speaker embeddings (unique numbers).
-- `pitch_f0`: The voice pitch measured as the fundamental frequency F0. Calculated using the autocorrelation method described in Boersma (1993).
+- `segment_speaker_label`: The ID of the speaker returned by the clustering of the speaker embeddings (unique integer numbers).
 
+By default, the following voice features are extracted:
+
+- `pitch_f0_hz`: The voice pitch measured as the fundamental frequency F0 in Hz. Calculated using the probabilistic YIN method described in Mauch and Dixon (2014) as well as De Cheveigne and Kawahara (2002).
+- `jitter_local_rel_F0`: The voice jitter measured as the average difference between consecutive pitch periods (i.e., time difference between glottal pulses) relative to the average pitch period (i.e., 1/F0).
+- `shimmer_local_rel_f0`: The voice shimmer measured as the average difference between amplitudes of consecutive pitch periods relative to the average amplitude of the pitch periods.
+- `hnr_db`: The harmonics-to-noise ratio in dB calculated using the autocorrelation function as described in Boersma (1993).
+- `f1_freq_hz`: The central frequency of the first formant in Hz. Calculated using Burg's method by finding the roots of the linear predictive coefficients.
+- `f1_bandwidth_hz`: The bandwidth of the first formant in Hz.
+- `f1_amplitude_rel_f0`: The amplitude of the first formant relative to the amplitude of the closest F0 harmonic.
+
+Details and further references on the feature extraction can be found in the description of the `GeMAPS <https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7160715>`_ feature set (Eyben et al., 2016).
 
 Text
 ----
