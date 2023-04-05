@@ -319,3 +319,10 @@ class TestHnrFrames(TestBaseFrames):
         autocor = librosa.autocorrelate(sig)
         max_peak = hnr_frames_obj._find_max_peak(autocor, 44100, 75.0)
         assert max_peak == autocor.max()
+
+
+    def test_find_max_peak_all_below_threshold(self, hnr_frames_obj):
+        sig = (1 + 0.3 * np.sin(2 * np.pi * 0 * np.linspace(0, 1, self.frame_len)))
+        autocor = librosa.autocorrelate(sig)
+        max_peak = hnr_frames_obj._find_max_peak(autocor, 44100, 75.0)
+        assert np.isnan(max_peak)
