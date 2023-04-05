@@ -79,13 +79,21 @@ def _validate_speech_segments(multimodal: Multimodal):
         assert str(seg.data.name) in multimodal.features.segment_speaker_label.to_numpy().astype(str)
 
 
-def _validate_voice_features(multimodal: Multimodal):
-    assert multimodal.features.pitch_f0.dtype == 'float64'
-    assert len(multimodal.features.pitch_f0.dropna()) > 0
+def _validate_voice_feature(feat: pd.Series, ref_feat: np.ndarray, d_type: str = 'float64', is_pos: bool = False):
+    assert feat.dtype == d_type
+    assert len(feat.dropna()) > 0
+    if is_pos:
+        assert feat[np.isfinite(feat)] > 0
+    
+    for f in feat[:-1]:
+        if np.isfinite(f):
+            assert f in ref_feat
 
-    for f0 in multimodal.voice_features.pitch_f0[:-1]:
-        if np.isfinite(f0):
-            assert f0 in multimodal.features.pitch_f0.to_numpy()
+
+def _validate_voice_features(multimodal: Multimodal):
+    for feat_name in multimodal.voice_features.__dict__:
+        if feat_name not in ("frame", "time"):
+            _validate_voice_feature(multimodal.features[feat_name], getattr(multimodal.voice_features, feat_name))
 
 
 def _validate_transcription(multimodal: Multimodal):
