@@ -25,22 +25,21 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       - name: Build component from release tag
         uses: docker/build-push-action@v3
-        if: github.ref != 'main'
+        if: github.event_name == 'release'
         with:
           build-args: |
             HF_TOKEN=${{ secrets.HF_TOKEN }}
-            branch=${{ github.ref }}
+            branch=${{ github.event.release.tag_name }}
           context: ./docker/${{ matrix.component }}
           push: true
           no-cache: true
-          tags: mexca/${{ matrix.component }}:${{ github.ref }}
+          tags: mexca/${{ matrix.component }}:${{ github.event.release.tag_name }}
       - name: Build component from main as 'latest' tag
         uses: docker/build-push-action@v3
-        if: github.ref == 'main'
+        if: github.event_name == 'workflow_dispatch'
         with:
           build-args: |
             HF_TOKEN=${{ secrets.HF_TOKEN }}
-            branch=${{ github.ref }}
           context: ./docker/${{ matrix.component }}
           push: true
           no-cache: true
