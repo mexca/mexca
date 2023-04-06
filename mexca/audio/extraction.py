@@ -21,6 +21,7 @@ from mexca.audio.features import (
     PitchPulseFrames,
     ShimmerFrames,
     SpecFrames,
+    SpectralSlopeFrames
 )
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
@@ -257,6 +258,25 @@ class FeatureHammarIndex(BaseFeature):
         )(time)
 
 
+class FeatureSpectralSlope(BaseFeature):
+    spectral_slope_frames: Optional[SpectralSlopeFrames] = None
+
+
+    def __init__(self, lower: float, upper: float) -> None:
+        self.lower = lower
+        self.upper = upper
+
+
+    def requires(self) -> Optional[Dict[str, type]]:
+        return {"spectral_slope_frames": SpectralSlopeFrames}
+    
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        slope_idx = self.spectral_slope_frames.bands.index((self.lower, self.upper))
+        # slope_idx = np.where(np.all(np.array(self.spectral_slope_frames.bands) == np.array([self.lower, self.upper])))
+        return self._get_interp_fun(self.spectral_slope_frames.ts, self.spectral_slope_frames.frames[:, slope_idx])(time)
+
+
 class VoiceExtractor:
     """Extract voice features from an audio file.
 
@@ -292,6 +312,8 @@ class VoiceExtractor:
             "f1_amplitude_rel_f0": FeatureFormantAmplitude(n_formant=0),
             "alpha_ratio_db": FeatureAlphaRatio(),
             "hammar_index_db": FeatureHammarIndex(),
+            "spectral_slope_0_500": FeatureSpectralSlope(lower=0, upper=500),
+            "spectral_slope_500_1500": FeatureSpectralSlope(lower=500, upper=1500),
         }
 
     def apply(  # pylint: disable=too-many-locals
@@ -352,6 +374,7 @@ class VoiceExtractor:
         )
         alpha_ratio_frames = AlphaRatioFrames.from_spec_frames(spec_frames)
         hammar_index_frames = HammarIndexFrames.from_spec_frames(spec_frames)
+        spectral_slope_frames = SpectralSlopeFrames.from_spec_frames(spec_frames)
 
         requirements = [
             audio_signal,
@@ -365,6 +388,7 @@ class VoiceExtractor:
             formant_amp_frames,
             alpha_ratio_frames,
             hammar_index_frames,
+            spectral_slope_frames
         ]
         requirements_types = [type(r) for r in requirements]
 

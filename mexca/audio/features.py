@@ -19,6 +19,7 @@ import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import find_peaks
 from scipy.signal.windows import get_window
+from sklearn.linear_model import LinearRegression
 from mexca.utils import ClassInitMessage
 
 
@@ -1464,9 +1465,9 @@ class AlphaRatioFrames(BaseFrames):
         hop_len: int,
         center: bool,
         pad_mode: str,
-        lower_band: Tuple,
-        upper_band: Tuple,
-    ) -> None:
+        lower_band: Tuple[float],
+        upper_band: Tuple[float],
+    ):
         self.logger = logging.getLogger("mexca.audio.extraction.AlphaRatioFrames")
         self.lower_band = lower_band
         self.upper_band = upper_band
@@ -1521,7 +1522,7 @@ class HammarIndexFrames(BaseFrames):
         pad_mode: str,
         pivot_point: float,
         upper: float,
-    ) -> None:
+    ):
         self.logger = logging.getLogger("mexca.audio.extraction.HammarIndexFrames")
         self.pivot_point = pivot_point
         self.upper = upper
@@ -1554,3 +1555,39 @@ class HammarIndexFrames(BaseFrames):
             pivot_point,
             upper,
         )
+
+
+class SpectralSlopeFrames(BaseFrames):
+    def __init__(self, frames: np.ndarray, sr: int, frame_len: int, hop_len: int, center: bool, pad_mode: str, bands: Tuple[Tuple[float]]):
+        self.logger = logging.getLogger("mexca.audio.extraction.HammarIndexFrames")
+        self.bands = bands
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
+        self.logger.debug(ClassInitMessage())
+
+    @classmethod
+    def from_spec_frames(cls, spec_frames_obj: SpecFrames, bands: Tuple[Tuple[float]] = ((0.0, 500.0), (500.0, 1500.0))):
+        spectral_slopes = np.zeros(shape=(spec_frames_obj.idx.shape[0], len(bands)))
+
+        for i, band in enumerate(bands):
+            band_freqs_mask = np.logical_and(spec_frames_obj.freqs > band[0], spec_frames_obj.freqs <= band[1])
+            band_power = np.abs(spec_frames_obj.frames[:, band_freqs_mask])
+            band_power_db = 20 * np.log10(band_power)
+            band_freqs = spec_frames_obj.freqs[band_freqs_mask]
+            # spectral_slopes[:, i] = np.array([cls._calc_spectral_slope(band_power_db[i, :], band_freqs) for i in range(band_power_db.shape[0])])
+            spectral_slopes[:, i] = np.apply_along_axis(cls._calc_spectral_slope, 1, band_power_db, band_freqs=band_freqs).squeeze()
+        
+        return cls(
+            spectral_slopes,
+            spec_frames_obj.sr,
+            spec_frames_obj.frame_len,
+            spec_frames_obj.hop_len,
+            spec_frames_obj.center,
+            spec_frames_obj.pad_mode,
+            bands
+        )
+    
+    @staticmethod
+    def _calc_spectral_slope(band_power: np.ndarray, band_freqs: np.ndarray) -> np.ndarray:
+        linear_model = LinearRegression()
+        linear_model.fit(band_freqs.reshape(-1, 1), band_power)
+        return linear_model.coef_
