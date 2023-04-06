@@ -7,18 +7,31 @@ import os
 from typing import Dict, Optional
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames, HnrFrames,
-                                  JitterFrames, PitchFrames, PitchHarmonicsFrames, PitchPulseFrames, ShimmerFrames,
-                                  SpecFrames)
+from mexca.audio.features import (
+    AlphaRatioFrames,
+    AudioSignal,
+    BaseFrames,
+    FormantAmplitudeFrames,
+    FormantFrames,
+    HammarIndexFrames,
+    HnrFrames,
+    JitterFrames,
+    PitchFrames,
+    PitchHarmonicsFrames,
+    PitchPulseFrames,
+    ShimmerFrames,
+    SpecFrames,
+)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
 
 
 class BaseFeature:
     """Base class for features.
-    
+
     Can be used to create custom voice feature extraction classes.
     """
+
     def requires(self) -> Optional[Dict[str, type]]:
         """Specify objects required for feature extraction.
 
@@ -56,8 +69,8 @@ class BaseFeature:
 
 
 class FeaturePitchF0(BaseFeature):
-    """Extract voice pitch as the fundamental frequency F0 in Hz.
-    """
+    """Extract voice pitch as the fundamental frequency F0 in Hz."""
+
     pitch_frames: Optional[PitchFrames] = None
 
     def requires(self) -> Optional[Dict[str, PitchFrames]]:
@@ -78,8 +91,8 @@ class FeaturePitchF0(BaseFeature):
 
 
 class FeatureJitter(BaseFeature):
-    """Extract local jitter relative to the fundamental frequency.
-    """
+    """Extract local jitter relative to the fundamental frequency."""
+
     jitter_frames: Optional[JitterFrames] = None
 
     def requires(self) -> Optional[Dict[str, JitterFrames]]:
@@ -100,8 +113,8 @@ class FeatureJitter(BaseFeature):
 
 
 class FeatureShimmer(BaseFeature):
-    """Extract local shimmer relative to the fundamental frequency.
-    """
+    """Extract local shimmer relative to the fundamental frequency."""
+
     shimmer_frames: Optional[ShimmerFrames] = None
 
     def requires(self) -> Optional[Dict[str, ShimmerFrames]]:
@@ -122,8 +135,8 @@ class FeatureShimmer(BaseFeature):
 
 
 class FeatureHnr(BaseFeature):
-    """Extract the harmonicity-to-noise ratio in dB.
-    """
+    """Extract the harmonicity-to-noise ratio in dB."""
+
     hnr_frames: Optional[HnrFrames] = None
 
     def requires(self) -> Optional[Dict[str, HnrFrames]]:
@@ -150,6 +163,7 @@ class FeatureFormantFreq(BaseFeature):
         Index of the formant (starting at 0).
 
     """
+
     formant_frames: Optional[FormantFrames] = None
 
     def __init__(self, n_formant: int):
@@ -180,6 +194,7 @@ class FeatureFormantBandwidth(FeatureFormantFreq):
         Index of the formant (starting at 0).
 
     """
+
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
         formants_bws = self.formant_frames.select_formant_attr(self.n_formant, 1)
         return self._get_interp_fun(self.formant_frames.ts, formants_bws)(time)
@@ -194,6 +209,7 @@ class FeatureFormantAmplitude(BaseFeature):
         Index of the formant (starting at 0).
 
     """
+
     formant_amp_frames: Optional[FormantAmplitudeFrames] = None
 
     def __init__(self, n_formant: int):
@@ -214,6 +230,30 @@ class FeatureFormantAmplitude(BaseFeature):
         formants_amps = self.formant_amp_frames.frames
         return self._get_interp_fun(
             self.formant_amp_frames.ts, formants_amps[:, self.n_formant]
+        )(time)
+
+
+class FeatureAlphaRatio(BaseFeature):
+    alpha_ratio_frames: Optional[AlphaRatioFrames] = None
+
+    def requires(self) -> Optional[Dict[str, AlphaRatioFrames]]:
+        return {"alpha_ratio_frames": AlphaRatioFrames}
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(
+            self.alpha_ratio_frames.ts, self.alpha_ratio_frames.frames
+        )(time)
+
+
+class FeatureHammarIndex(BaseFeature):
+    hammar_index_frames: Optional[HammarIndexFrames] = None
+
+    def requires(self) -> Optional[Dict[str, HammarIndexFrames]]:
+        return {"hammar_index_frames": HammarIndexFrames}
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(
+            self.hammar_index_frames.ts, self.hammar_index_frames.frames
         )(time)
 
 
@@ -250,6 +290,8 @@ class VoiceExtractor:
             "f1_freq_hz": FeatureFormantFreq(n_formant=0),
             "f1_bandwidth_hz": FeatureFormantBandwidth(n_formant=0),
             "f1_amplitude_rel_f0": FeatureFormantAmplitude(n_formant=0),
+            "alpha_ratio_db": FeatureAlphaRatio(),
+            "hammar_index_db": FeatureHammarIndex(),
         }
 
     def apply(  # pylint: disable=too-many-locals
@@ -308,6 +350,8 @@ class VoiceExtractor:
                 formant_frames, pitch_harmonics, pitch_frames
             )
         )
+        alpha_ratio_frames = AlphaRatioFrames.from_spec_frames(spec_frames)
+        hammar_index_frames = HammarIndexFrames.from_spec_frames(spec_frames)
 
         requirements = [
             audio_signal,
@@ -319,6 +363,8 @@ class VoiceExtractor:
             formant_frames,
             pitch_harmonics,
             formant_amp_frames,
+            alpha_ratio_frames,
+            hammar_index_frames,
         ]
         requirements_types = [type(r) for r in requirements]
 

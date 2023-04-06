@@ -364,8 +364,15 @@ class SpecFrames(BaseFrames):
     ) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.SpecFrames")
         self.window = window
+        self._freqs = None
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
+
+    @property
+    def freqs(self):
+        if self._freqs is None:
+            self._freqs = librosa.fft_frequencies(sr=self.sr, n_fft=self.frame_len)
+        return self._freqs
 
     @classmethod
     def from_signal(
@@ -466,7 +473,7 @@ class FormantFrames(BaseFrames):
         lower: float = 50.0,
         upper: float = 5450.0,
         preemphasis_from: Optional[float] = 50.0,
-        window: Optional[Union[str, float, Tuple]] = "praat_gaussian"
+        window: Optional[Union[str, float, Tuple]] = "praat_gaussian",
     ) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.FormantFrames")
         self.max_formants = max_formants
@@ -482,17 +489,17 @@ class FormantFrames(BaseFrames):
         if self._idx is None:
             self._idx = np.arange(len(self.frames))
         return self._idx
-    
 
     @staticmethod
     def _praat_gauss_window(frame_len: int):
         # This is the Gaussian window that is used in Praat for formant estimation
         # See: https://github.com/YannickJadoul/Parselmouth/blob/master/praat/fon/Sound_to_Formant.cpp
-        sample_idx = np.arange(frame_len)+1
+        sample_idx = np.arange(frame_len) + 1
         idx_mid = 0.5 * (frame_len + 1)
         edge = np.exp(-12.0)
-        return (np.exp(-48.0 * (sample_idx - idx_mid)**2 / (frame_len)**2) - edge) / (1.0 - edge)
-
+        return (
+            np.exp(-48.0 * (sample_idx - idx_mid) ** 2 / (frame_len) ** 2) - edge
+        ) / (1.0 - edge)
 
     @classmethod
     def from_frames(
@@ -502,7 +509,7 @@ class FormantFrames(BaseFrames):
         lower: float = 50.0,
         upper: float = 5450.0,
         preemphasis_from: Optional[float] = 50.0,
-        window: Optional[Union[str, float, Tuple]] = "praat_gaussian"
+        window: Optional[Union[str, float, Tuple]] = "praat_gaussian",
     ):
         """Extract formants from signal frames.
 
@@ -646,9 +653,6 @@ class PitchHarmonicsFrames(BaseFrames):
             Number of harmonics to estimate.
 
         """
-        freqs = librosa.fft_frequencies(
-            sr=spec_frames_obj.sr, n_fft=spec_frames_obj.frame_len
-        )
 
         # harmonics = librosa.f0_harmonics(
         #     np.abs(spec_frames_obj.frames),
@@ -659,7 +663,10 @@ class PitchHarmonicsFrames(BaseFrames):
         # )
 
         harmonics = cls._calc_f0_harmonics(
-            spec_frames_obj.frames, freqs, pitch_frames_obj.frames, n_harmonics
+            spec_frames_obj.frames,
+            spec_frames_obj.freqs,
+            pitch_frames_obj.frames,
+            n_harmonics,
         )
 
         return cls(
@@ -1431,7 +1438,7 @@ class HnrFrames(BaseFrames):
     def _find_max_peak(auto_cor: np.ndarray, sr: int, lower: float) -> float:
         if np.all(np.isnan(auto_cor)):
             return np.nan
-        
+
         auto_cor_peak_lags = find_peaks(auto_cor)[0]
         auto_cor_peaks = auto_cor[auto_cor_peak_lags]
         auto_cor_peak_periods = 1 / auto_cor_peak_lags * sr
@@ -1443,8 +1450,107 @@ class HnrFrames(BaseFrames):
 
         if len(auto_cor_peaks_voiced) == 0:
             return np.nan
-        
-        auto_cor_max_peak_lag = np.argmax(
-            auto_cor_peaks_voiced
-        )
+
+        auto_cor_max_peak_lag = np.argmax(auto_cor_peaks_voiced)
         return auto_cor[auto_cor_max_peak_lag]
+
+
+class AlphaRatioFrames(BaseFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        lower_band: Tuple,
+        upper_band: Tuple,
+    ) -> None:
+        self.logger = logging.getLogger("mexca.audio.extraction.AlphaRatioFrames")
+        self.lower_band = lower_band
+        self.upper_band = upper_band
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
+        self.logger.debug(ClassInitMessage())
+
+    @classmethod
+    def from_spec_frames(
+        cls,
+        spec_frames_obj: SpecFrames,
+        lower_band: Tuple = (50, 1000),
+        upper_band: Tuple = (1000, 5000),
+    ):
+        lower_band_bins = np.logical_and(
+            spec_frames_obj.freqs > lower_band[0],
+            spec_frames_obj.freqs <= lower_band[1],
+        )
+        lower_band_energy = np.sum(
+            np.abs(spec_frames_obj.frames[:, lower_band_bins]), axis=1
+        )
+        upper_band_bins = np.logical_and(
+            spec_frames_obj.freqs > upper_band[0],
+            spec_frames_obj.freqs <= upper_band[1],
+        )
+        upper_band_energy = np.sum(
+            np.abs(spec_frames_obj.frames[:, upper_band_bins]), axis=1
+        )
+        alpha_ratio_frames = lower_band_energy / upper_band_energy
+
+        alpha_ratio_frames_db = 20.0 * np.log10(alpha_ratio_frames)
+
+        return cls(
+            alpha_ratio_frames_db,
+            spec_frames_obj.sr,
+            spec_frames_obj.frame_len,
+            spec_frames_obj.hop_len,
+            spec_frames_obj.center,
+            spec_frames_obj.pad_mode,
+            lower_band,
+            upper_band,
+        )
+
+
+class HammarIndexFrames(BaseFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        pivot_point: float,
+        upper: float,
+    ) -> None:
+        self.logger = logging.getLogger("mexca.audio.extraction.HammarIndexFrames")
+        self.pivot_point = pivot_point
+        self.upper = upper
+        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
+        self.logger.debug(ClassInitMessage())
+
+    @classmethod
+    def from_spec_frames(
+        cls,
+        spec_frames_obj: SpecFrames,
+        pivot_point: float = 2000.0,
+        upper: float = 5000.0,
+    ):
+        lower_band = np.abs(spec_frames_obj.frames[:, spec_frames_obj.freqs <= pivot_point])
+        upper_band_freqs = np.logical_and(
+            spec_frames_obj.freqs > pivot_point, spec_frames_obj.freqs <= upper
+        )
+        upper_band = np.abs(spec_frames_obj.frames[:, upper_band_freqs])
+        hammar_index_frames = np.max(lower_band, axis=1) / np.max(upper_band, axis=1)
+
+        hammar_index_frames_db = 20 * np.log10(hammar_index_frames)
+
+        return cls(
+            hammar_index_frames_db,
+            spec_frames_obj.sr,
+            spec_frames_obj.frame_len,
+            spec_frames_obj.hop_len,
+            spec_frames_obj.center,
+            spec_frames_obj.pad_mode,
+            pivot_point,
+            upper,
+        )
