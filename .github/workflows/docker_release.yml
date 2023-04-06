@@ -23,6 +23,9 @@ jobs:
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+      - name: Create correct docker tag
+        if: github.event_name == 'release'
+        run: export DOCKER_TAG=(${{github.event.release.tag_name//-/ }})
       - name: Build component from release tag
         uses: docker/build-push-action@v3
         if: github.event_name == 'release'
@@ -33,7 +36,7 @@ jobs:
           context: ./docker/${{ matrix.component }}
           push: true
           no-cache: true
-          tags: mexca/${{ matrix.component }}:${{ github.event.release.tag_name }}
+          tags: mexca/${{ matrix.component }}:${DOCKER_TAG[0]}
       - name: Build component from main as 'latest' tag
         uses: docker/build-push-action@v3
         if: github.event_name == 'workflow_dispatch'
