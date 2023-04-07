@@ -1727,3 +1727,41 @@ class MfccFrames(MelSpecFrames):
             n_mfcc,
             lifter,
         )
+
+
+class SpectralFluxFrames(SpecFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        window: str,
+        frame_len: int,
+        hop_len: int,
+        center: bool = True,
+        pad_mode: str = "constant",
+    ) -> None:
+        self.logger = logging.getLogger("mexca.audio.extraction.SpectralFluxFrames")
+        super().__init__(frames, sr, window, frame_len, hop_len, center, pad_mode)
+        self.logger.debug(ClassInitMessage())
+
+    @classmethod
+    def from_spec_frames(
+        cls, spec_frames_obj: SpecFrames, lower: float = 0, upper: float = 5000.0
+    ):
+        spec_freq_mask = np.logical_and(
+            spec_frames_obj.freqs >= lower, spec_frames_obj.freqs < upper
+        )
+        spec_mag = np.abs(spec_frames_obj.frames[:, spec_freq_mask])
+        spec_norm = np.sum(spec_mag, axis=1)
+        spec_diff = np.diff(spec_mag / spec_norm[:, None], axis=0)
+        spec_flux_frames = np.sum(spec_diff**2, axis=1)
+
+        return cls(
+            spec_flux_frames,
+            spec_frames_obj.sr,
+            spec_frames_obj.window,
+            spec_frames_obj.frame_len,
+            spec_frames_obj.hop_len,
+            spec_frames_obj.center,
+            spec_frames_obj.pad_mode,
+        )

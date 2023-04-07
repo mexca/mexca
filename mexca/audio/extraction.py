@@ -23,6 +23,7 @@ from mexca.audio.features import (
     PitchPulseFrames,
     ShimmerFrames,
     SpecFrames,
+    SpectralFluxFrames,
     SpectralSlopeFrames,
 )
 from mexca.data import VoiceFeatures
@@ -326,7 +327,7 @@ class FeatureHarmonicDifference(BaseFeature):
         return self._get_interp_fun(self.formant_amp_frames.ts, ratio)(time)
 
 
-class MfccFeature(BaseFeature):
+class FeatureMfcc(BaseFeature):
     mfcc_frames: Optional[MfccFrames] = None
 
     def __init__(self, n_mfcc: int = 0) -> None:
@@ -338,6 +339,18 @@ class MfccFeature(BaseFeature):
     def apply(self, time: np.ndarray) -> np.ndarray:
         return self._get_interp_fun(
             self.mfcc_frames.ts, self.mfcc_frames.frames[:, self.n_mfcc]
+        )(time)
+
+
+class FeatureSpectralFlux(BaseFeature):
+    spec_flux_frames: Optional[SpectralFluxFrames] = None
+
+    def requires(self) -> Optional[Dict[str, SpectralFluxFrames]]:
+        return {"spec_flux_frames": SpectralFluxFrames}
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(
+            self.spec_flux_frames.ts, self.spec_flux_frames.frames
         )(time)
 
 
@@ -380,10 +393,11 @@ class VoiceExtractor:
             "spectral_slope_500_1500": FeatureSpectralSlope(lower=500, upper=1500),
             "h1_h2_diff_db": FeatureHarmonicDifference(),
             "h1_f3_diff_db": FeatureHarmonicDifference(y_idx=2, y_type="f"),
-            "mfcc_1": MfccFeature(),
-            "mfcc_2": MfccFeature(n_mfcc=1),
-            "mfcc_3": MfccFeature(n_mfcc=2),
-            "mfcc_4": MfccFeature(n_mfcc=3),
+            "mfcc_1": FeatureMfcc(),
+            "mfcc_2": FeatureMfcc(n_mfcc=1),
+            "mfcc_3": FeatureMfcc(n_mfcc=2),
+            "mfcc_4": FeatureMfcc(n_mfcc=3),
+            "spectral_flux": FeatureSpectralFlux(),
         }
 
     def apply(  # pylint: disable=too-many-locals
@@ -447,6 +461,7 @@ class VoiceExtractor:
         spectral_slope_frames = SpectralSlopeFrames.from_spec_frames(spec_frames)
         mel_spec_frames = MelSpecFrames.from_spec_frames(spec_frames)
         mfcc_frames = MfccFrames.from_mel_spec_frames(mel_spec_frames)
+        spec_flux_frames = SpectralFluxFrames.from_spec_frames(spec_frames)
 
         requirements = [
             audio_signal,
@@ -462,6 +477,7 @@ class VoiceExtractor:
             hammar_index_frames,
             spectral_slope_frames,
             mfcc_frames,
+            spec_flux_frames,
         ]
         requirements_types = [type(r) for r in requirements]
 
