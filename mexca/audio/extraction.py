@@ -7,26 +7,10 @@ import os
 from typing import Dict, Optional, Union
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (
-    AlphaRatioFrames,
-    AudioSignal,
-    BaseFrames,
-    FormantAmplitudeFrames,
-    FormantFrames,
-    HammarIndexFrames,
-    HnrFrames,
-    MelSpecFrames,
-    MfccFrames,
-    JitterFrames,
-    PitchFrames,
-    PitchHarmonicsFrames,
-    PitchPulseFrames,
-    RmsEnergyFrames,
-    ShimmerFrames,
-    SpecFrames,
-    SpectralFluxFrames,
-    SpectralSlopeFrames,
-)
+from mexca.audio.features import (AlphaRatioFrames, AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames,
+                                  HammarIndexFrames, HnrFrames, JitterFrames, MelSpecFrames, MfccFrames, PitchFrames,
+                                  PitchHarmonicsFrames, PitchPulseFrames, RmsEnergyFrames, ShimmerFrames, SpecFrames,
+                                  SpectralFluxFrames, SpectralSlopeFrames)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
 
