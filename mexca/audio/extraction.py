@@ -4,7 +4,7 @@
 import argparse
 import logging
 import os
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 import numpy as np
 from scipy.interpolate import interp1d
 from mexca.audio.features import (
@@ -21,6 +21,7 @@ from mexca.audio.features import (
     PitchFrames,
     PitchHarmonicsFrames,
     PitchPulseFrames,
+    RmsEnergyFrames,
     ShimmerFrames,
     SpecFrames,
     SpectralFluxFrames,
@@ -354,6 +355,16 @@ class FeatureSpectralFlux(BaseFeature):
         )(time)
 
 
+class FeatureRmsEnergy(BaseFeature):
+    rms_frames: Optional[RmsEnergyFrames] = None
+
+    def requires(self) -> Optional[Dict[str, type]]:
+        return {"rms_frames": RmsEneryFrames}
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(self.rms_frames.ts, self.rms_frames.frames)(time)
+
+
 class VoiceExtractor:
     """Extract voice features from an audio file.
 
@@ -398,6 +409,7 @@ class VoiceExtractor:
             "mfcc_3": FeatureMfcc(n_mfcc=2),
             "mfcc_4": FeatureMfcc(n_mfcc=3),
             "spectral_flux": FeatureSpectralFlux(),
+            "rms_db": FeatureRmsEnergy(),
         }
 
     def apply(  # pylint: disable=too-many-locals
@@ -462,6 +474,7 @@ class VoiceExtractor:
         mel_spec_frames = MelSpecFrames.from_spec_frames(spec_frames)
         mfcc_frames = MfccFrames.from_mel_spec_frames(mel_spec_frames)
         spec_flux_frames = SpectralFluxFrames.from_spec_frames(spec_frames)
+        rms_frames = RmsEnergyFrames.from_spec_frames(spec_frames)
 
         requirements = [
             audio_signal,
@@ -478,6 +491,7 @@ class VoiceExtractor:
             spectral_slope_frames,
             mfcc_frames,
             spec_flux_frames,
+            rms_frames,
         ]
         requirements_types = [type(r) for r in requirements]
 

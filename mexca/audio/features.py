@@ -1765,3 +1765,27 @@ class SpectralFluxFrames(SpecFrames):
             spec_frames_obj.center,
             spec_frames_obj.pad_mode,
         )
+
+
+class RmsEnergyFrames(SpecFrames):
+    @classmethod
+    def from_spec_frames(cls, spec_frames_obj: SpecFrames):
+        rms_frames = 20 * np.log10(
+            librosa.feature.rms(  # to dB
+                S=np.abs(spec_frames_obj.frames).T,
+                frame_length=spec_frames_obj.frame_len,
+                hop_length=spec_frames_obj.hop_len,
+                center=spec_frames_obj.center,
+                pad_mode=spec_frames_obj.pad_mode,
+            )
+        )
+
+        return cls(
+            rms_frames.squeeze(),
+            spec_frames_obj.sr,
+            spec_frames_obj.window,
+            spec_frames_obj.frame_len,
+            spec_frames_obj.hop_len,
+            spec_frames_obj.center,
+            spec_frames_obj.pad_mode,
+        )
