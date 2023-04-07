@@ -1611,3 +1611,119 @@ class SpectralSlopeFrames(BaseFrames):
         linear_model = LinearRegression()
         linear_model.fit(band_freqs.reshape(-1, 1), band_power)
         return linear_model.coef_
+
+
+class MelSpecFrames(SpecFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        window: str,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        n_mels: int,
+        lower: float,
+        upper: float,
+    ):
+        self.logger = logging.getLogger("mexca.audio.extraction.MelSpecFrames")
+        self.n_mels = n_mels
+        self.lower = lower
+        self.upper = upper
+        super().__init__(frames, sr, window, frame_len, hop_len, center, pad_mode)
+        self.logger.debug(ClassInitMessage())
+
+    @classmethod
+    def from_spec_frames(
+        cls,
+        spec_frames_obj: SpecFrames,
+        n_mels: int = 26,
+        lower: float = 20.0,
+        upper: float = 8000.0,
+    ):
+        mel_spec_frames = librosa.feature.melspectrogram(
+            S=np.abs(spec_frames_obj.frames.T) ** 2,  # requires power spectrum
+            sr=spec_frames_obj.sr,
+            n_fft=spec_frames_obj.frame_len,
+            hop_length=spec_frames_obj.hop_len,
+            window=spec_frames_obj.window,
+            center=spec_frames_obj.center,
+            pad_mode=spec_frames_obj.pad_mode,
+            n_mels=n_mels,
+            fmin=lower,
+            fmax=upper,
+        )
+
+        return cls(
+            mel_spec_frames.T,  # outputs power spectrum
+            spec_frames_obj.sr,
+            spec_frames_obj.window,
+            spec_frames_obj.frame_len,
+            spec_frames_obj.hop_len,
+            spec_frames_obj.center,
+            spec_frames_obj.pad_mode,
+            n_mels,
+            lower,
+            upper,
+        )
+
+
+class MfccFrames(MelSpecFrames):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        window: str,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        n_mels: int,
+        lower: float,
+        upper: float,
+        n_mfcc: int,
+        lifter: int,
+    ):
+        self.logger = logging.getLogger("mexca.audio.extraction.MfccFrames")
+        self.n_mfcc = n_mfcc
+        self.lifter = lifter
+        super().__init__(
+            frames,
+            sr,
+            window,
+            frame_len,
+            hop_len,
+            center,
+            pad_mode,
+            n_mels,
+            lower,
+            upper,
+        )
+        self.logger.debug(ClassInitMessage())
+
+    @classmethod
+    def from_mel_spec_frames(
+        cls, mel_spec_frames_obj: MelSpecFrames, n_mfcc: int = 4, lifter: int = 22
+    ):
+        mfcc_frames = librosa.feature.mfcc(
+            S=10 * np.log10(mel_spec_frames_obj.frames.T),  # dB on power spectrum
+            sr=mel_spec_frames_obj.sr,
+            n_mfcc=n_mfcc,
+            lifter=lifter,
+        )
+
+        return cls(
+            mfcc_frames.T,
+            mel_spec_frames_obj.sr,
+            mel_spec_frames_obj.window,
+            mel_spec_frames_obj.frame_len,
+            mel_spec_frames_obj.hop_len,
+            mel_spec_frames_obj.center,
+            mel_spec_frames_obj.pad_mode,
+            mel_spec_frames_obj.n_mels,
+            mel_spec_frames_obj.lower,
+            mel_spec_frames_obj.upper,
+            n_mfcc,
+            lifter,
+        )

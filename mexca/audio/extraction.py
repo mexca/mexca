@@ -4,7 +4,7 @@
 import argparse
 import logging
 import os
-from typing import Dict, Optional, Tuple
+from typing import Dict, Optional, Tuple, Union
 import numpy as np
 from scipy.interpolate import interp1d
 from mexca.audio.features import (
@@ -15,6 +15,8 @@ from mexca.audio.features import (
     FormantFrames,
     HammarIndexFrames,
     HnrFrames,
+    MelSpecFrames,
+    MfccFrames,
     JitterFrames,
     PitchFrames,
     PitchHarmonicsFrames,
@@ -282,14 +284,16 @@ class FeatureHarmonicDifference(BaseFeature):
     pitch_harmonics_frames: Optional[PitchHarmonicsFrames] = None
 
     def __init__(
-        self, x_idx: int = 0, x_type: str = "H", y_idx: int = 1, y_type: str = "H"
+        self, x_idx: int = 0, x_type: str = "h", y_idx: int = 1, y_type: str = "h"
     ):
         self.x_idx = x_idx
         self.x_type = x_type
         self.y_idx = y_idx
         self.y_type = y_type
 
-    def requires(self) -> Optional[Dict[str, type]]:
+    def requires(
+        self,
+    ) -> Optional[Dict[str, Union[FormantAmplitudeFrames, PitchHarmonicsFrames]]]:
         return {
             "formant_amp_frames": FormantAmplitudeFrames,
             "pitch_harmonics_frames": PitchHarmonicsFrames,
@@ -307,7 +311,7 @@ class FeatureHarmonicDifference(BaseFeature):
             if self.formant_amp_frames.rel_f0:
                 var = var + 20 * np.log10(self.pitch_harmonics_frames.frames[:, 0])
         else:
-            raise Exception(
+            raise ValueError(
                 f"'{which}_type' must be either 'h' (pitch harmonic) or 'f' (formant)"
             )
 
@@ -320,6 +324,21 @@ class FeatureHarmonicDifference(BaseFeature):
         ratio = x_var - y_var  # ratio on log scale
 
         return self._get_interp_fun(self.formant_amp_frames.ts, ratio)(time)
+
+
+class MfccFeature(BaseFeature):
+    mfcc_frames: Optional[MfccFrames] = None
+
+    def __init__(self, n_mfcc: int = 0) -> None:
+        self.n_mfcc = n_mfcc
+
+    def requires(self) -> Optional[Dict[str, MfccFrames]]:
+        return {"mfcc_frames": MfccFrames}
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        return self._get_interp_fun(
+            self.mfcc_frames.ts, self.mfcc_frames.frames[:, self.n_mfcc]
+        )(time)
 
 
 class VoiceExtractor:
@@ -361,6 +380,10 @@ class VoiceExtractor:
             "spectral_slope_500_1500": FeatureSpectralSlope(lower=500, upper=1500),
             "h1_h2_diff_db": FeatureHarmonicDifference(),
             "h1_f3_diff_db": FeatureHarmonicDifference(y_idx=2, y_type="f"),
+            "mfcc_1": MfccFeature(),
+            "mfcc_2": MfccFeature(n_mfcc=1),
+            "mfcc_3": MfccFeature(n_mfcc=2),
+            "mfcc_4": MfccFeature(n_mfcc=3),
         }
 
     def apply(  # pylint: disable=too-many-locals
@@ -422,6 +445,8 @@ class VoiceExtractor:
         alpha_ratio_frames = AlphaRatioFrames.from_spec_frames(spec_frames)
         hammar_index_frames = HammarIndexFrames.from_spec_frames(spec_frames)
         spectral_slope_frames = SpectralSlopeFrames.from_spec_frames(spec_frames)
+        mel_spec_frames = MelSpecFrames.from_spec_frames(spec_frames)
+        mfcc_frames = MfccFrames.from_mel_spec_frames(mel_spec_frames)
 
         requirements = [
             audio_signal,
@@ -436,6 +461,7 @@ class VoiceExtractor:
             alpha_ratio_frames,
             hammar_index_frames,
             spectral_slope_frames,
+            mfcc_frames,
         ]
         requirements_types = [type(r) for r in requirements]
 
