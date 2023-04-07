@@ -7,10 +7,27 @@ import os
 from typing import Dict, Optional, Union
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (AlphaRatioFrames, AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantFrames,
-                                  HammarIndexFrames, HnrFrames, JitterFrames, MelSpecFrames, MfccFrames, PitchFrames,
-                                  PitchHarmonicsFrames, PitchPulseFrames, RmsEnergyFrames, ShimmerFrames, SpecFrames,
-                                  SpectralFluxFrames, SpectralSlopeFrames)
+from mexca.audio.features import (
+    AlphaRatioFrames,
+    AudioSignal,
+    BaseFrames,
+    FormantAmplitudeFrames,
+    FormantFrames,
+    FormantAudioSignal,
+    HammarIndexFrames,
+    HnrFrames,
+    JitterFrames,
+    MelSpecFrames,
+    MfccFrames,
+    PitchFrames,
+    PitchHarmonicsFrames,
+    PitchPulseFrames,
+    RmsEnergyFrames,
+    ShimmerFrames,
+    SpecFrames,
+    SpectralFluxFrames,
+    SpectralSlopeFrames,
+)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
 
@@ -343,7 +360,7 @@ class FeatureRmsEnergy(BaseFeature):
     rms_frames: Optional[RmsEnergyFrames] = None
 
     def requires(self) -> Optional[Dict[str, type]]:
-        return {"rms_frames": RmsEneryFrames}
+        return {"rms_frames": RmsEnergyFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
         return self._get_interp_fun(self.rms_frames.ts, self.rms_frames.frames)(time)
@@ -448,8 +465,16 @@ class VoiceExtractor:
         jitter_frames = JitterFrames.from_pitch_pulse_frames(pulses_frames)
         shimmer_frames = ShimmerFrames.from_pitch_pulse_frames(pulses_frames)
         hnr_frames = HnrFrames.from_frames(sig_frames)
-        # TODO: Fix preemphasis for entire signal, not per frame
-        formant_frames = FormantFrames.from_frames(sig_frames, preemphasis_from=None)
+
+        formant_signal = FormantAudioSignal.from_audio_signal(
+            audio_signal, preemphasis_from=None
+        )
+        formant_sig_frames = BaseFrames.from_signal(
+            formant_signal, frame_len=1024, hop_len=1024 // 4
+        )
+        formant_frames = FormantFrames.from_frames(
+            formant_sig_frames, preemphasis_from=None
+        )
         pitch_harmonics = PitchHarmonicsFrames.from_spec_and_pitch_frames(
             spec_frames, pitch_frames, n_harmonics=100
         )
