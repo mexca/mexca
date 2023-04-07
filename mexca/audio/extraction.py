@@ -4,7 +4,7 @@
 import argparse
 import logging
 import os
-from typing import Dict, Optional
+from typing import Dict, Optional, Tuple
 import numpy as np
 from scipy.interpolate import interp1d
 from mexca.audio.features import (
@@ -21,7 +21,7 @@ from mexca.audio.features import (
     PitchPulseFrames,
     ShimmerFrames,
     SpecFrames,
-    SpectralSlopeFrames
+    SpectralSlopeFrames,
 )
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
@@ -261,20 +261,65 @@ class FeatureHammarIndex(BaseFeature):
 class FeatureSpectralSlope(BaseFeature):
     spectral_slope_frames: Optional[SpectralSlopeFrames] = None
 
-
     def __init__(self, lower: float, upper: float) -> None:
         self.lower = lower
         self.upper = upper
 
-
     def requires(self) -> Optional[Dict[str, type]]:
         return {"spectral_slope_frames": SpectralSlopeFrames}
-    
 
     def apply(self, time: np.ndarray) -> np.ndarray:
         slope_idx = self.spectral_slope_frames.bands.index((self.lower, self.upper))
         # slope_idx = np.where(np.all(np.array(self.spectral_slope_frames.bands) == np.array([self.lower, self.upper])))
-        return self._get_interp_fun(self.spectral_slope_frames.ts, self.spectral_slope_frames.frames[:, slope_idx])(time)
+        return self._get_interp_fun(
+            self.spectral_slope_frames.ts,
+            self.spectral_slope_frames.frames[:, slope_idx],
+        )(time)
+
+
+class FeatureHarmonicDifference(BaseFeature):
+    formant_amp_frames: Optional[FormantAmplitudeFrames] = None
+    pitch_harmonics_frames: Optional[PitchHarmonicsFrames] = None
+
+    def __init__(
+        self, x_idx: int = 0, x_type: str = "H", y_idx: int = 1, y_type: str = "H"
+    ):
+        self.x_idx = x_idx
+        self.x_type = x_type
+        self.y_idx = y_idx
+        self.y_type = y_type
+
+    def requires(self) -> Optional[Dict[str, type]]:
+        return {
+            "formant_amp_frames": FormantAmplitudeFrames,
+            "pitch_harmonics_frames": PitchHarmonicsFrames,
+        }
+
+    def _get_harmonic_or_formant(self, which: str = "x") -> np.ndarray:
+        if getattr(self, which + "_type") == "h":
+            var = 20 * np.log10(
+                self.pitch_harmonics_frames.frames[:, getattr(self, which + "_idx")]
+            )
+        elif getattr(self, which + "_type") == "f":
+            # Formant amplitude is already on dB scale
+            var = self.formant_amp_frames.frames[:, getattr(self, which + "_idx")]
+            # Multiply by F0 on dB scale
+            if self.formant_amp_frames.rel_f0:
+                var = var + 20 * np.log10(self.pitch_harmonics_frames.frames[:, 0])
+        else:
+            raise Exception(
+                f"'{which}_type' must be either 'h' (pitch harmonic) or 'f' (formant)"
+            )
+
+        return var
+
+    def apply(self, time: np.ndarray) -> np.ndarray:
+        x_var = self._get_harmonic_or_formant(which="x")
+        y_var = self._get_harmonic_or_formant(which="y")
+
+        ratio = x_var - y_var  # ratio on log scale
+
+        return self._get_interp_fun(self.formant_amp_frames.ts, ratio)(time)
 
 
 class VoiceExtractor:
@@ -314,6 +359,8 @@ class VoiceExtractor:
             "hammar_index_db": FeatureHammarIndex(),
             "spectral_slope_0_500": FeatureSpectralSlope(lower=0, upper=500),
             "spectral_slope_500_1500": FeatureSpectralSlope(lower=500, upper=1500),
+            "h1_h2_diff_db": FeatureHarmonicDifference(),
+            "h1_f3_diff_db": FeatureHarmonicDifference(y_idx=2, y_type="f"),
         }
 
     def apply(  # pylint: disable=too-many-locals
@@ -388,7 +435,7 @@ class VoiceExtractor:
             formant_amp_frames,
             alpha_ratio_frames,
             hammar_index_frames,
-            spectral_slope_frames
+            spectral_slope_frames,
         ]
         requirements_types = [type(r) for r in requirements]
 

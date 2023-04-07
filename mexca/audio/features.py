@@ -1536,7 +1536,9 @@ class HammarIndexFrames(BaseFrames):
         pivot_point: float = 2000.0,
         upper: float = 5000.0,
     ):
-        lower_band = np.abs(spec_frames_obj.frames[:, spec_frames_obj.freqs <= pivot_point])
+        lower_band = np.abs(
+            spec_frames_obj.frames[:, spec_frames_obj.freqs <= pivot_point]
+        )
         upper_band_freqs = np.logical_and(
             spec_frames_obj.freqs > pivot_point, spec_frames_obj.freqs <= upper
         )
@@ -1558,24 +1560,40 @@ class HammarIndexFrames(BaseFrames):
 
 
 class SpectralSlopeFrames(BaseFrames):
-    def __init__(self, frames: np.ndarray, sr: int, frame_len: int, hop_len: int, center: bool, pad_mode: str, bands: Tuple[Tuple[float]]):
+    def __init__(
+        self,
+        frames: np.ndarray,
+        sr: int,
+        frame_len: int,
+        hop_len: int,
+        center: bool,
+        pad_mode: str,
+        bands: Tuple[Tuple[float]],
+    ):
         self.logger = logging.getLogger("mexca.audio.extraction.HammarIndexFrames")
         self.bands = bands
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
 
     @classmethod
-    def from_spec_frames(cls, spec_frames_obj: SpecFrames, bands: Tuple[Tuple[float]] = ((0.0, 500.0), (500.0, 1500.0))):
+    def from_spec_frames(
+        cls,
+        spec_frames_obj: SpecFrames,
+        bands: Tuple[Tuple[float]] = ((0.0, 500.0), (500.0, 1500.0)),
+    ):
         spectral_slopes = np.zeros(shape=(spec_frames_obj.idx.shape[0], len(bands)))
 
         for i, band in enumerate(bands):
-            band_freqs_mask = np.logical_and(spec_frames_obj.freqs > band[0], spec_frames_obj.freqs <= band[1])
+            band_freqs_mask = np.logical_and(
+                spec_frames_obj.freqs > band[0], spec_frames_obj.freqs <= band[1]
+            )
             band_power = np.abs(spec_frames_obj.frames[:, band_freqs_mask])
             band_power_db = 20 * np.log10(band_power)
             band_freqs = spec_frames_obj.freqs[band_freqs_mask]
-            # spectral_slopes[:, i] = np.array([cls._calc_spectral_slope(band_power_db[i, :], band_freqs) for i in range(band_power_db.shape[0])])
-            spectral_slopes[:, i] = np.apply_along_axis(cls._calc_spectral_slope, 1, band_power_db, band_freqs=band_freqs).squeeze()
-        
+            spectral_slopes[:, i] = np.apply_along_axis(
+                cls._calc_spectral_slope, 1, band_power_db, band_freqs=band_freqs
+            ).squeeze()
+
         return cls(
             spectral_slopes,
             spec_frames_obj.sr,
@@ -1583,11 +1601,13 @@ class SpectralSlopeFrames(BaseFrames):
             spec_frames_obj.hop_len,
             spec_frames_obj.center,
             spec_frames_obj.pad_mode,
-            bands
+            bands,
         )
-    
+
     @staticmethod
-    def _calc_spectral_slope(band_power: np.ndarray, band_freqs: np.ndarray) -> np.ndarray:
+    def _calc_spectral_slope(
+        band_power: np.ndarray, band_freqs: np.ndarray
+    ) -> np.ndarray:
         linear_model = LinearRegression()
         linear_model.fit(band_freqs.reshape(-1, 1), band_power)
         return linear_model.coef_
