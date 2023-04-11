@@ -468,12 +468,22 @@ class VoiceExtractor:
         if features is None:
             features = self._set_default_features()
 
+        self._check_features(features)
+
         self.features = features
 
         self.logger.debug(ClassInitMessage())
 
     @staticmethod
-    def _set_default_features():
+    def _check_features(features: dict):
+        for key, item in features.items():
+            if not isinstance(key, str):
+                raise TypeError(f'Feature name {key} is not a string')
+            if not isinstance(item, BaseFeature):
+                raise TypeError(f'Feature object {item} with name {key} is not a subclass of "mexca.audio.features.BaseFeature"')
+
+    @staticmethod
+    def _set_default_features() -> Dict[str, BaseFeature]:
         return {
             "pitch_f0_hz": FeaturePitchF0(),
             "jitter_local_rel_f0": FeatureJitter(),
