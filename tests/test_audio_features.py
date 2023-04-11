@@ -239,7 +239,7 @@ class TestPitchPulseFrames(TestPitchFrames):
         pulses_frames_obj._get_next_pulse(frame, ts, t0, start, stop, False, pulses)
         assert len(pulses) > 0
         assert np.all(
-            np.array([isinstance(puls, tuple) and puls[0] > 0 for puls in pulses])
+            np.array([isinstance(puls, tuple) and puls[0] >= 0 and puls[1] >= 0 for puls in pulses])
         )
 
 
