@@ -377,7 +377,7 @@ class SpecFrames(BaseFrames):
 
     Parameters
     ----------
-    frames: np.ndarray
+    frames: numpy.ndarray
         Spectrogram frames.
     window: str
         The window that was applied before the STFT.
@@ -1497,6 +1497,23 @@ class HnrFrames(BaseFrames):
 
 
 class AlphaRatioFrames(BaseFrames):
+    """Calculate and store spectogram alpha ratios.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Alpha ratio frames in dB with shape (num_frames,).
+    lower_band: tuple
+        Boundaries of the lower frequency band (start, end) in Hz.
+    upper_band: tuple
+        Boundaries of the upper frequency band (start, end) in Hz.
+
+    Notes
+    -----
+    Calculate the alpha ratio by dividing the energy (sum of magnitude) in the lower frequency band
+    by the energy in the upper frequency band. The ratio is then converted to dB.
+
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1518,9 +1535,21 @@ class AlphaRatioFrames(BaseFrames):
     def from_spec_frames(
         cls,
         spec_frames_obj: SpecFrames,
-        lower_band: Tuple = (50, 1000),
-        upper_band: Tuple = (1000, 5000),
+        lower_band: Tuple = (50.0, 1000.0),
+        upper_band: Tuple = (1000.0, 5000.0),
     ):
+        """Calculate the alpha ratio from spectrogram frames.
+
+        Parameters
+        ----------
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+        lower_band: tuple, default=(50.0, 1000.0)
+            Boundaries of the lower frequency band (start, end) in Hz.
+        upper_band: tuple, default=(1000.0, 5000.0)
+            Boundaries of the upper frequency band (start, end) in Hz.
+
+        """
         lower_band_bins = np.logical_and(
             spec_frames_obj.freqs > lower_band[0],
             spec_frames_obj.freqs <= lower_band[1],
@@ -1552,6 +1581,23 @@ class AlphaRatioFrames(BaseFrames):
 
 
 class HammarIndexFrames(BaseFrames):
+    """Calculate and store the spectogram Hammarberg index.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Hammarberg index frames in dB with shape (num_frames,).
+    pivot_point: float
+        Point separating the lower and upper frequency regions in Hz.
+    upper: float
+        Upper limit for the upper frequency region in Hz.
+
+    Notes
+    -----
+    Calculate the Hammarberg index by dividing the peak magnitude in the spectrogram region below `pivot_point`
+    by the peak magnitude in region between `pivot_point` and `upper`. The ratio is then converted to dB.
+
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1576,6 +1622,18 @@ class HammarIndexFrames(BaseFrames):
         pivot_point: float = 2000.0,
         upper: float = 5000.0,
     ):
+        """Calculate the Hammarberg index from spectrogram frames.
+
+        Parameters
+        ----------
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+        pivot_point: float
+            Point separating the lower and upper frequency regions in Hz.
+        upper: float
+            Upper limit for the upper frequency region in Hz.
+
+        """
         lower_band = np.abs(
             spec_frames_obj.frames[:, spec_frames_obj.freqs <= pivot_point]
         )
@@ -1600,6 +1658,21 @@ class HammarIndexFrames(BaseFrames):
 
 
 class SpectralSlopeFrames(BaseFrames):
+    """Estimate and store spectral slopes.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Spectral slope frames with shape (num_frames, num_bands).
+    bands: tuple
+        Frequency bands in Hz for which slopes were estimated.
+
+    Notes
+    -----
+    Estimate spectral slopes by fitting linear models to frequency bands predicting power in dB from frequency in Hz.
+    Fits separate models for each frame and band.
+    
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1621,6 +1694,16 @@ class SpectralSlopeFrames(BaseFrames):
         spec_frames_obj: SpecFrames,
         bands: Tuple[Tuple[float]] = ((0.0, 500.0), (500.0, 1500.0)),
     ):
+        """Estimate spectral slopes from spectrogram frames.
+
+        Parameters
+        ----------
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+        bands: tuple, default=((0.0, 500.0), (500.0, 1500.0))
+            Frequency bands in Hz for which slopes are estimated.
+
+        """
         spectral_slopes = np.zeros(shape=(spec_frames_obj.idx.shape[0], len(bands)))
 
         for i, band in enumerate(bands):
@@ -1654,6 +1737,24 @@ class SpectralSlopeFrames(BaseFrames):
 
 
 class MelSpecFrames(SpecFrames):
+    """Calculate and store Mel spectrograms.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Spectrogram frames on the Mel scale with shape (num_frames, n_mels).
+    n_mels: int
+        Number of Mel filters.
+    lower: float
+        Lower frequency boundary in Hz.
+    upper: float
+        Upper frequency boundary in Hz.
+
+    See Also
+    --------
+    librosa.feature.melspectrogram
+
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1682,6 +1783,18 @@ class MelSpecFrames(SpecFrames):
         lower: float = 20.0,
         upper: float = 8000.0,
     ):
+        """Calculate Mel spectrograms from spectrogram frames.
+
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+        n_mels: int, default=26
+            Number of Mel filters.
+        lower: float, default=20.0
+            Lower frequency boundary in Hz.
+        upper: float, default=8000.0
+            Upper frequency boundary in Hz.
+
+        """
         mel_spec_frames = librosa.feature.melspectrogram(
             S=np.abs(spec_frames_obj.frames.T) ** 2,  # requires power spectrum
             sr=spec_frames_obj.sr,
@@ -1710,6 +1823,19 @@ class MelSpecFrames(SpecFrames):
 
 
 class MfccFrames(MelSpecFrames):
+    """Estimate and store Mel frequency cepstral coefficients (MFCCs).
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        MFCC frames with shape (num_frames, n_mfcc).
+    n_mfcc: int
+        Number of coeffcients that were estimated per frame.
+    lifter: float
+        Cepstral liftering coefficient. Must be >= 0. If zero, no liftering is applied.
+
+
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1723,7 +1849,7 @@ class MfccFrames(MelSpecFrames):
         lower: float,
         upper: float,
         n_mfcc: int,
-        lifter: int,
+        lifter: float,
     ):
         self.logger = logging.getLogger("mexca.audio.extraction.MfccFrames")
         self.n_mfcc = n_mfcc
@@ -1746,6 +1872,22 @@ class MfccFrames(MelSpecFrames):
     def from_mel_spec_frames(
         cls, mel_spec_frames_obj: MelSpecFrames, n_mfcc: int = 4, lifter: int = 22
     ):
+        """Estimate MFCCs from Mel spectogram frames.
+
+        Parameters
+        ----------
+        mel_spec_frames_obj: MelSpecFrames
+            Mel spectrogram frames object.
+        n_mfcc: int, default=4
+            Number of coeffcients that were estimated per frame.
+        lifter: float, default=22
+            Cepstral liftering coefficient. Must be >= 0. If zero, no liftering is applied.
+
+        See Also
+        --------
+        librosa.feature.mfcc
+
+        """
         mfcc_frames = librosa.feature.mfcc(
             S=10 * np.log10(mel_spec_frames_obj.frames.T),  # dB on power spectrum
             sr=mel_spec_frames_obj.sr,
@@ -1770,6 +1912,31 @@ class MfccFrames(MelSpecFrames):
 
 
 class SpectralFluxFrames(SpecFrames):
+    """Calculate and store spectral flux.
+
+    Parameters
+    ----------
+    frames: numpy.ndarray
+        Spectral flux frames with shape (num_frames-1,).
+    lower: float
+        Lower limit for frequency bins.
+    upper: float
+        Upper limit for frequency bins
+
+    Notes
+    -----
+    Compute the spectral flux as:
+
+    1. Compute the normalized magnitudes of the frame spectra by dividing the magnitude
+       at each frequency bin by the sum of all frequency bins.
+    2. Compute the first-order difference of normalized magnitudes for each frequency bin within [`lower`, `upper`) across frames.
+    3. Sum up the squared differences for each frame.
+
+    Due to the first-order difference, the object has a frame less than the
+    spectrogram from which it has been computed.
+
+
+    """
     def __init__(
         self,
         frames: np.ndarray,
@@ -1777,23 +1944,39 @@ class SpectralFluxFrames(SpecFrames):
         window: str,
         frame_len: int,
         hop_len: int,
-        center: bool = True,
-        pad_mode: str = "constant",
+        center: bool,
+        pad_mode: str,
+        lower: float,
+        upper: float,
     ) -> None:
         self.logger = logging.getLogger("mexca.audio.extraction.SpectralFluxFrames")
+        self.lower = lower
+        self.upper = upper
         super().__init__(frames, sr, window, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
 
     @classmethod
     def from_spec_frames(
-        cls, spec_frames_obj: SpecFrames, lower: float = 0, upper: float = 5000.0
+        cls, spec_frames_obj: SpecFrames, lower: float = 0.0, upper: float = 5000.0
     ):
+        """Calculate the spectral flux from spectrogram frames.
+
+        Parameters
+        ----------
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+        lower: float, default=0.0
+            Lower limit for frequency bins.
+        upper: float, default=5000.0
+            Upper limit for frequency bins
+
+        """
         spec_freq_mask = np.logical_and(
             spec_frames_obj.freqs >= lower, spec_frames_obj.freqs < upper
         )
-        spec_mag = np.abs(spec_frames_obj.frames[:, spec_freq_mask])
+        spec_mag = np.abs(spec_frames_obj.frames)
         spec_norm = np.sum(spec_mag, axis=1)
-        spec_diff = np.diff(spec_mag / spec_norm[:, None], axis=0)
+        spec_diff = np.diff(spec_mag[:, spec_freq_mask] / spec_norm[:, None], axis=0)
         spec_flux_frames = np.sum(spec_diff**2, axis=1)
 
         return cls(
@@ -1804,12 +1987,30 @@ class SpectralFluxFrames(SpecFrames):
             spec_frames_obj.hop_len,
             spec_frames_obj.center,
             spec_frames_obj.pad_mode,
+            lower,
+            upper,
         )
 
 
 class RmsEnergyFrames(SpecFrames):
+    """Calculate and store the root mean squared (RMS) energy.
+
+    Parameters
+    ---------
+    frames: numpy.ndarray
+        RMS energy frames in dB with shape (num_frames,).
+
+    """
     @classmethod
     def from_spec_frames(cls, spec_frames_obj: SpecFrames):
+        """Calculate the RMS energy from spectrogram frames.
+
+        Parameters
+        ----------
+        spec_frames_obj: SpecFrames
+            Spectrogram frames object.
+
+        """
         rms_frames = 20 * np.log10(
             librosa.feature.rms(  # to dB
                 S=np.abs(spec_frames_obj.frames).T,
