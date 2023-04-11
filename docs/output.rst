@@ -47,6 +47,24 @@ By default, the following voice features are extracted:
 - `f1_freq_hz`: The central frequency of the first formant in Hz. Calculated using Burg's method by finding the roots of the linear predictive coefficients.
 - `f1_bandwidth_hz`: The bandwidth of the first formant in Hz.
 - `f1_amplitude_rel_f0`: The amplitude of the first formant relative to the amplitude of the closest F0 harmonic.
+- `f2_freq_hz`: The central frequency of the first formant in Hz.
+- `f2_bandwidth_hz`: The bandwidth of the second formant in Hz.
+- `f2_amplitude_rel_f0`: The amplitude of the second formant relative to the amplitude of the closest F0 harmonic.
+- `f3_freq_hz`: The central frequency of the third formant in Hz.
+- `f3_bandwidth_hz`: The bandwidth of the third formant in Hz.
+- `f3_amplitude_rel_f0`: The amplitude of the third formant relative to the amplitude of the closest F0 harmonic.
+- `alpha_ratio_db`: Alpha ratio in dB: Ratio of the summed energy in the frequency band `[50, 1000)` and the band `[1000, 5000)` (Hz).
+- `hammar_index_db`: Hammarberg index in dB: Ratio of the peak magnitude in the frequency band `[0, 2000)` and the band `[2000, 5000)` (Hz).
+- `spectral_slope_0_500`: Spectral slope in the frequency band `[0, 500)` Hz.
+- `spectral_slope_500_1500`: Spectral slope in the frequency band `[500, 1500)` Hz.
+- `h1_h2_diff_db`: Difference between the first and second pitch F0 harmonic amplitudes in dB.
+- `h1_f3_diff_db`: Difference between the first and F0 harmonic and the third formant amplitudes in dB.
+- `mfcc_1`: First Mel frequency cepstral coeffcient (MFCC).
+- `mfcc_2`: Second MFCC.
+- `mfcc_3`: Third MFCC.
+- `mfcc_4`: Fourth MFCC.
+- `spectral_flux`: Spectral flux: Sum of the squared first-order magnitude per-frequency-bin difference.
+- `rms_db`: Root mean squared energy in dB.
 
 Details and further references on the feature extraction can be found in the description of the `GeMAPS <https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=7160715>`_ feature set (Eyben et al., 2016).
 
