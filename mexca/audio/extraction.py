@@ -1,4 +1,10 @@
 """Extract voice features from an audio file.
+
+Construct a dictionary with keys as feature names and values as feature objects. The dictionary can
+be used to extract the specified features with the `VoiceExtractor`. Feature objects require
+lower-level voice signal properties, which are defined in the `requires` method of feach feature
+class. The `VoiceExtractor` class computes the properties and supplies them to the feature objects.
+
 """
 
 import argparse
@@ -7,27 +13,10 @@ import os
 from typing import Dict, Optional, Union
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (
-    AlphaRatioFrames,
-    AudioSignal,
-    BaseFrames,
-    FormantAmplitudeFrames,
-    FormantFrames,
-    FormantAudioSignal,
-    HammarIndexFrames,
-    HnrFrames,
-    JitterFrames,
-    MelSpecFrames,
-    MfccFrames,
-    PitchFrames,
-    PitchHarmonicsFrames,
-    PitchPulseFrames,
-    RmsEnergyFrames,
-    ShimmerFrames,
-    SpecFrames,
-    SpectralFluxFrames,
-    SpectralSlopeFrames,
-)
+from mexca.audio.features import (AlphaRatioFrames, AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantAudioSignal,
+                                  FormantFrames, HammarIndexFrames, HnrFrames, JitterFrames, MelSpecFrames, MfccFrames,
+                                  PitchFrames, PitchHarmonicsFrames, PitchPulseFrames, RmsEnergyFrames, ShimmerFrames,
+                                  SpecFrames, SpectralFluxFrames, SpectralSlopeFrames)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage
 
@@ -240,9 +229,18 @@ class FeatureFormantAmplitude(BaseFeature):
 
 
 class FeatureAlphaRatio(BaseFeature):
+    """Extract the alpha ratio in dB."""
     alpha_ratio_frames: Optional[AlphaRatioFrames] = None
 
     def requires(self) -> Optional[Dict[str, AlphaRatioFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `alpha_ratio_frames`.
+
+        """
         return {"alpha_ratio_frames": AlphaRatioFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -252,9 +250,18 @@ class FeatureAlphaRatio(BaseFeature):
 
 
 class FeatureHammarIndex(BaseFeature):
+    """Extract the Hammarberg index in dB."""
     hammar_index_frames: Optional[HammarIndexFrames] = None
 
     def requires(self) -> Optional[Dict[str, HammarIndexFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `hammar_index_frames`.
+
+        """
         return {"hammar_index_frames": HammarIndexFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -264,6 +271,15 @@ class FeatureHammarIndex(BaseFeature):
 
 
 class FeatureSpectralSlope(BaseFeature):
+    """Extract spectral slopes for frequency bands.
+    
+    Parameters
+    ----------
+    lower, upper: float
+        Lower and upper boundary of the frequency band for which to extract the spectral slope.
+        A band with these boundaries must exist in the required `spectral_slope_frames` object.
+
+    """
     spectral_slope_frames: Optional[SpectralSlopeFrames] = None
 
     def __init__(self, lower: float, upper: float) -> None:
@@ -271,6 +287,14 @@ class FeatureSpectralSlope(BaseFeature):
         self.upper = upper
 
     def requires(self) -> Optional[Dict[str, type]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `spectral_slope_frames`.
+
+        """
         return {"spectral_slope_frames": SpectralSlopeFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -283,6 +307,21 @@ class FeatureSpectralSlope(BaseFeature):
 
 
 class FeatureHarmonicDifference(BaseFeature):
+    """Extract the difference between pitch harmonic and/or formant amplitudes in dB.
+
+    Parameters
+    ----------
+    x_idx, y_idx: int, default=0
+        Index of the first/second amplitude.
+    x_type, y_type: str, default='h'
+        Type of the first/second amplitude. Must be either `'h'` for pitch harmonic or `'f'` for formant.
+
+    Raises
+    ------
+    ValueError
+        If `x_type` or `y_type` is not `'h'` or `'f'`.    
+    
+    """
     formant_amp_frames: Optional[FormantAmplitudeFrames] = None
     pitch_harmonics_frames: Optional[PitchHarmonicsFrames] = None
 
@@ -297,6 +336,14 @@ class FeatureHarmonicDifference(BaseFeature):
     def requires(
         self,
     ) -> Optional[Dict[str, Union[FormantAmplitudeFrames, PitchHarmonicsFrames]]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with keys `formant_amp_frames` and `pitch_harmonics_frames`.
+
+        """
         return {
             "formant_amp_frames": FormantAmplitudeFrames,
             "pitch_harmonics_frames": PitchHarmonicsFrames,
@@ -330,12 +377,28 @@ class FeatureHarmonicDifference(BaseFeature):
 
 
 class FeatureMfcc(BaseFeature):
+    """Extract Mel frequency cepstral coefficients (MFCCs).
+
+    Parameters
+    ----------
+    n_mfcc: int, default=0
+        Index of the MFCC to be extracted.
+
+    """
     mfcc_frames: Optional[MfccFrames] = None
 
     def __init__(self, n_mfcc: int = 0) -> None:
         self.n_mfcc = n_mfcc
 
     def requires(self) -> Optional[Dict[str, MfccFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `mfcc_frames`.
+
+        """
         return {"mfcc_frames": MfccFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -345,9 +408,19 @@ class FeatureMfcc(BaseFeature):
 
 
 class FeatureSpectralFlux(BaseFeature):
+    """Extract spectral flux.
+    """
     spec_flux_frames: Optional[SpectralFluxFrames] = None
 
     def requires(self) -> Optional[Dict[str, SpectralFluxFrames]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `spectral_flux_frames`.
+
+        """
         return {"spec_flux_frames": SpectralFluxFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -357,9 +430,19 @@ class FeatureSpectralFlux(BaseFeature):
 
 
 class FeatureRmsEnergy(BaseFeature):
+    """Extract the root mean squared energy in dB.
+    """
     rms_frames: Optional[RmsEnergyFrames] = None
 
     def requires(self) -> Optional[Dict[str, type]]:
+        """Specify objects required for feature extraction.
+
+        Returns
+        -------
+        dict
+            Dictionary with key `rms_frames`.
+
+        """
         return {"rms_frames": RmsEnergyFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
