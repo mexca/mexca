@@ -4,8 +4,29 @@ import os
 import subprocess
 import pytest
 import numpy as np
-from mexca.audio.extraction import FeaturePitchF0, VoiceExtractor
+from mexca.audio.extraction import FeaturePitchF0, VoiceExtractor, VoiceFeaturesConfig
 from mexca.data import VoiceFeatures
+
+
+@pytest.fixture
+def config():
+    return VoiceFeaturesConfig()
+
+
+class TestVoiceFeaturesConfig:
+    filename = "test.yaml"
+    
+
+    def test_write_read(self, config):
+        config.write_yaml(self.filename)
+        
+        assert os.path.exists(self.filename)
+
+        new_config = config.from_yaml(self.filename)
+
+        assert isinstance(new_config, VoiceFeaturesConfig)
+
+        os.remove(self.filename)
 
 
 class TestVoiceExtractor:
@@ -31,9 +52,12 @@ class TestVoiceExtractor:
         assert len(features.frame) == len(features.pitch_f0_hz)
 
 
-    def test_cli(self):
+    def test_cli(self, config):
+        config_filepath = "test_config.yaml"
         out_filename = os.path.splitext(os.path.basename(self.filepath))[0] + '_voice_features.json'
+        config.write_yaml(config_filepath)
         subprocess.run(['extract-voice', '-f', self.filepath,
-                        '-o', '.', '-t', '0.04'], check=True)
+                        '-o', '.', '-t', '0.04', "--config-filepath", config_filepath], check=True)
         assert os.path.exists(out_filename)
         os.remove(out_filename)
+        os.remove(config_filepath)
