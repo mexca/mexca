@@ -384,8 +384,17 @@ class TestSpectralSlopeFrames(TestSpecFrames):
 
     def test_calc_spectral_slope(self, spectral_slope_frames_obj):
         n = 512
-        band_power = np.random.uniform(-1, 1, n)
+        band_power = np.random.uniform(0, 1, n)
         band_freqs = np.random.uniform(0, 8000, n)
+        coefs = spectral_slope_frames_obj._calc_spectral_slope(band_power, band_freqs)
+        assert coefs.shape == (1,)
+
+
+    def test_calc_spectral_slope_nan(self, spectral_slope_frames_obj):
+        n = 512
+        band_power = np.random.uniform(0, 1, n)
+        band_freqs = np.random.uniform(0, 8000, n)
+        band_power[1:3] = np.nan
         coefs = spectral_slope_frames_obj._calc_spectral_slope(band_power, band_freqs)
         assert coefs.shape == (1,)
 

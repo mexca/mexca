@@ -846,7 +846,9 @@ class FormantAmplitudeFrames(BaseFrames):
             harmonic_peaks = np.zeros(harmonics_amp.shape[0:1])
             harmonics_amp_all_na = np.all(np.isnan(harmonics_amp), axis=1)
             harmonic_peaks[harmonics_amp_all_na] = np.nan
-            harmonic_peaks[~harmonics_amp_all_na] = np.nanmax(harmonics_amp[~harmonics_amp_all_na], axis=1)
+            harmonic_peaks[~harmonics_amp_all_na] = np.nanmax(
+                harmonics_amp[~harmonics_amp_all_na], axis=1
+            )
             harmonic_peaks_db = 20 * np.log10(harmonic_peaks)
 
             if rel_f0:
@@ -1113,7 +1115,7 @@ class PitchPeriodFrames(BaseFrames):
         periods = np.array_split(periods[mask], np.where(~mask)[0])
 
         return periods, mask
-    
+
     @staticmethod
     def _check_ratio(x_arr: np.ndarray, threshold: float) -> np.ndarray:
         valid = np.logical_and(np.isfinite(x_arr[1:]), x_arr[1:] > 0)
@@ -1220,7 +1222,7 @@ class JitterFrames(PitchPeriodFrames):
     ):
         if len(pulses) == 0:
             return np.nan
-        
+
         # Calc period length as first order diff of pulse ts
         periods, _ = cls._calc_period_length(pulses, lower, upper)
 
@@ -1230,11 +1232,7 @@ class JitterFrames(PitchPeriodFrames):
         # Calc avg of first order diff in period length
         # only consider period pairs where ratio is < max_period_ratio
         period_diff = [
-            np.abs(
-                np.diff(period)[
-                    cls._check_ratio(period, max_period_ratio)
-                ]
-            )
+            np.abs(np.diff(period)[cls._check_ratio(period, max_period_ratio)])
             for period in periods
             if len(period) > 1
         ]
@@ -1242,14 +1240,16 @@ class JitterFrames(PitchPeriodFrames):
         if len(period_diff) == 0 or all(len(period) == 0 for period in period_diff):
             return np.nan
 
-        avg_period_diff = np.nanmean(np.array([np.mean(period) for period in period_diff]))
+        avg_period_diff = np.nanmean(
+            np.array([np.mean(period) for period in period_diff])
+        )
 
         if rel:  # Relative to mean period length
             avg_period_len = np.nanmean(
                 np.array([np.mean(period) for period in periods if len(period) > 1])
             )
             return avg_period_diff / avg_period_len
-        
+
         return avg_period_diff
 
 
@@ -1363,12 +1363,16 @@ class ShimmerFrames(PitchPeriodFrames):
     ) -> float:
         if len(pulses) == 0:
             return np.nan
-        
+
         # Calc period length as first order diff of pulse ts
         periods, mask = cls._calc_period_length(pulses, lower, upper)
         amps = cls._get_amplitude(pulses, mask)
 
-        if len(periods) == 0 or len(amps) == 0 or all(len(period) <= 1 for period in periods):
+        if (
+            len(periods) == 0
+            or len(amps) == 0
+            or all(len(period) <= 1 for period in periods)
+        ):
             return np.nan
 
         # Calc avg of first order diff in amplitude
@@ -1379,7 +1383,7 @@ class ShimmerFrames(PitchPeriodFrames):
                 np.diff(amp)[
                     np.logical_and(
                         cls._check_ratio(period, max_period_ratio),
-                        cls._check_ratio(amp, max_amp_factor)
+                        cls._check_ratio(amp, max_amp_factor),
                     )
                 ]
             )
@@ -1397,7 +1401,7 @@ class ShimmerFrames(PitchPeriodFrames):
                 np.array([np.mean(amp) for amp in amps if len(amp) > 1])
             )
             return avg_amp_diff / avg_amp
-        
+
         return avg_amp_diff
 
     @staticmethod
@@ -1482,8 +1486,8 @@ class HnrFrames(BaseFrames):
         silence_mask = np.max(
             np.abs(sig_frames_obj.frames), axis=1
         ) > rel_silence_threshold * np.max(np.abs(sig_frames_obj.frames))
-        hnr_db = 10 * np.log10(hnr) # HNR is on power scale
-        hnr_db[~silence_mask] = np.nan
+        hnr[np.logical_or(~silence_mask, hnr <= 0)] = np.nan
+        hnr_db = 10 * np.log10(hnr)  # HNR is on power scale
         return cls(
             hnr_db,
             sig_frames_obj.sr,
@@ -1535,6 +1539,7 @@ class AlphaRatioFrames(BaseFrames):
     by the energy in the upper frequency band. The ratio is then converted to dB.
 
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -1575,17 +1580,27 @@ class AlphaRatioFrames(BaseFrames):
             spec_frames_obj.freqs > lower_band[0],
             spec_frames_obj.freqs <= lower_band[1],
         )
-        lower_band_energy = np.sum(
+        lower_band_energy = np.nansum(
             np.abs(spec_frames_obj.frames[:, lower_band_bins]), axis=1
         )
         upper_band_bins = np.logical_and(
             spec_frames_obj.freqs > upper_band[0],
             spec_frames_obj.freqs <= upper_band[1],
         )
-        upper_band_energy = np.sum(
+        upper_band_energy = np.nansum(
             np.abs(spec_frames_obj.frames[:, upper_band_bins]), axis=1
         )
-        alpha_ratio_frames = lower_band_energy / upper_band_energy
+        alpha_ratio_frames = np.zeros(lower_band_energy.shape)
+
+        upper_band_energy_is_valid = np.logical_and(
+            np.isfinite(upper_band_energy), upper_band_energy != 0
+        )
+
+        alpha_ratio_frames[~upper_band_energy_is_valid] = np.nan
+        alpha_ratio_frames[upper_band_energy_is_valid] = (
+            lower_band_energy[upper_band_energy_is_valid]
+            / upper_band_energy[upper_band_energy_is_valid]
+        )
 
         alpha_ratio_frames_db = 20.0 * np.log10(alpha_ratio_frames)
 
@@ -1619,6 +1634,7 @@ class HammarIndexFrames(BaseFrames):
     by the peak magnitude in region between `pivot_point` and `upper`. The ratio is then converted to dB.
 
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -1662,7 +1678,17 @@ class HammarIndexFrames(BaseFrames):
             spec_frames_obj.freqs > pivot_point, spec_frames_obj.freqs <= upper
         )
         upper_band = np.abs(spec_frames_obj.frames[:, upper_band_freqs])
-        hammar_index_frames = np.max(lower_band, axis=1) / np.max(upper_band, axis=1)
+
+        hammar_index_frames = np.zeros(lower_band.shape[0])
+
+        upper_band_is_valid = np.logical_and(
+            np.any(np.isfinite(upper_band), axis=1), np.all(upper_band > 0, axis=1)
+        )
+
+        hammar_index_frames[~upper_band_is_valid] = np.nan
+        hammar_index_frames[upper_band_is_valid] = np.nanmax(
+            lower_band[upper_band_is_valid, :], axis=1
+        ) / np.nanmax(upper_band[upper_band_is_valid, :], axis=1)
 
         hammar_index_frames_db = 20 * np.log10(hammar_index_frames)
 
@@ -1692,8 +1718,9 @@ class SpectralSlopeFrames(BaseFrames):
     -----
     Estimate spectral slopes by fitting linear models to frequency bands predicting power in dB from frequency in Hz.
     Fits separate models for each frame and band.
-    
+
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -1732,10 +1759,9 @@ class SpectralSlopeFrames(BaseFrames):
                 spec_frames_obj.freqs > band[0], spec_frames_obj.freqs <= band[1]
             )
             band_power = np.abs(spec_frames_obj.frames[:, band_freqs_mask])
-            band_power_db = 20 * np.log10(band_power)
             band_freqs = spec_frames_obj.freqs[band_freqs_mask]
             spectral_slopes[:, i] = np.apply_along_axis(
-                cls._calc_spectral_slope, 1, band_power_db, band_freqs=band_freqs
+                cls._calc_spectral_slope, 1, band_power, band_freqs=band_freqs
             ).squeeze()
 
         return cls(
@@ -1752,8 +1778,16 @@ class SpectralSlopeFrames(BaseFrames):
     def _calc_spectral_slope(
         band_power: np.ndarray, band_freqs: np.ndarray
     ) -> np.ndarray:
+        band_power_is_valid = np.logical_and(np.isfinite(band_power), band_power > 0)
+
+        if np.all(~band_power_is_valid):
+            return np.nan
+
+        band_freqs_finite = band_freqs[band_power_is_valid]
+        band_power_finite_db = 20 * np.log10(band_power[band_power_is_valid])
+
         linear_model = LinearRegression()
-        linear_model.fit(band_freqs.reshape(-1, 1), band_power)
+        linear_model.fit(band_freqs_finite.reshape(-1, 1), band_power_finite_db)
         return linear_model.coef_
 
 
@@ -1776,6 +1810,7 @@ class MelSpecFrames(SpecFrames):
     librosa.feature.melspectrogram
 
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -1857,6 +1892,7 @@ class MfccFrames(MelSpecFrames):
 
 
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -1958,6 +1994,7 @@ class SpectralFluxFrames(SpecFrames):
 
 
     """
+
     def __init__(
         self,
         frames: np.ndarray,
@@ -2022,6 +2059,7 @@ class RmsEnergyFrames(SpecFrames):
         RMS energy frames in dB with shape (num_frames,).
 
     """
+
     @classmethod
     def from_spec_frames(cls, spec_frames_obj: SpecFrames):
         """Calculate the RMS energy from spectrogram frames.
