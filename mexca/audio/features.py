@@ -849,10 +849,10 @@ class FormantAmplitudeFrames(BaseFrames):
             harmonic_peaks[~harmonics_amp_all_na] = np.nanmax(
                 harmonics_amp[~harmonics_amp_all_na], axis=1
             )
-            harmonic_peaks_db = 20 * np.log10(harmonic_peaks)
+            harmonic_peaks_db = librosa.amplitude_to_db(harmonic_peaks)
 
             if rel_f0:
-                harmonic_peaks_db = harmonic_peaks_db - 20 * np.log10(f0_amp)
+                harmonic_peaks_db = harmonic_peaks_db - librosa.amplitude_to_db(f0_amp)
 
             amp_frames.append(harmonic_peaks_db)
 
@@ -1487,7 +1487,7 @@ class HnrFrames(BaseFrames):
             np.abs(sig_frames_obj.frames), axis=1
         ) > rel_silence_threshold * np.max(np.abs(sig_frames_obj.frames))
         hnr[np.logical_or(~silence_mask, hnr <= 0)] = np.nan
-        hnr_db = 10 * np.log10(hnr)  # HNR is on power scale
+        hnr_db = librosa.power_to_db(hnr)  # HNR is on power scale
         return cls(
             hnr_db,
             sig_frames_obj.sr,
@@ -1690,7 +1690,7 @@ class HammarIndexFrames(BaseFrames):
             lower_band[upper_band_is_valid, :], axis=1
         ) / np.nanmax(upper_band[upper_band_is_valid, :], axis=1)
 
-        hammar_index_frames_db = 20 * np.log10(hammar_index_frames)
+        hammar_index_frames_db = librosa.amplitude_to_db(hammar_index_frames)
 
         return cls(
             hammar_index_frames_db,
@@ -1784,7 +1784,7 @@ class SpectralSlopeFrames(BaseFrames):
             return np.nan
 
         band_freqs_finite = band_freqs[band_power_is_valid]
-        band_power_finite_db = 20 * np.log10(band_power[band_power_is_valid])
+        band_power_finite_db = librosa.amplitude_to_db(band_power[band_power_is_valid])
 
         linear_model = LinearRegression()
         linear_model.fit(band_freqs_finite.reshape(-1, 1), band_power_finite_db)
@@ -1797,7 +1797,7 @@ class MelSpecFrames(SpecFrames):
     Parameters
     ----------
     frames: numpy.ndarray
-        Spectrogram frames on the Mel scale with shape (num_frames, n_mels).
+        Spectrogram frames on the Mel power scale with shape (num_frames, n_mels).
     n_mels: int
         Number of Mel filters.
     lower: float
@@ -1946,7 +1946,7 @@ class MfccFrames(MelSpecFrames):
 
         """
         mfcc_frames = librosa.feature.mfcc(
-            S=10 * np.log10(mel_spec_frames_obj.frames.T),  # dB on power spectrum
+            S=librosa.power_to_db(mel_spec_frames_obj.frames.T),  # dB on power spectrum
             sr=mel_spec_frames_obj.sr,
             n_mfcc=n_mfcc,
             lifter=lifter,
@@ -2070,7 +2070,7 @@ class RmsEnergyFrames(SpecFrames):
             Spectrogram frames object.
 
         """
-        rms_frames = 20 * np.log10(
+        rms_frames = librosa.amplitude_to_db(
             librosa.feature.rms(  # to dB
                 S=np.abs(spec_frames_obj.frames).T,
                 frame_length=spec_frames_obj.frame_len,
