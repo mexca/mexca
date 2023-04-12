@@ -842,7 +842,11 @@ class FormantAmplitudeFrames(BaseFrames):
             )
             harmonics_amp = copy(harmonics_frames_obj.frames)
             harmonics_amp[~freq_in_bounds] = np.nan
-            harmonic_peaks = np.nanmax(harmonics_amp, axis=1)
+            # Set all-nan frames to nan (otherwise np.nanmax throws warning)
+            harmonic_peaks = np.zeros(harmonics_amp.shape[0:1])
+            harmonics_amp_all_na = np.all(np.isnan(harmonics_amp), axis=1)
+            harmonic_peaks[harmonics_amp_all_na] = np.nan
+            harmonic_peaks[~harmonics_amp_all_na] = np.nanmax(harmonics_amp[~harmonics_amp_all_na], axis=1)
             harmonic_peaks_db = 20 * np.log10(harmonic_peaks)
 
             if rel_f0:
@@ -1109,6 +1113,12 @@ class PitchPeriodFrames(BaseFrames):
         periods = np.array_split(periods[mask], np.where(~mask)[0])
 
         return periods, mask
+    
+    @staticmethod
+    def _check_ratio(x_arr: np.ndarray, threshold: float) -> np.ndarray:
+        valid = np.logical_and(np.isfinite(x_arr[1:]), x_arr[1:] > 0)
+        valid[valid] = x_arr[:-1][valid] / x_arr[1:][valid] < threshold
+        return valid
 
 
 class JitterFrames(PitchPeriodFrames):
@@ -1208,35 +1218,39 @@ class JitterFrames(PitchPeriodFrames):
         upper: float,
         max_period_ratio: float,
     ):
-        if len(pulses) > 0:
-            # Calc period length as first order diff of pulse ts
-            periods, _ = cls._calc_period_length(pulses, lower, upper)
+        if len(pulses) == 0:
+            return np.nan
+        
+        # Calc period length as first order diff of pulse ts
+        periods, _ = cls._calc_period_length(pulses, lower, upper)
 
-            # Calc avg of first order diff in period length
-            # only consider period pairs where ratio is < max_period_ratio
-            avg_period_diff = np.nanmean(
-                np.array(
-                    [
-                        np.mean(
-                            np.abs(
-                                np.diff(period)[
-                                    (period[:-1] / period[1:]) < max_period_ratio
-                                ]
-                            )
-                        )
-                        for period in periods
-                        if len(period) > 0
-                    ]
-                )
+        if len(periods) == 0 or all(len(period) <= 1 for period in periods):
+            return np.nan
+
+        # Calc avg of first order diff in period length
+        # only consider period pairs where ratio is < max_period_ratio
+        period_diff = [
+            np.abs(
+                np.diff(period)[
+                    cls._check_ratio(period, max_period_ratio)
+                ]
             )
+            for period in periods
+            if len(period) > 1
+        ]
 
-            if rel:  # Relative to mean period length
-                avg_period_len = np.nanmean(
-                    np.array([np.mean(period) for period in periods if len(period) > 0])
-                )
-                return avg_period_diff / avg_period_len
-            return avg_period_diff
-        return np.nan
+        if len(period_diff) == 0 or all(len(period) == 0 for period in period_diff):
+            return np.nan
+
+        avg_period_diff = np.nanmean(np.array([np.mean(period) for period in period_diff]))
+
+        if rel:  # Relative to mean period length
+            avg_period_len = np.nanmean(
+                np.array([np.mean(period) for period in periods if len(period) > 1])
+            )
+            return avg_period_diff / avg_period_len
+        
+        return avg_period_diff
 
 
 class ShimmerFrames(PitchPeriodFrames):
@@ -1347,40 +1361,44 @@ class ShimmerFrames(PitchPeriodFrames):
         max_period_ratio: float,
         max_amp_factor: float,
     ) -> float:
-        if len(pulses) > 0:
-            # Calc period length as first order diff of pulse ts
-            periods, mask = cls._calc_period_length(pulses, lower, upper)
-            amps = cls._get_amplitude(pulses, mask)
+        if len(pulses) == 0:
+            return np.nan
+        
+        # Calc period length as first order diff of pulse ts
+        periods, mask = cls._calc_period_length(pulses, lower, upper)
+        amps = cls._get_amplitude(pulses, mask)
 
-            # Calc avg of first order diff in amplitude
-            # only consider period pairs where period ratio is < max_period_ratio and
-            # where amplitude ratio is < max_amp_factor
-            avg_amp_diff = np.nanmean(
-                np.array(
-                    [
-                        np.mean(
-                            np.abs(
-                                np.diff(amp)[
-                                    np.logical_and(
-                                        (period[:-1] / period[1:]) < max_period_ratio,
-                                        (amp[:-1] / amp[1:]) < max_amp_factor,
-                                    )
-                                ]
-                            )
-                        )
-                        for amp, period in zip(amps, periods)
-                        if len(period) > 0
-                    ]
-                )
+        if len(periods) == 0 or len(amps) == 0 or all(len(period) <= 1 for period in periods):
+            return np.nan
+
+        # Calc avg of first order diff in amplitude
+        # only consider period pairs where period ratio is < max_period_ratio and
+        # where amplitude ratio is < max_amp_factor
+        amp_diff = [
+            np.abs(
+                np.diff(amp)[
+                    np.logical_and(
+                        cls._check_ratio(period, max_period_ratio),
+                        cls._check_ratio(amp, max_amp_factor)
+                    )
+                ]
             )
+            for amp, period in zip(amps, periods)
+            if len(period) > 1 and len(amp) > 1
+        ]
 
-            if rel:  # Relative to mean amplitude
-                avg_amp = np.nanmean(
-                    np.array([np.mean(amp) for amp in amps if len(amp) > 0])
-                )
-                return avg_amp_diff / avg_amp
-            return avg_amp_diff
-        return np.nan
+        if len(amp_diff) == 0 or all(len(amp) == 0 for amp in amp_diff):
+            return np.nan
+
+        avg_amp_diff = np.nanmean(np.array([np.mean(amp) for amp in amp_diff]))
+
+        if rel:  # Relative to mean amplitude
+            avg_amp = np.nanmean(
+                np.array([np.mean(amp) for amp in amps if len(amp) > 1])
+            )
+            return avg_amp_diff / avg_amp
+        
+        return avg_amp_diff
 
     @staticmethod
     def _get_amplitude(pulses: List[Tuple], mask: np.ndarray) -> List:
@@ -1464,8 +1482,8 @@ class HnrFrames(BaseFrames):
         silence_mask = np.max(
             np.abs(sig_frames_obj.frames), axis=1
         ) > rel_silence_threshold * np.max(np.abs(sig_frames_obj.frames))
-        hnr[~silence_mask] = np.nan
-        hnr_db = 10 * np.log10(hnr)
+        hnr_db = 10 * np.log10(hnr) # HNR is on power scale
+        hnr_db[~silence_mask] = np.nan
         return cls(
             hnr_db,
             sig_frames_obj.sr,
@@ -1495,7 +1513,8 @@ class HnrFrames(BaseFrames):
             return np.nan
 
         auto_cor_max_peak_lag = np.argmax(auto_cor_peaks_voiced)
-        return auto_cor[auto_cor_max_peak_lag]
+
+        return auto_cor_peaks_voiced[auto_cor_max_peak_lag]
 
 
 class AlphaRatioFrames(BaseFrames):
