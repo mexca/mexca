@@ -12,9 +12,9 @@ import argparse
 import logging
 import os
 from dataclasses import asdict, dataclass, fields
-from typing import Any, Dict, Optional, Union, Tuple
-import yaml
+from typing import Any, Dict, Optional, Tuple, Union
 import numpy as np
+import yaml
 from scipy.interpolate import interp1d
 from mexca.audio.features import (AlphaRatioFrames, AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantAudioSignal,
                                   FormantFrames, HammarIndexFrames, HnrFrames, JitterFrames, MelSpecFrames, MfccFrames,
@@ -22,6 +22,7 @@ from mexca.audio.features import (AlphaRatioFrames, AudioSignal, BaseFrames, For
                                   SpecFrames, SpectralFluxFrames, SpectralSlopeFrames)
 from mexca.data import VoiceFeatures
 from mexca.utils import ClassInitMessage, optional_str
+
 
 @dataclass(frozen=True)
 class VoiceFeaturesConfig:
