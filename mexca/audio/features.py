@@ -423,7 +423,7 @@ class SpecFrames(BaseFrames):
         hop_len: Optional[int] = None,
         center: bool = True,
         pad_mode: str = "constant",
-        window: Union[str, float, Tuple] = "hamming",
+        window: Union[str, float, Tuple] = "hann",
     ):
         """Transform a signal into spectrogram frames.
 
@@ -559,15 +559,15 @@ class FormantFrames(BaseFrames):
         sig_frames_obj: BaseFrames
             Signal frames object.
         max_formants: int, default=5
-            The maximum number of formants that were extracted.
+            The maximum number of formants that are extracted.
         lower: float, default=50.0
             Lower limit for formant frequencies (in Hz).
         upper: float, default=5450.0
             Upper limit for formant frequencies (in Hz).
         preemphasis_from: float, default=50.0
-            Starting value for the preemphasis function.
+            Starting value for the preemphasis function (in Hz).
         window: str
-            Window function.
+            Window function that is applied before formant estimation.
 
         """
         frames = sig_frames_obj.frames
@@ -815,13 +815,15 @@ class FormantAmplitudeFrames(BaseFrames):
         formant_frames_obj: FormantFrames
             Formant frames object.
         harmonics_frames_obj: PitchHarmonicsFrames
+            Pitch harmonics frames object.
         pitch_frames_obj: PitchFrames
+            Pitch frames object.
         lower: float, optional, default=0.8
             Lower boundary for peak amplitude search interval.
         upper: float, optional, default=1.2
             Upper boundary for peak amplitude search interval.
         rel_f0: bool, optional, default=True
-            Whether the amplitude is divide by the fundamental frequency amplitude.
+            Whether the amplitude is divided by the fundamental frequency amplitude.
         """
         amp_frames = []
 
@@ -1302,7 +1304,7 @@ class ShimmerFrames(PitchPeriodFrames):
         pitch_pulse_frames_obj: PitchPulseFrames
             Glottal pulse frames object.
         rel: bool, optional, default=True
-            Divide shimmer by the average pitch period.
+            Divide shimmer by the average pulse amplitude.
         lower: float, optional, default=0.0001
             Lower limit for periods between glottal pulses.
         upper: float, optional, default=0.02
@@ -1628,9 +1630,9 @@ class HammarIndexFrames(BaseFrames):
         ----------
         spec_frames_obj: SpecFrames
             Spectrogram frames object.
-        pivot_point: float
+        pivot_point: float, default=2000.0
             Point separating the lower and upper frequency regions in Hz.
-        upper: float
+        upper: float, default=5000.0
             Upper limit for the upper frequency region in Hz.
 
         """
@@ -1870,7 +1872,7 @@ class MfccFrames(MelSpecFrames):
 
     @classmethod
     def from_mel_spec_frames(
-        cls, mel_spec_frames_obj: MelSpecFrames, n_mfcc: int = 4, lifter: int = 22
+        cls, mel_spec_frames_obj: MelSpecFrames, n_mfcc: int = 4, lifter: float = 22.0
     ):
         """Estimate MFCCs from Mel spectogram frames.
 
@@ -1880,7 +1882,7 @@ class MfccFrames(MelSpecFrames):
             Mel spectrogram frames object.
         n_mfcc: int, default=4
             Number of coeffcients that were estimated per frame.
-        lifter: float, default=22
+        lifter: float, default=22.0
             Cepstral liftering coefficient. Must be >= 0. If zero, no liftering is applied.
 
         See Also
