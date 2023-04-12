@@ -31,8 +31,8 @@ This component takes an audio file as input and applies three steps using the sp
 VoiceExtractor
 --------------
 
-This component takes the audio file as input and extracts voice features using `praat-parselmouth <https://github.com/YannickJadoul/Parselmouth>`_ [#]_. 
-Currently, only the fundamental frequency (F0) can be extracted.
+This component takes the audio file as input and extracts voice features using `librosa <https://librosa.org/doc/latest/index.html>`_ [#]_. 
+For the default set of voice features that are extracted, see the :ref:`output <voice_features_output>` section.
 
 
 AudioTranscriber
@@ -51,13 +51,13 @@ using a pretrained multilingual RoBERTa `model <https://huggingface.co/cardiffnl
 References
 ----------
 
-.. [#] Barbieri, F., Camacho-Collados, J., Neves, L., & Espinosa-Anke, L.. (2020). TweetEval: Unified benchmark and comparative evaluation for tweet classification. *arxiv*. https://doi.org/10.48550/arxiv.2010.12421
+.. [#] Barbieri, F., Camacho-Collados, J., Neves, L., & Espinosa-Anke, L. (2020). TweetEval: Unified benchmark and comparative evaluation for tweet classification. *arxiv*. https://doi.org/10.48550/arxiv.2010.12421
 
 .. [#] Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. *arXiv*. https://doi.org/10.48550/arXiv.2104.04045
 
 .. [#] Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. *arXiv*. https://doi.org/10.48550/arXiv.2104.03509
 
-.. [#] Jadoul, Y., Thompson, B., & de Boer, B. (2018). Introducing Parselmouth: A Python interface to Praat. *Journal of Phonetics*, 71, 1-15. https://doi.org/10.1016/j.wocn.2018.07.001
+.. [#] McFee, B., Raffel, C., Liang, D., Ellis, D. P. W., McVicar, M., Battenberg, E., & Nieto, O. (2015). librosa: Audio and music signal analysis in python. In *Proceedings of the 14th Python in Science Conference*, 18-25.
 
 .. [#] Radford, A., Kim, J. W., Xu, T., Brockman, G., McLeavey, C., Sutskever, I. (2022). Robust speech recognition via large-scale weak supervision. https://cdn.openai.com/papers/whisper.pdf
 
