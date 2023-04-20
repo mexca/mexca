@@ -7,7 +7,8 @@ import docker
 from docker.errors import DockerException
 from docker.types import Mount
 from mexca import __version__ as VERSION
-from mexca.data import AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures
+from mexca.data import (AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures,
+                        VoiceFeaturesConfig)
 
 
 class BaseContainer:
@@ -228,6 +229,8 @@ class VoiceExtractorContainer(BaseContainer):
 
     Other Parameters
     ----------------
+    config: VoiceFeaturesConfig, optional, default=None
+        Voice feature extraction configuration object. If `None`, uses :class:`VoiceFeaturesConfig`'s default configuration.
     image_name: str, default='mexca-voice-extractor'
         Name of the image to create a container from.
         Pulls the image from Docker Hub if not found locally.
@@ -239,19 +242,29 @@ class VoiceExtractorContainer(BaseContainer):
     """
 
     def __init__(
-        self, image_name: str = "mexca/voice-extractor", get_latest_tag: bool = False
+        self, config: Optional[VoiceFeaturesConfig] = None, image_name: str = "mexca/voice-extractor", get_latest_tag: bool = False
     ):
+        self.config = config
         super().__init__(image_name=image_name, get_latest_tag=get_latest_tag)
 
     def apply(
         self, filepath: str, time_step: float, skip_frames: int = 1
     ) -> VoiceFeatures:
-        cmd_args = ["--time-step", str(time_step), "--skip-frames", str(skip_frames)]
-        cmd = self._create_base_cmd(filepath=filepath)
-
         outdir = self._create_mounts(filepath=filepath)
 
+        cmd_args = ["--time-step", str(time_step), "--skip-frames", str(skip_frames)]
+
+        if self.config is not None:
+            config_path = self._create_out_path_stem(filepath=filepath, outdir=outdir) + "voice_features_config.yml"
+            self.config.write_yaml(config_path)
+            cmd_args.extend(["--config-filepath", config_path])
+        
+        cmd = self._create_base_cmd(filepath=filepath)
+
         self._run_container(cmd + cmd_args)
+
+        if self.config is not None:
+            os.remove(config_path)
 
         return VoiceFeatures.from_json(
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
