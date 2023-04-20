@@ -312,7 +312,7 @@ class FaceExtractor:
         See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
         """
         if not self._clusterer:
-            self._clusterer = SpectralClusterer( #pylint: disable=unexpected-keyword-arg
+            self._clusterer = SpectralClusterer(
                 min_clusters=self.num_faces,
                 max_clusters=self.num_faces,
                 max_spectral_size=self.max_cluster_frames
