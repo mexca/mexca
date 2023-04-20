@@ -6,7 +6,7 @@ import sys
 from dataclasses import asdict, dataclass, field, fields, make_dataclass
 from datetime import timedelta
 from functools import reduce
-from typing import Any, Dict, List, Optional, TextIO, Union, Tuple
+from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 import numpy as np
 import pandas as pd
 import srt

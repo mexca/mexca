@@ -7,7 +7,8 @@ import docker
 from docker.errors import DockerException
 from docker.types import Mount
 from mexca import __version__ as VERSION
-from mexca.data import AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures, VoiceFeaturesConfig
+from mexca.data import (AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures,
+                        VoiceFeaturesConfig)
 
 
 class BaseContainer:
