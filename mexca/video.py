@@ -200,6 +200,10 @@ class FaceExtractor:
         Whether all faces should be returned in the order of `select_largest`.
     device: torch.device, optional, default=None
         The device on which face detection and embedding computations are performed.
+    max_cluster_frames : int, optional, default=None
+        Maximum number of frames that are used for spectral clustering. If the number of frames exceeds the maximum,
+        hierarchical clustering is applied first to reduce the frames to this number. This can reduce the computational
+        costs for long videos.
     embeddings_model : {'vggface2', 'casia-webface'}, default='vggface2'
         Pretrained Inception Resnet V1 model for computing face embeddings.
     au_model : {'xgb', 'svm'}, default='xgb'
@@ -225,6 +229,7 @@ class FaceExtractor:
         selection_method: Optional[str] = None,
         keep_all: bool = True,
         device: Optional[torch.device] = None,
+        max_cluster_frames: Optional[int] = None,
         embeddings_model: str = 'vggface2',
         au_model: str = 'xgb',
         landmark_model: str = 'mobilefacenet'
@@ -242,6 +247,7 @@ class FaceExtractor:
         self.num_faces = num_faces
         self.au_model = au_model
         self.landmark_model = landmark_model
+        self.max_cluster_frames = max_cluster_frames
         
         # Lazy initialization: See getter functions
         self._detector = None
@@ -306,9 +312,10 @@ class FaceExtractor:
         See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
         """
         if not self._clusterer:
-            self._clusterer = SpectralClusterer(
+            self._clusterer = SpectralClusterer( #pylint: disable=unexpected-keyword-arg
                 min_clusters=self.num_faces,
-                max_clusters=self.num_faces
+                max_clusters=self.num_faces,
+                max_spectral_size=self.max_cluster_frames
             )
             self.logger.debug('Initialized spectral clusterer')
         return self._clusterer
