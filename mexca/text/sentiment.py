@@ -5,6 +5,7 @@ import argparse
 import logging
 import os
 from typing import Optional
+import torch
 from intervaltree import Interval
 from scipy.special import softmax
 from tqdm import tqdm
@@ -29,12 +30,16 @@ class SentimentExtractor:
         Loaded automatically from `model_name`.
 
     """
-    def __init__(self, model_name: Optional[str] = None):
+    def __init__(self, model_name: Optional[str] = None, device: Optional[torch.device] = None):
         self.logger = logging.getLogger('mexca.text.extraction.SentimentExtractor')
         if not model_name:
             model_name = "cardiffnlp/twitter-xlm-roberta-base-sentiment"
             self.logger.debug('Using default pretrained model %s because "model_name=None"', model_name)
 
+        if device is None:
+            device = "cpu"
+
+        self.device = device
         self.model_name = model_name
         self.tokenizer = AutoTokenizer.from_pretrained(model_name)
         # Lazy initialization
@@ -49,7 +54,11 @@ class SentimentExtractor:
         Loaded automatically from `model_name`.
         """
         if not self._classifier:
-            self._classifier = AutoModelForSequenceClassification.from_pretrained(self.model_name)
+            self._classifier = AutoModelForSequenceClassification.from_pretrained(
+                self.model_name,
+                device_map="auto",
+                load_in_8bit=self.device == "cuda"
+            )
             self.logger.debug('Initialized sentiment extraction model')
 
         return self._classifier
@@ -88,9 +97,9 @@ class SentimentExtractor:
 
         for i, sent in tqdm(enumerate(transcription.subtitles), total=len(transcription), disable=not show_progress):
             self.logger.debug('Extracting sentiment for sentence %s', i)
-            tokens = self.tokenizer(sent.data.text, return_tensors='pt')
+            tokens = self.tokenizer(sent.data.text, return_tensors='pt').to(self.device)
             output = self.classifier(**tokens)
-            logits = output.logits.detach().numpy()
+            logits = output.logits.detach().cpu().numpy()
             scores = softmax(logits)[0]
             sentiment_annotation.add(Interval(
                 begin=sent.begin,
