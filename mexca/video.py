@@ -408,7 +408,7 @@ class FaceExtractor:
         """
 
         self.logger.debug('Encoding faces')
-        embeddings = self.encoder(faces).detach().cpu().numpy()
+        embeddings = self.encoder(faces.to(self.device)).detach().cpu().numpy()
 
         return embeddings
 
