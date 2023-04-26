@@ -85,7 +85,7 @@ class FaceExtractorContainer(BaseContainer):
 
     """
 
-    def __init__(
+    def __init__( #pylint: disable=too-many-arguments,too-many-locals
         self,
         num_faces: Optional[int],
         min_face_size: int = 20,
@@ -96,6 +96,7 @@ class FaceExtractorContainer(BaseContainer):
         selection_method: Optional[str] = None,
         keep_all: bool = True,
         device: Optional["torch.device"] = "cpu",
+        max_cluster_frames: Optional[int] = None,
         embeddings_model: str = "vggface2",
         au_model: str = "xgb",
         landmark_model: str = "mobilefacenet",
@@ -111,6 +112,7 @@ class FaceExtractorContainer(BaseContainer):
         self.selection_method = selection_method
         self.keep_all = keep_all
         self.device = device
+        self.max_cluster_frames = max_cluster_frames
         self.embeddings_model = embeddings_model
         self.au_model = au_model
         self.landmark_model = landmark_model
@@ -155,6 +157,8 @@ class FaceExtractorContainer(BaseContainer):
             self.keep_all,
             "--device",
             self.device,
+            "--max-cluster-frames",
+            self.max_cluster_frames,
             "--embeddings-model",
             self.embeddings_model,
             "--au-model",

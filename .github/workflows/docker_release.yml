@@ -10,6 +10,8 @@ jobs:
   build:
     name: Build Docker containers
     runs-on: ubuntu-latest
+    env:
+      version: v0.4.0
     strategy:
       matrix:
         component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
@@ -33,7 +35,7 @@ jobs:
           context: ./docker/${{ matrix.component }}
           push: true
           no-cache: true
-          tags: mexca/${{ matrix.component }}:${{ github.event.release.tag_name }}
+          tags: mexca/${{ matrix.component }}:${{env.version}}
       - name: Build component from main as 'latest' tag
         uses: docker/build-push-action@v3
         if: github.event_name == 'workflow_dispatch'
