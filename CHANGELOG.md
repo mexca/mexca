@@ -4,6 +4,43 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0-beta] - 2023-04-26
+
+Adds voice features, improves the documentation, and updates the example notebooks. Enables GPU support for all pipeline components.
+
+### Added
+
+- Classes for extracting voice features in the `mexca.audio.features` module:
+    - `FormantAudioSignal` for preemphasized audio signals for formant analysis
+    - `AlphaRatioFrames` and `HammarIndexFrames` for calculating alpha ratio and Hammarberg index
+    - `SpectralSlopeFrames` for estimating spectral slopes
+    - `MelSpecFrames` and `MfccFrames` for computing Mel spectrograms and cepstral coefficients
+    - `SpectralFluxFrames` and `RmsEnergyFrames` for calculating spectral flux and RMS energy
+- Classes for extracting and interpolating voice features in the `mexca.audio.extraction` module: `FeatureAlphaRatio`, `FeatureHammarIndex`, `FeatureSpectralSlope`, `FeatureHarmonicDifference`, `FeatureMfcc`, `FeatureSpectralFlux`, `FeatureRmsEnergy`
+- A `VoiceFeaturesConfig` class for configuring voice feature extraction in `mexca.data`
+- The CLI `extract-voice` has a new `--config-filepath` argument for YAML configuration files
+- The `FaceExtractor` component has new `max_cluster_frames` argument to set the maximum number of frames for spectral clustering
+- The `SentimentExtractor` component has a new `device` argument to run on GPU with 8-bit
+- `pyyaml` is added as a requirement for the base package
+- `accelerate` and `bisandbytes` are added as requirements for the SentimentExtractor component
+
+### Changed
+
+- The set of default voice features that are extracted with `VoiceExtractor` has been expanded
+- The default window for STFT is now the Hann window
+- Conversion from magnitude/energy to dB is now performed with librosa functions
+- The example notebooks have been updated
+- `mexca.container.VoiceExtractorContainer` can also handle `VoiceFeaturesConfig` objects
+- Required version of `spectralcluster` is set to 0.2.16
+- Required version of `transformers` is set to 4.25.1
+- Required version of numpy is set to >=1.21.6
+
+### Fixed
+
+- Warnings triggered during voice feature extraction
+- A bug occuring when using `FaceExtractor` with `device="cuda"` has been fixed
+
+
 ## [0.3.0-beta] - 2023-04-05
 
 Improves the audio transcription and sentiment extraction workflows. Refactors the voice feature extraction workflow and adds several new voice features.
