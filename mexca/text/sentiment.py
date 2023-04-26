@@ -22,6 +22,8 @@ class SentimentExtractor:
     model_name: str, optional
         The name of the text sequence classification model on Hugging Face hub used for
         sentiment prediction. By default `'cardiffnlp/twitter-xlm-roberta-base-sentiment'`.
+    device: torch.device, optional, default=None
+        The device on which sentiment extraction is performed. If `None`, defaults to `'cpu'`.
 
     Attributes
     ----------
