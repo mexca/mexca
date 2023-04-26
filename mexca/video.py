@@ -721,6 +721,7 @@ def cli():
     parser.add_argument('--selection-method', type=str, default=None, dest='selection_method')
     parser.add_argument('--keep-all', type=str2bool, default=True, dest='keep_all')
     parser.add_argument('--device', type=str, default='cpu')
+    parser.add_argument('--max-cluster-frames', type=optional_int, default=None, dest='max_cluster_frames')
     parser.add_argument('--embeddings-model', type=str, default='vggface2', dest='embeddings_model')
     parser.add_argument('--au-model', type=str, default='xgb', dest='au_model')
     parser.add_argument('--landmark-model', type=str, default='mobilefacenet', dest='landmark_model')
