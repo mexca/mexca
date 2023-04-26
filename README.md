@@ -75,6 +75,12 @@ The dependencies for the additional components can be installed via:
 pip install mexca[vid,spe,voi,tra,sen]
 ```
 
+or:
+
+```console
+pip install mexca[all]
+```
+
 The abbreviations indicate:
 
 * `vid`: FaceExtractor
