@@ -8,15 +8,16 @@ import re
 import warnings
 from dataclasses import asdict
 from typing import Optional, Union
-import stable_whisper
+# import stable_whisper
 import torch
 import whisper
+import numpy as np
+# from faster_whisper import WhisperModel
 from intervaltree import Interval, IntervalTree
 from tqdm import tqdm
 from whisper.audio import SAMPLE_RATE
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.utils import ClassInitMessage, optional_str, str2bool
-
 
 # To filter out shift warnings which do not apply here
 warnings.simplefilter('ignore', category=UserWarning)
@@ -46,6 +47,7 @@ class AudioTranscriber:
         self.logger = logging.getLogger('mexca.text.transcription.AudioTranscriber')
         self.whisper_model = whisper_model
         self.device = device
+
         # Lazy initialization
         self._transcriber = None
 
@@ -63,11 +65,14 @@ class AudioTranscriber:
     def transcriber(self) -> whisper.Whisper:
         """The loaded whisper model for audio transcription.
         """
+    
         if not self._transcriber:
-            self._transcriber = stable_whisper.load_model(
+            self._transcriber = whisper.load_model(
                 self.whisper_model,
                 self.device
             )
+
+            # self._transcriber = WhisperModel(self.whisper_model, 'cpu', compute_type='float32')
             self.logger.debug('Initialized %s whisper model for audio transcription', self.whisper_model)
 
         return self._transcriber
@@ -101,9 +106,8 @@ class AudioTranscriber:
         language: str, optional, default=None
             The language that is transcribed. Ignored if `options.language` is not `None`.
         options: whisper.DecodingOptions, optional
-            Options for transcribing the audio file. If `None`, transcription is done without timestamps,
-            and with a number format that depends on whether CUDA is available:
-            FP16 (half-precision floating points) if available,
+            Options for transcribing the audio file. If `None`, default options are used:
+            FP16 (half-precision floating points) if CUDA is available,
             FP32 (single-precision floating points) otherwise.
         show_progress: bool, optional, default=True
             Whether a progress bar is displayed or not.
@@ -130,6 +134,14 @@ class AudioTranscriber:
             total=len(audio_annotation),
             disable=not show_progress
         ):
+            
+            segment_length = seg.end - seg.begin
+            # print()
+            # print()
+            # print("Segment length: ", segment_length)
+            # print()
+            # print()
+
             # Get start and end frame
             start = int(seg.begin * SAMPLE_RATE)
             end = int(seg.end * SAMPLE_RATE)
@@ -139,12 +151,28 @@ class AudioTranscriber:
 
             self.logger.debug('Transcribing segment %s from %s to %s', i, seg.begin, seg.end)
             try:
-                output = self.transcriber.transcribe(audio_sub, verbose=None, **asdict(options))
+                output = self.transcriber.transcribe(audio_sub, word_timestamps=True, verbose=None, **asdict(options))
             except RuntimeError as exc:
-                self.logger.error('Audio waveform too short to be transcribed: %s', exc)
+                if segment_length < 0.02:
+                    self.logger.error('Audio waveform too short to be transcribed: %s', exc)
+                else:
+                    self.logger.error('The operator aten::_index_put_impl_ is not current implemented for the MPS device')
+                    print('Full error: ', exc)
                 continue
 
             self.logger.debug('Detected language: %s', whisper.tokenizer.LANGUAGES[output['language']].title())
+            
+            # import json
+            # print()
+            # print()
+            # print(json.dumps(output, indent = 2, ensure_ascii = False))
+            # print()
+            # print()
+
+            # for segment in output:
+            #     for word in segment.words:
+            #         print("[%.2fs -> %.2fs] %s" % (word.start, word.end, word.word))
+            
             segment_text = output['text'].strip()
 
             # Split text into sentences
@@ -155,16 +183,38 @@ class AudioTranscriber:
             whole_word_timestamps = []
 
             for segment in output['segments']:
-                whole_word_timestamps.extend(segment['whole_word_timestamps'])
+                whole_word_timestamps.extend(segment['words'])
 
             if len(whole_word_timestamps) > 0:
                 idx = 0
 
+                # word processed dictionary
+                word_processed_counter = {}
                 for j, sent in enumerate(sents):
                     sent_len = len(sent.split(" ")) - 1
 
-                    sent_start = whole_word_timestamps[idx]['timestamp']
-                    sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
+                    # Get first and last word in sentence
+                    words_in_sent = sent.split(" ")
+                    first_word_in_sent = words_in_sent[0]
+                    last_word_in_sent = words_in_sent[len(words_in_sent)-1]
+
+                    # if there are multiple occurences of the same word across 
+                    # sentences we need to know which specific occurence it is
+                    # in order to get the right word-level timestamp for it
+                    if (first_word_in_sent in word_processed_counter):
+                        word_processed_counter[first_word_in_sent] += 1
+                    else:
+                        word_processed_counter[first_word_in_sent] = 1
+
+                    if (last_word_in_sent in word_processed_counter):
+                        word_processed_counter[last_word_in_sent] += 1
+                    else:
+                        word_processed_counter[last_word_in_sent] = 1
+
+                    sent_start = self.get_timestamp(whole_word_timestamps, first_word_in_sent, word_processed_counter, timestamp_type='start')
+                    # whole_word_timestamps[idx]['timestamp']
+                    sent_end = self.get_timestamp(whole_word_timestamps, last_word_in_sent, word_processed_counter, timestamp_type='end')
+                    # whole_word_timestamps[idx + sent_len]['timestamp']
                     self.logger.debug(
                         'Processing sentence %s from %s to %s with text: %s', j, seg.begin+sent_start, seg.begin+sent_end, sent
                     )
@@ -205,6 +255,44 @@ class AudioTranscriber:
             without_timestamps=False,
             fp16=torch.cuda.is_available()
         )
+
+    @staticmethod
+    def get_timestamp(word_timestamps, word, word_processed_counter, timestamp_type='start'):
+        """Identifies the correct timestamp given the input context
+
+        Parameters
+        ----------
+        word_timestamps: list
+            list of dict objects. Each object is a word (str) together with its start and end timestamps (in seconds)
+        word: str
+            A string representing the word to get the timestamp for
+        word_processed_counter: dict
+            A dictionary with keys being words (str) and the value for each word being an integer representing
+             the last occurrence of the word in the segment / sentence that was addressed.
+        timestamp_type: str
+            'start' if we should get the start timestamp of the word
+            'end' if we should get the end timestamp of the word
+        
+        Returns
+        -------
+        timestamp (seconds) of the given word
+
+        """
+
+        last_occurrence_of_word_idx = word_processed_counter[word]
+
+        current_idx = 1
+        for i in range(0, len(word_timestamps)):
+            if str(word_timestamps[i]['word']).strip() == word:
+                if last_occurrence_of_word_idx == current_idx:
+                    if timestamp_type == 'start':
+                        return word_timestamps[i]['start']
+                    else:
+                        return word_timestamps[i]['end']
+                else:
+                    current_idx += 1
+
+        return -1.0 # no valid timestamp found
 
 
 # Adapted from whisper.trascribe.cli
