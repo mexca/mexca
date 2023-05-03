@@ -173,7 +173,9 @@ class AudioTranscriber:
                     sent_start = self._get_timestamp(whole_word_timestamps, idx, timestamp_type='start')
                     # Get timestamp of last word in sentence (AFTER the last word is spoken - 'end')
                     sent_end = self._get_timestamp(whole_word_timestamps, (idx + sent_len), timestamp_type='end')
-                
+                    # Calculate average probability of transcription accuracy for sentence
+                    conf = self._get_avg_confidence(whole_word_timestamps, idx, sent_len)
+
                     self.logger.debug(
                         'Processing sentence %s from %s to %s with text: %s', j, seg.begin+sent_start, seg.begin+sent_end, sent
                     )
@@ -185,7 +187,8 @@ class AudioTranscriber:
                             data=TranscriptionData(
                                 index=i,
                                 text=sent,
-                                speaker=seg.data.name
+                                speaker=seg.data.name,
+                                confidence=conf
                             )
                         ))
                     else:
@@ -218,6 +221,19 @@ class AudioTranscriber:
     @staticmethod
     def _get_timestamp(word_timestamps, idx, timestamp_type='start'):
         return word_timestamps[idx][timestamp_type]
+    
+    @staticmethod
+    def _get_avg_confidence(word_timestamps, idx, sentence_len):
+        # Computes the average probability / accuracy of 
+        # transcription for a given sentence. Sums the 
+        # probabilities for individual words in the sentence
+        # and divide by the sentence length
+        total = 0.0
+        for j, word in enumerate(word_timestamps):
+            if (j >= idx and j < sentence_len):
+                total += word['probability']
+
+        return (total / sentence_len)
 
 # Adapted from whisper.trascribe.cli
 # See: https://github.com/openai/whisper/blob/main/whisper/transcribe.py
