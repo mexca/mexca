@@ -230,7 +230,7 @@ class AudioTranscriber:
         # and divide by the sentence length
         total = 0.0
         for j, word in enumerate(word_timestamps):
-            if (j >= idx and j < sentence_len):
+            if (idx <= j < sentence_len):
                 total += word['probability']
 
         return (total / sentence_len)

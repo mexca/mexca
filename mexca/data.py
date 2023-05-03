@@ -479,7 +479,7 @@ class TranscriptionData:
     index: int
     text: str
     speaker: Optional[str] = None
-    confidence: float # probability of transcription accuracy
+    confidence: Optional[float] = None # probability of transcription accuracy
 
 
 class AudioTranscription:
