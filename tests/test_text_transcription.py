@@ -5,7 +5,7 @@ import subprocess
 from datetime import timedelta
 import pytest
 import srt
-import stable_whisper
+# import stable_whisper
 import whisper
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.text import AudioTranscriber
@@ -70,7 +70,7 @@ class TestWhisper:
 
     @pytest.fixture
     def stable_model(self):
-        return stable_whisper.load_model(self.model_size)
+        return whisper.load_model(self.model_size)
 
 
     def test_transcribe(self, model):
