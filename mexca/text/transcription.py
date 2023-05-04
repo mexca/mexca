@@ -219,11 +219,12 @@ class AudioTranscriber:
         )
     
     @staticmethod
-    def _get_timestamp(word_timestamps, idx, timestamp_type='start'):
+    def _get_timestamp(word_timestamps : list, idx : int, timestamp_type : Optional[str] = 'start') -> float:
+        # get word-level timestamp for the word located at index idx in sequence list of words
         return word_timestamps[idx][timestamp_type]
     
     @staticmethod
-    def _get_avg_confidence(word_timestamps, idx, sentence_len):
+    def _get_avg_confidence(word_timestamps : list, idx : int, sentence_len : int) -> float:
         # Computes the average probability / accuracy of 
         # transcription for a given sentence. Sums the 
         # probabilities for individual words in the sentence
