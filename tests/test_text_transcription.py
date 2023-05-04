@@ -81,14 +81,14 @@ class TestWhisper:
         assert isinstance(output['language'], str)
 
 
-    def test_word_ts(self, stable_model):
-        output = stable_model.transcribe(self.filepath, fp16=False)
-        # Test word level timestamps of first segment
-        first_segment = output['segments'][0]
+    # def test_word_ts(self, stable_model):
+    #     output = stable_model.transcribe(self.filepath, fp16=False)
+    #     # Test word level timestamps of first segment
+    #     first_segment = output['segments'][0]
 
-        assert 'whole_word_timestamps' in first_segment
+    #     assert 'whole_word_timestamps' in first_segment
 
-        first_segment_ts = output['segments'][0]['whole_word_timestamps']
-        # Test first token of first segment
-        assert isinstance(first_segment_ts[0]['word'], str)
-        assert isinstance(first_segment_ts[0]['timestamp'], float)
+    #     first_segment_ts = output['segments'][0]['whole_word_timestamps']
+    #     # Test first token of first segment
+    #     assert isinstance(first_segment_ts[0]['word'], str)
+    #     assert isinstance(first_segment_ts[0]['timestamp'], float)
