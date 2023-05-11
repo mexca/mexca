@@ -8,7 +8,6 @@ import re
 import warnings
 from dataclasses import asdict
 from typing import Optional, Union
-# import stable_whisper
 import torch
 import whisper
 from intervaltree import Interval, IntervalTree
@@ -219,7 +218,7 @@ class AudioTranscriber:
         )
     
     @staticmethod
-    def _get_timestamp(word_timestamps : list, idx : int, timestamp_type : Optional[str] = 'start') -> float:
+    def _get_timestamp(word_timestamps : list, idx : int, timestamp_type : str = 'start') -> float:
         # get word-level timestamp for the word located at index idx in sequence list of words
         return word_timestamps[idx][timestamp_type]
     

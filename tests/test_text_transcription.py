@@ -5,7 +5,6 @@ import subprocess
 from datetime import timedelta
 import pytest
 import srt
-# import stable_whisper
 import whisper
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.text import AudioTranscriber
