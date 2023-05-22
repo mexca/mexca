@@ -5,7 +5,6 @@ import subprocess
 from datetime import timedelta
 import pytest
 import srt
-import stable_whisper
 import whisper
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.text import AudioTranscriber
@@ -70,7 +69,7 @@ class TestWhisper:
 
     @pytest.fixture
     def stable_model(self):
-        return stable_whisper.load_model(self.model_size)
+        return whisper.load_model(self.model_size)
 
 
     def test_transcribe(self, model):
@@ -79,16 +78,3 @@ class TestWhisper:
         # Test entire text of audio and language detection
         assert isinstance(output['text'].strip(), str)
         assert isinstance(output['language'], str)
-
-
-    def test_word_ts(self, stable_model):
-        output = stable_model.transcribe(self.filepath, fp16=False)
-        # Test word level timestamps of first segment
-        first_segment = output['segments'][0]
-
-        assert 'whole_word_timestamps' in first_segment
-
-        first_segment_ts = output['segments'][0]['whole_word_timestamps']
-        # Test first token of first segment
-        assert isinstance(first_segment_ts[0]['word'], str)
-        assert isinstance(first_segment_ts[0]['timestamp'], float)

@@ -479,6 +479,7 @@ class TranscriptionData:
     index: int
     text: str
     speaker: Optional[str] = None
+    confidence: Optional[float] = None # probability of transcription accuracy
 
 
 class AudioTranscription:
@@ -721,7 +722,8 @@ class Multimodal:
                     "span_start": [],
                     "span_end": [],
                     "span_text": [],
-                    "segment_speaker_label": []
+                    "segment_speaker_label": [],
+                    "confidence": [] # store confidence of transcription accuracy
                 }
 
                 if self.sentiment:
@@ -755,6 +757,7 @@ class Multimodal:
                         text_features_dict['span_end'].append(span.end)
                         text_features_dict['span_text'].append(span.data.text)
                         text_features_dict['segment_speaker_label'].append(span.data.speaker)
+                        text_features_dict['confidence'].append(span.data.confidence) # store confidence of transcription accuracy
 
                     if self.sentiment:
                         for sent in self.sentiment[t]:

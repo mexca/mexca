@@ -8,7 +8,6 @@ import re
 import warnings
 from dataclasses import asdict
 from typing import Optional, Union
-import stable_whisper
 import torch
 import whisper
 from intervaltree import Interval, IntervalTree
@@ -64,7 +63,7 @@ class AudioTranscriber:
         """The loaded whisper model for audio transcription.
         """
         if not self._transcriber:
-            self._transcriber = stable_whisper.load_model(
+            self._transcriber = whisper.load_model(
                 self.whisper_model,
                 self.device
             )
@@ -130,6 +129,9 @@ class AudioTranscriber:
             total=len(audio_annotation),
             disable=not show_progress
         ):
+            # Get segment length
+            segment_length = seg.end - seg.begin
+
             # Get start and end frame
             start = int(seg.begin * SAMPLE_RATE)
             end = int(seg.end * SAMPLE_RATE)
@@ -139,23 +141,26 @@ class AudioTranscriber:
 
             self.logger.debug('Transcribing segment %s from %s to %s', i, seg.begin, seg.end)
             try:
-                output = self.transcriber.transcribe(audio_sub, verbose=None, **asdict(options))
+                output = self.transcriber.transcribe(audio_sub, word_timestamps=True, verbose=None, **asdict(options))
             except RuntimeError as exc:
-                self.logger.error('Audio waveform too short to be transcribed: %s', exc)
+                if segment_length < 0.02:
+                    self.logger.error('Audio waveform too short to be transcribed: %s', exc)
+                else:
+                    self.logger.error('The operator aten::_index_put_impl_ is not current implemented for the MPS device')
                 continue
 
             self.logger.debug('Detected language: %s', whisper.tokenizer.LANGUAGES[output['language']].title())
-            segment_text = output['text'].strip()
+            text = output['text'].strip()
 
             # Split text into sentences
-            sents = re.split(self.sentence_rule, segment_text)
+            sents = re.split(self.sentence_rule, text)
             self.logger.debug('Segment text split into %s sentences', len(sents))
 
             # Concatenate word timestamps from every segment
             whole_word_timestamps = []
 
             for segment in output['segments']:
-                whole_word_timestamps.extend(segment['whole_word_timestamps'])
+                whole_word_timestamps.extend(segment['words'])
 
             if len(whole_word_timestamps) > 0:
                 idx = 0
@@ -163,8 +168,13 @@ class AudioTranscriber:
                 for j, sent in enumerate(sents):
                     sent_len = len(sent.split(" ")) - 1
 
-                    sent_start = whole_word_timestamps[idx]['timestamp']
-                    sent_end = whole_word_timestamps[idx + sent_len]['timestamp']
+                    # Get timestamp of first word in sentence (BEFORE the first word is spoken - 'start')
+                    sent_start = self._get_timestamp(whole_word_timestamps, idx, timestamp_type='start')
+                    # Get timestamp of last word in sentence (AFTER the last word is spoken - 'end')
+                    sent_end = self._get_timestamp(whole_word_timestamps, (idx + sent_len), timestamp_type='end')
+                    # Calculate average probability of transcription accuracy for sentence
+                    conf = self._get_avg_confidence(whole_word_timestamps, idx, sent_len)
+
                     self.logger.debug(
                         'Processing sentence %s from %s to %s with text: %s', j, seg.begin+sent_start, seg.begin+sent_end, sent
                     )
@@ -176,7 +186,8 @@ class AudioTranscriber:
                             data=TranscriptionData(
                                 index=i,
                                 text=sent,
-                                speaker=seg.data.name
+                                speaker=seg.data.name,
+                                confidence=conf
                             )
                         ))
                     else:
@@ -205,7 +216,24 @@ class AudioTranscriber:
             without_timestamps=False,
             fp16=torch.cuda.is_available()
         )
+    
+    @staticmethod
+    def _get_timestamp(word_timestamps : list, idx : int, timestamp_type : str = 'start') -> float:
+        # get word-level timestamp for the word located at index idx in sequence list of words
+        return word_timestamps[idx][timestamp_type]
+    
+    @staticmethod
+    def _get_avg_confidence(word_timestamps : list, idx : int, sentence_len : int) -> float:
+        # Computes the average probability / accuracy of 
+        # transcription for a given sentence. Sums the 
+        # probabilities for individual words in the sentence
+        # and divide by the sentence length
+        total = 0.0
+        for j, word in enumerate(word_timestamps):
+            if (idx <= j < sentence_len):
+                total += word['probability']
 
+        return (total / sentence_len)
 
 # Adapted from whisper.trascribe.cli
 # See: https://github.com/openai/whisper/blob/main/whisper/transcribe.py
