@@ -11,7 +11,7 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 
 """
 
-# pylint: disable=invalid-name,no-member
+# pylint: disable=invalid-name
 
 import logging
 import math

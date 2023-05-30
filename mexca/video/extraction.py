@@ -6,14 +6,12 @@ import logging
 import os
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
-import feat
 import numpy as np
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
 from feat.utils.image_operations import convert_image_to_tensor
 from sklearn.metrics.pairwise import cosine_distances
 from spectralcluster import SpectralClusterer
-from torch import transpose
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.io import read_video, read_video_timestamps
@@ -578,8 +576,8 @@ class FaceExtractor:
 
         return confidence
 
-    def apply(
-        self,  # pylint: disable=too-many-locals
+    def apply( # pylint: disable=too-many-locals
+        self,
         filepath: str,
         batch_size: int = 1,
         skip_frames: int = 1,
