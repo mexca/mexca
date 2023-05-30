@@ -143,16 +143,16 @@ class TestFaceExtractor:
 
     def test_extract(self, extractor):
         image = self.dataset[5:6]['Image']
-        faces, boxes, _, _ = extractor.detect(image)
-        aus = extractor.extract(faces, boxes)
+        faces, _, _, _ = extractor.detect(image)
+        aus = extractor.extract(faces)
         assert isinstance(aus, np.ndarray)
         assert np.array(aus).shape == (1, 1, 41)
 
 
     def test_extract_no_face(self, extractor):
         image = self.dataset[0:1]['Image']
-        faces, boxes, _, _ = extractor.detect(image)
-        aus = extractor.extract(faces, boxes)
+        faces, _, _, _ = extractor.detect(image)
+        aus = extractor.extract(faces)
         assert isinstance(aus, np.ndarray)
         assert np.array(aus) == np.array([None])
 

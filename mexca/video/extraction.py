@@ -439,7 +439,6 @@ class FaceExtractor:
     def extract(
         self,
         frame: Union[np.ndarray, torch.Tensor],
-        boxes: Union[List[np.ndarray], np.ndarray],
     ) -> Union[List[np.ndarray], np.ndarray]:
         """Detect facial action units activations.
 
@@ -447,9 +446,6 @@ class FaceExtractor:
         ----------
         frame: numpy.ndarray or torch.Tensor
             Batch of B frames containing RGB values with dimensions (B, H, W, 3).
-        boxes: numpy.ndarray or list
-            Batch of B bounding boxes of the N detected faces as (x1, y1, x2, y2) coordinates with
-            dimensions (B, N, 4) or list of B elements with (N, 4).
 
         Returns
         -------
@@ -627,7 +623,7 @@ class FaceExtractor:
         ):
             self.logger.debug("Processing batch %s", b)
             faces, boxes, probs, landmarks = self.detect(batch["Image"])
-            aus = self.extract(faces, boxes)
+            aus = self.extract(faces)
 
             # If no faces were detected in batch
             for i, frame in enumerate(batch["Frame"]):
