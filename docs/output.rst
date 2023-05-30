@@ -20,8 +20,8 @@ In this case, each face is shown in a separate row with the same `frame` and `ti
 
 - `face_box`: The bounding box for a single detected face. The box has four coordinates (x1, y1, x2, y2).
 - `face_prob`: The probability with which the face was detected. 
-- `face_landmarks`: The landmark coordinates for the detected face. The array contains 68 coordinate pairs (x, y).
-- `face_aus`: The action unit (AU) activations for the detected face. The output differs between AU detection models: `svm` returns binary unit activations, whereas `xgb` returns continuous activations (from a tree ensemble) for 20 action units.
+- `face_landmarks`: The landmark coordinates for the detected face. The array contains 5 coordinate pairs (x, y).
+- `face_aus`: The action unit (AU) activations for the detected face. Contains 41 activations between 0 and 1. The first 27 values correspond to bilateral AUs: 1, 2, 4, 5, 6, 7, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 22, 23, 24, 25, 26, 27, 32, 38, 39. The following 14 values correspond to unilateral AUs: L1, R1, L2, R2, L4, R4, L6, R6, L10, R10, L12, R12, L14, R14 (L = left, R = right sided activation). Unilateral are activations are computed based on bilateral activations of the same AU.
 - `face_label`: The ID label of the detected face returned by the clustering of the face embeddings (starting at zero).
 - `face_confidence`: A confidence score of the `face_label` assignment between 0 and 1: The normalized distance from each face embedding vector to it's cluster centroid relative to the distance to the nearest other cluster centroid.
 

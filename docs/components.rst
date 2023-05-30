@@ -12,10 +12,7 @@ This component takes a video file as input as and applies four steps:
 1. Detection: Faces displayed in the video frames are detected using a pretrained `MTCNN` model from `facenet-pytorch <https://github.com/timesler/facenet-pytorch>`_ [#]_.
 2. Encoding: Faces are extracted from the frames and encoded into an embedding space using `InceptionResnetV1` from `facenet-pytorch`.
 3. Identification: IDs are assigned to faces by clustering the embeddings using spectral clustering (k-means).
-4. Extraction: Facial features (landmarks, action units) are extracted from the faces using `pyfeat <https://py-feat.org/pages/intro.html>`_ [#]_. Available models are `PFLD`, `MobileFaceNet`, and `MobileNet` for landmark extraction and `svm`, and `xgb` for action unit extraction.
-
-.. note::
-    The two available AU extraction models give different output: `svm` returns binary unit activations, whereas `xgb` returns continuous activations (from a tree ensemble).
+4. Extraction: Facial landmarks are extracted using the pretrained MTCNN from *facenet-pytorch*. Facial action unit activations are extracted using a pretrained Multi-dimensional Edge Feature-based AU Relation Graph model which is adpated from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU>`_ code base [#]_. Currently, only the ResNet-50 backbone and the AUs Relationship-aware Node Feature Learning step are available.
 
 
 SpeakerIdentifier
@@ -42,6 +39,7 @@ This component takes the audio file and speech segments information as input.
 It transcribes the speech segments to text using a pretrained `Whisper <https://github.com/openai/whisper>`_ model.
 The resulting transcriptions are aligned with the speaker segments. The transcriptions are split into sentences using a regular expression.
 
+
 SentimentExtractor
 ------------------
 
@@ -55,7 +53,7 @@ References
 
 .. [#] Bredin, H., & Laurent, A. (2021). End-to-end speaker segmentation for overlap-aware resegmentation. *arXiv*. https://doi.org/10.48550/arXiv.2104.04045
 
-.. [#] Cheong, J. H., Xie, T., Byrne, S., & Chang, L. J. (2021). Py-feat: Python facial expression analysis toolbox. *arXiv*. https://doi.org/10.48550/arXiv.2104.03509
+.. [#] Luo, C., Song, S., Xie, W., Shen, L., & Gunes, H. (2022). Learning multi-dimensional edge feature-based AU relation graph for facial action unit recognition. *arXiv*. https://doi.org/10.48550/arXiv.2205.01782
 
 .. [#] McFee, B., Raffel, C., Liang, D., Ellis, D. P. W., McVicar, M., Battenberg, E., & Nieto, O. (2015). librosa: Audio and music signal analysis in python. In *Proceedings of the 14th Python in Science Conference*, 18-25.
 
