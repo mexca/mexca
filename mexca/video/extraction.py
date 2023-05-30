@@ -440,7 +440,7 @@ class FaceExtractor:
         self,
         frame: Union[np.ndarray, torch.Tensor],
         boxes: Union[List[np.ndarray], np.ndarray],
-    ) -> Tuple[List[List[np.ndarray]], List[np.ndarray]]:
+    ) -> Union[List[np.ndarray], np.ndarray]:
         """Detect facial action units activations.
 
         Parameters
@@ -458,8 +458,13 @@ class FaceExtractor:
             Is `None` if a frame contains no faces.
 
         """
-        if len(boxes) > 0:
-            frame = torch.cat([f for f in frame if f is not None])
+
+        aus_list = []
+
+        for frm in frame:
+            if frm is None:
+                aus_list.append(None)
+                continue
 
             normalize = transforms.Normalize(
                 mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -474,20 +479,12 @@ class FaceExtractor:
                 ]
             )
 
-            frame = transform(frame)
+            frm = transform(frm)
 
             with torch.no_grad():
-                aus = self.extractor(frame)
+                aus = self.extractor(frm)
 
-        aus_list = []
-        i = 0
-
-        for box in boxes:
-            if box is None:
-                aus_list.append(None)
-            else:
-                aus_list.append(aus[i].unsqueeze(0))
-                i += 1
+            aus_list.append(aus.numpy())
 
         return np.array(aus_list)
 
@@ -733,10 +730,6 @@ def cli():
     )
     parser.add_argument(
         "--embeddings-model", type=str, default="vggface2", dest="embeddings_model"
-    )
-    parser.add_argument("--au-model", type=str, default="xgb", dest="au_model")
-    parser.add_argument(
-        "--landmark-model", type=str, default="mobilefacenet", dest="landmark_model"
     )
 
     args = parser.parse_args().__dict__
