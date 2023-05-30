@@ -8,10 +8,11 @@ import numpy as np
 import pytest
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
-from feat.detector import Detector
 from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader
-from mexca.video import FaceExtractor, NotEnoughFacesError, VideoAnnotation, VideoDataset
+from mexca.data import VideoAnnotation
+from mexca.video.anfl import MEFARG
+from mexca.video.extraction import FaceExtractor, NotEnoughFacesError, VideoDataset
 
 
 class TestVideoDataset:
@@ -80,7 +81,7 @@ class TestFaceExtractor:
         assert isinstance(extractor.detector, MTCNN)
         assert isinstance(extractor.encoder, InceptionResnetV1)
         assert isinstance(extractor.clusterer, SpectralClusterer)
-        assert isinstance(extractor.extractor, Detector)
+        assert isinstance(extractor.extractor, MEFARG)
 
         del extractor.detector
         del extractor.encoder
@@ -92,20 +93,21 @@ class TestFaceExtractor:
 
 
     def test_detect_face(self, extractor):
-        _, boxes, probs = extractor.detect(self.dataset[5]['Image'])
-        assert boxes.shape[1] == probs.shape[0]
-        assert boxes.shape[2] == 4
-        assert probs.shape[1] == 1
+        _, boxes, probs, lmks = extractor.detect(self.dataset[5]['Image'])
+        assert boxes.shape == (1, 1, 4)
+        assert probs.shape == (1, 1)
+        assert lmks.shape == (1, 1, 5, 2)
 
 
     def test_detect_no_face(self, extractor):
-        _, boxes, probs = extractor.detect(self.dataset[0]['Image'])
+        _, boxes, probs, lmks = extractor.detect(self.dataset[0]['Image'])
         assert boxes == np.array([None])
         assert probs == np.array([None])
+        assert lmks == np.array([None])
 
 
     def test_encode(self, extractor):
-        faces, _, _ = extractor.detect(self.dataset[5]['Image'])
+        faces, _, _, _ = extractor.detect(self.dataset[5]['Image'])
         embeddings = extractor.encode(faces[0])
         assert embeddings.shape == (1, 512)
 
@@ -139,45 +141,19 @@ class TestFaceExtractor:
             extractor.identify(embeddings)
 
 
-    def test_extract_xgb_mobilefacenet(self, extractor):
+    def test_extract(self, extractor):
         image = self.dataset[5:6]['Image']
-        _, boxes, _ = extractor.detect(image)
-        landmarks, aus = extractor.extract(image, boxes)
-        assert isinstance(landmarks, list)
-        assert isinstance(aus, list)
-        assert np.array(landmarks).shape[2:4] == (68, 2)
-        assert np.array(aus).shape[2] == 20
-
-
-    def test_extract_svm_mobilenet(self):
-        extractor = FaceExtractor(num_faces=4, au_model='svm', landmark_model='mobilenet')
-        image = self.dataset[5:6]['Image']
-        _, boxes, _ = extractor.detect(image)
-        landmarks, aus = extractor.extract(image, boxes)
-        assert isinstance(landmarks, list)
-        assert isinstance(aus, list)
-        assert np.array(landmarks).shape[2:4] == (68, 2)
-        assert np.array(aus).shape[2] == 20
-
-
-    def test_extract_xgb_pfld(self):
-        extractor = FaceExtractor(num_faces=4, au_model='xgb', landmark_model='pfld')
-        image = self.dataset[5:6]['Image']
-        _, boxes, _ = extractor.detect(image)
-        landmarks, aus = extractor.extract(image, boxes)
-        assert isinstance(landmarks, list)
-        assert isinstance(aus, list)
-        assert np.array(landmarks).shape[2:4] == (68, 2)
-        assert np.array(aus).shape[2] == 20
+        faces, boxes, _, _ = extractor.detect(image)
+        aus = extractor.extract(faces, boxes)
+        assert isinstance(aus, np.ndarray)
+        assert np.array(aus).shape == (1, 1, 41)
 
 
     def test_extract_no_face(self, extractor):
         image = self.dataset[0:1]['Image']
-        _, boxes, _ = extractor.detect(image)
-        landmarks, aus = extractor.extract(image, boxes)
-        assert isinstance(landmarks, list)
-        assert isinstance(aus, list)
-        assert np.array(landmarks) == np.array([None])
+        faces, boxes, _, _ = extractor.detect(image)
+        aus = extractor.extract(faces, boxes)
+        assert isinstance(aus, np.ndarray)
         assert np.array(aus) == np.array([None])
 
 
