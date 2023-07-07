@@ -11,7 +11,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader
 from mexca.data import VideoAnnotation
-from mexca.video.anfl import MEFARG
+from mexca.video.mefl import MEFARG
 from mexca.video.extraction import FaceExtractor, NotEnoughFacesError, VideoDataset
 
 
@@ -55,7 +55,7 @@ class TestFaceExtractor:
         'tests', 'test_files', 'test_video_audio_5_seconds.mp4'
     )
     with open(os.path.join(
-            'tests', 'reference_files', 'face_features_video_audio_5_seconds.json'
+            'tests', 'reference_files', 'test_video_audio_5_seconds_video_annotation.json'
         ), 'r', encoding="utf-8") as file:
         features = json.loads(file.read())
     dataset = VideoDataset(filepath, skip_frames=5)

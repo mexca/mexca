@@ -3,7 +3,7 @@
 
 import pytest
 import torch
-from mexca.video.anfl import ANFL, AUFeatureGenerator, FacialGraphGenerator, GNN, LinearBlock, MEFARG
+from mexca.video.anfl import ANFL, AUFeatureGenerator, FacialGraphGenerator, GNN, LinearBlock
 
 class TestLinearBlock:
     in_features = 5
@@ -124,26 +124,5 @@ class TestANFL:
     def test_forward(self, anfl, inputs):
         with torch.no_grad():
             outputs = anfl.forward(inputs)
-        assert outputs.shape == (1, self.n_main_nodes + self.n_sub_nodes)
-
-
-class TestMEFARG:
-    in_features = 256
-    n_main_nodes = 27
-    n_sub_nodes = 14
-    n_neighbors = 1
-
-    @pytest.fixture
-    def inputs(self):
-        return torch.rand((1, 3, self.in_features, self.in_features))
-    
-    @pytest.fixture
-    def mefarg(self):
-        return MEFARG(self.n_main_nodes, self.n_sub_nodes, self.n_neighbors)
-
-
-    def test_forward(self, mefarg, inputs):
-        with torch.no_grad():
-            outputs = mefarg.forward(inputs)
         assert outputs.shape == (1, self.n_main_nodes + self.n_sub_nodes)
         
