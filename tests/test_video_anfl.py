@@ -3,33 +3,7 @@
 
 import pytest
 import torch
-from mexca.video.anfl import ANFL, AUFeatureGenerator, FacialGraphGenerator, GNN, LinearBlock
-
-class TestLinearBlock:
-    in_features = 5
-    out_features = 5
-
-    @pytest.fixture
-    def inputs(self):
-        return torch.rand((1, self.in_features, self.in_features))
-
-    @pytest.fixture
-    def linear_block_in_eq_out(self):
-        return LinearBlock(in_features=self.in_features)
-
-    @pytest.fixture
-    def linear_block(self):
-        return LinearBlock(in_features=self.in_features, out_features=self.out_features)
-    
-
-    def test_forward_in_eq_out(self, linear_block_in_eq_out, inputs):
-        outputs = linear_block_in_eq_out.forward(inputs)
-        assert outputs.shape == inputs.shape
-
-
-    def test_forward(self, linear_block, inputs):
-        outputs = linear_block.forward(inputs)
-        assert outputs.shape == inputs.shape
+from mexca.video.anfl import ANFL, AUFeatureGenerator, FacialGraphGenerator, GNN
 
 
 class TestGNN:

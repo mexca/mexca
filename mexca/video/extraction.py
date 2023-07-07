@@ -18,7 +18,7 @@ from torchvision.io import read_video, read_video_timestamps
 from tqdm import tqdm
 from mexca.data import VideoAnnotation
 from mexca.utils import ClassInitMessage, optional_float, optional_int, str2bool
-from mexca.video.mefl import MEFARG
+from mexca.video.mefarg import MEFARG
 
 
 EMPTY_VALUE = np.nan

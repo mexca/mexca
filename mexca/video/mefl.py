@@ -11,19 +11,13 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 
 """
 
-import logging
 import math
-import os
-from collections import OrderedDict
 from typing import Tuple
-import gdown
 import numpy as np
 import torch
-import torch.nn.functional as F
 from torch import nn
 from torch.autograd import Variable
-from torchvision.models import ResNet50_Weights, resnet50
-from mexca.video.anfl import LinearBlock
+from mexca.video.helper_classes import AUPredictor, LinearBlock
 
 
 class CrossAttention(nn.Module):
@@ -254,7 +248,7 @@ class GatedGNN(nn.Module):
         return x, edge
 
 
-class MEFL(nn.Module):
+class MEFL(AUPredictor):
     """Apply multi-dimentional edge feature learning.
 
     Parameters
@@ -278,10 +272,7 @@ class MEFL(nn.Module):
 
     """
     def __init__(self, in_features: int, n_main_nodes: int = 27, n_sub_nodes: int = 14):
-        super().__init__()
-        self.in_features = in_features
-        self.n_main_nodes = n_main_nodes
-        self.n_sub_nodes = n_sub_nodes
+        super().__init__(in_features, n_main_nodes, n_sub_nodes)
 
         # FC layers from AFG block
         self.main_node_linear_layers = nn.ModuleList(
@@ -294,18 +285,7 @@ class MEFL(nn.Module):
         self.edge_extractor = GraphEdgeModel(self.in_features, n_main_nodes)
         self.gnn = GatedGNN(self.in_features, n_main_nodes, 2)
 
-        # Similarity calculation params
-        self.main_sc = nn.Parameter(torch.FloatTensor(torch.zeros(self.n_main_nodes, self.in_features)))
-        self.sub_sc = nn.Parameter(torch.FloatTensor(torch.zeros(self.n_sub_nodes, self.in_features)))
-        self.sub_list = [0,1,2,4,7,8,11]
-
-        self.relu = nn.ReLU()
-        # Init params
-        nn.init.xavier_uniform_(self.main_sc)
-        nn.init.xavier_uniform_(self.sub_sc)
-
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor: # pylint: disable=too-many-locals
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # AFG mechanism
         f_u = [layer(x).unsqueeze(1) for layer in self.main_node_linear_layers]
         f_u = torch.cat(f_u, dim=1)
@@ -317,155 +297,6 @@ class MEFL(nn.Module):
         f_e = f_e.mean(dim=-2)
         # Gated GNN mechanism
         f_v, f_e = self.gnn(f_v, f_e)
-
-        b, n, c = f_v.shape
-
-        # eq. 2
-        main_sc = self.main_sc
-        main_sc = self.relu(main_sc)
-        main_sc = F.normalize(main_sc, p=2, dim=-1)
-        main_cl = F.normalize(f_v, p=2, dim=-1)
-        main_cl = (main_cl * main_sc.view(1, n, c)).sum(dim=-1)
-
-        sub_cl = []
-
-        for i, index in enumerate(self.sub_list):
-            # Calc sub node activations as left and right versions of main nodes
-            au_l = 2 * i
-            au_r = 2 * i + 1
-
-            # eq. 2
-            main_au = F.normalize(f_v[:, index], p=2, dim=-1)
-
-            sc_l = F.normalize(self.relu(self.sub_sc[au_l]), p=2, dim=-1)
-            sc_r = F.normalize(self.relu(self.sub_sc[au_r]), p=2, dim=-1)
-
-            sub_sc = torch.stack([sc_l, sc_r], dim=0)
-
-            cl = (main_au.view(1, b, c) * sub_sc.view(2, 1, c)).sum(dim=-1)
-
-            sub_cl.append(cl[0].unsqueeze(1))
-            sub_cl.append(cl[1].unsqueeze(1))
-
-        sub_cl = torch.cat(sub_cl, dim=-1)
-
-        return torch.cat([main_cl, sub_cl], dim=-1)
-
-
-class MEFARG(nn.Module):
-    """Apply a multi-dimensional edge feature-based action unit (AU) relation graph (MEFARG) model.
-
-    Predict activations of 27 main and 14 sub AUs from representations of a face image.
-
-    Parameters
-    ----------
-    n_main_aus: int, default=27
-        Number of main AUs.
-    n_sub_aus: int, default=14
-        Number of sub AUs.
-
-    Notes
-    -----
-    First generates face representations using a ResNet50 backbone (default weights),
-    then transforms them into AU activations using a multi-dimensional edge feature learning (MEFL) head.
-
-    """
-
-    def __init__(self, n_main_aus=27, n_sub_aus=14):
-        super().__init__()
-        self.logger = logging.getLogger("mexca.video.MEFARG")
-        self.backbone = resnet50(weights=ResNet50_Weights.DEFAULT)
-        self.backbone.fc = nn.Identity() # Remove last FC layer to generate representations
-        self.n_in_channels = 2048
-        self.n_out_channels = self.n_in_channels // 4
-
-        # Connect backbone with MEFL head
-        self.linear_global = LinearBlock(self.n_in_channels, self.n_out_channels)
-        self.head = MEFL(self.n_out_channels, n_main_aus, n_sub_aus)
-
-    @classmethod
-    def from_pretrained(cls, device: torch.device = torch.device(type="cpu")):
-        """Load a pretrained model.
-
-        If not found, the pretrained model is downloaded from Google Drive and stored in the PyTorch cache.
-
-        Parameters
-        ----------
-        device: torch.device, default=torch.device(type='cpu')
-            Device on which the model is loaded.
-
-        """
-        # Init class instance
-        model = cls()
-
-        model_id = "1UMnpbj_YKlqHF1m0DHV0KYD3qmcOmeXp"
-
-        # Store pretraned model int PyTorch cache
-        model_path = os.path.join(torch.hub.get_dir(), f"mefarg-{model_id}.pth")
-
-        # Download model from Google Drive
-        if not os.path.exists(model_path):
-            url = f"https://drive.google.com/uc?&id={model_id}&confirm=t"
-            model.logger.info("Downloading pretrained model from %s", url)
-            gdown.download(url, output=model_path)
-            model.logger.info("Pretrained model saved at %s", model_path)
-
-        # Load pretrained state dict to device
-        checkpoint = torch.load(model_path, map_location=device)
-
-        # Replace state dict keys with correct model attribute names
-        new_state_dict = OrderedDict()
-
-        replace_dict = {
-            "global_linear": "linear_global",
-            # "head.gnn": "head.fgg.gnn",
-            "U": "linear_u",
-            "V": "linear_v",
-            "B": "linear_b",
-            "E": "linear_e",
-            "FAM": "fam",
-            "ARM": "arm",
-            "A": "linear_a",
-            # "head.main_sc": "head.fgg.main_sc",
-            # "head.sub_sc": "head.fgg.sub_sc",
-            "head.main_class_linears": "head.main_node_linear_layers",
-        }
-
-        for state_k, state_v in checkpoint["state_dict"].items():
-            if "module." in state_k:
-                state_k = state_k[7:]  # Remove `module.` from keys
-
-            for rep_k, rep_v in replace_dict.items():
-                state_k = state_k.replace(rep_k, rep_v)
-
-            new_state_dict[state_k] = state_v
-
-        model.load_state_dict(new_state_dict, strict=True)
-
-        return model
-
-    def _backbone_forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Perform forward pass of backbone without last FC layer
-        x = self.backbone.conv1(x)
-        x = self.backbone.bn1(x)
-        x = self.backbone.relu(x)
-        x = self.backbone.maxpool(x)
-
-        x = self.backbone.layer1(x)
-        x = self.backbone.layer2(x)
-        x = self.backbone.layer3(x)
-        x = self.backbone.layer4(x)
-
-        return x
-
-    def forward(self, x):
-        x = self._backbone_forward(x)
-
-        b, c, _, _ = x.shape
-        x = x.view(b, c, -1).permute(0, 2, 1)
-
-        x = self.linear_global(x)
-        cl = self.head(x)
-
-        return cl
+        # Predict action unit activations
+        return super().forward(f_v)
     

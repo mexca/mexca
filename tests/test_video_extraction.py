@@ -11,7 +11,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader
 from mexca.data import VideoAnnotation
-from mexca.video.mefl import MEFARG
+from mexca.video.mefarg import MEFARG
 from mexca.video.extraction import FaceExtractor, NotEnoughFacesError, VideoDataset
 
 
