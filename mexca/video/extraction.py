@@ -202,9 +202,8 @@ class FaceExtractor:
         The heuristic used for selecting detected faces. If not `None`, overrides `select_largest`.
     keep_all: bool, default=True
         Whether all faces should be returned in the order of `select_largest`.
-    device: torch.device, optional, default=None
+    device: torch.device, optional, default=torch.device("cpu")
         The device on which face detection and embedding computations are performed.
-        If `None` tries to automatically select `'cuda'` if available and selects `'cpu'` otherwise.
     max_cluster_frames : int, optional, default=None
         Maximum number of frames that are used for spectral clustering. If the number of frames exceeds the maximum,
         hierarchical clustering is applied first to reduce the frames to this number. This can reduce the computational
@@ -224,7 +223,7 @@ class FaceExtractor:
         select_largest: bool = True,
         selection_method: Optional[str] = None,
         keep_all: bool = True,
-        device: Optional[torch.device] = None,
+        device: torch.device = torch.device(type="cpu"),
         max_cluster_frames: Optional[int] = None,
         embeddings_model: str = "vggface2",
     ):
@@ -236,9 +235,7 @@ class FaceExtractor:
         self.select_largest = select_largest
         self.selection_method = selection_method
         self.keep_all = keep_all
-        if device is None:
-            device = torch.device('cuda', 0) if torch.cuda.is_available() else torch.device('cpu')
-            self.logger.debug("Initializing FaceExtractor on device %s", device)
+        self.logger.debug("Initializing FaceExtractor on device %s", device)
         self.device = device
         self.embeddings_model = embeddings_model
         self.num_faces = num_faces
@@ -450,7 +447,7 @@ class FaceExtractor:
         Returns
         -------
         aus: numpy.ndarray or list
-            Batch of B action unit activations for N detected faces with dimensions (N, 20).
+            Batch of B action unit activations for N detected faces with dimensions (N, 41).
             Is `None` if a frame contains no faces.
 
         """
@@ -467,9 +464,6 @@ class FaceExtractor:
             )
             transform = transforms.Compose(
                 [
-                    # transforms.Resize(256),
-                    # transforms.CenterCrop(224),
-                    # transforms.ToTensor(),
                     transforms.ConvertImageDtype(torch.float),
                     normalize,
                 ]
