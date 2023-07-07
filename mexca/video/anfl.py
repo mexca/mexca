@@ -1,6 +1,6 @@
 """Action unit (AU) relationship-aware node feature learning (ANFL).
 
-Implementation of the ANFL module of the paper:
+Implementation of the ANFL module from the paper:
 
     Luo, C., Song, S., Xie, W., Shen, L., Gunes, H. (2022). Learning multi-dimentionsal edge
     feature-based AU relation graph for facial action unit recognition. *arXiv*.
@@ -13,16 +13,11 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 
 # pylint: disable=invalid-name
 
-import logging
 import math
-import os
-from collections import OrderedDict
 from typing import Optional
-import gdown
 import torch
 import torch.nn.functional as F
 from torch import nn
-from torchvision.models import ResNet50_Weights, resnet50
 
 
 class LinearBlock(nn.Module):
@@ -334,118 +329,3 @@ class ANFL(nn.Module):
         x = self.fgg(x)
 
         return x
-
-
-class MEFARG(nn.Module):
-    """Apply a multi-dimensional edge feature-based action unit (AU) relation graph (MEFARG) model.
-
-    Predict activations of 27 main and 14 sub AUs from representations of a face image.
-
-    Parameters
-    ----------
-    n_main_aus: int, default=27
-        Number of main AUs.
-    n_sub_aus: int, default=14
-        Number of sub AUs.
-    n_neighbors: int, default=4
-        Number of top K similar neighbors for computing graph connectivity.
-
-    Notes
-    -----
-    First generates face representations using a ResNet50 backbone (default weights)
-    then transforms them into AU activations using an :func:`ANFL` head.
-
-    """
-
-    def __init__(self, n_main_aus=27, n_sub_aus=14, n_neighbors=4):
-        super().__init__()
-        self.logger = logging.getLogger("mexca.video.MEFARG")
-        self.backbone = resnet50(weights=ResNet50_Weights.DEFAULT)
-        self.backbone.fc = nn.Identity() # Remove last FC layer to generate representations
-        self.n_in_channels = 2048
-        self.n_out_channels = self.n_in_channels // 4
-
-        # Connect backbone with ANFL head
-        self.linear_global = LinearBlock(self.n_in_channels, self.n_out_channels)
-        self.head = ANFL(self.n_out_channels, n_main_aus, n_sub_aus, n_neighbors)
-
-    @classmethod
-    def from_pretrained(cls, device: torch.device = torch.device(type="cpu")):
-        """Load a pretrained model.
-
-        If not found, the pretrained model is downloaded from Google Drive and stored in the PyTorch cache.
-
-        Parameters
-        ----------
-        device: torch.device, default=torch.device(type='cpu')
-            Device on which the model is loaded.
-
-        """
-        # Init class instance
-        model = cls()
-
-        model_id = "11xh9r2e4qCpWEtQ-ptJGWut_TQ0_AmSp"
-
-        # Store pretraned model int PyTorch cache
-        model_path = os.path.join(torch.hub.get_dir(), f"mefarg-{model_id}.pth")
-
-        # Download model from Google Drive
-        if not os.path.exists(model_path):
-            url = f"https://drive.google.com/uc?&id={model_id}&confirm=t"
-            model.logger.info("Downloading pretrained model from %s", url)
-            gdown.download(url, output=model_path)
-            model.logger.info("Pretrained model saved at %s", model_path)
-
-        # Load pretrained state dict to device
-        checkpoint = torch.load(model_path, map_location=device)
-
-        # Replace state dict keys with correct model attribute names
-        new_state_dict = OrderedDict()
-
-        replace_dict = {
-            "global_linear": "linear_global",
-            "head.gnn": "head.fgg.gnn",
-            "U": "linear_u",
-            "V": "linear_v",
-            "head.main_sc": "head.fgg.main_sc",
-            "head.sub_sc": "head.fgg.sub_sc",
-            "head.main_class_linears": "head.afg.main_node_linear_layers",
-        }
-
-        for state_k, state_v in checkpoint["state_dict"].items():
-            if "module." in state_k:
-                state_k = state_k[7:]  # Remove `module.` from keys
-
-            for rep_k, rep_v in replace_dict.items():
-                state_k = state_k.replace(rep_k, rep_v)
-
-            new_state_dict[state_k] = state_v
-
-        model.load_state_dict(new_state_dict, strict=True)
-
-        return model
-
-    def _backbone_forward(self, x: torch.Tensor) -> torch.Tensor:
-        # Perform forward pass of backbone without last FC layer
-        x = self.backbone.conv1(x)
-        x = self.backbone.bn1(x)
-        x = self.backbone.relu(x)
-        x = self.backbone.maxpool(x)
-
-        x = self.backbone.layer1(x)
-        x = self.backbone.layer2(x)
-        x = self.backbone.layer3(x)
-        x = self.backbone.layer4(x)
-
-        return x
-
-    def forward(self, x):
-        x = self._backbone_forward(x)
-
-        b, c, _, _ = x.shape
-        x = x.view(b, c, -1).permute(0, 2, 1)
-
-        x = self.linear_global(x)
-        cl = self.head(x)
-
-        return cl
