@@ -554,7 +554,7 @@ class FaceExtractor:
         Returns
         -------
         average embedding dictionary: dict
-            dictionary with keys representing face labels and values representing
+            Dictionary with keys representing face labels and values representing
             the average embedding vector for each face label.
         """
         self.logger.info('Computing average embeddings')
