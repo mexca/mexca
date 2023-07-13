@@ -502,8 +502,47 @@ class FaceExtractor:
 
         return centroids, cluster_label_mapping
 
-    def compute_confidence(
-        self, embeddings: np.ndarray, labels: np.ndarray
+    def compute_avg_embeddings(self,
+        embeddings: np.ndarray,
+        labels: np.ndarray
+    ) -> dict:
+        """Computes average embedding vector for each face detected in the video.
+
+        Parameters
+        ----------
+        embeddings: numpy.ndarray
+            Face embeddings.
+        labels: numpy.ndarray
+            Face labels.
+
+        Returns
+        -------
+        average embedding dictionary: dict
+            Dictionary with keys representing face labels and values representing
+            the average embedding vector for each face label.
+        """
+        self.logger.info('Computing average embeddings')
+
+        # collect face embeddings and map them to face labels
+        face_embedding_dict = {}
+        for (embedding, label) in zip(embeddings, labels):
+            # do not take into account nan values for average embedding calculation
+            if (str(label) != 'nan'):
+                if label in face_embedding_dict:
+                    face_embedding_dict[label].append(embedding)
+                else:
+                    face_embedding_dict[label] = [embedding]
+
+        # calculate average embeddings for each face label
+        face_avg_embedding_dict = {}
+        for label, embeddings_lst in face_embedding_dict.items():
+            face_avg_embedding_dict[label] = np.mean(np.array(embeddings_lst), axis=0).tolist()
+
+        return face_avg_embedding_dict
+
+    def compute_confidence(self,
+        embeddings: np.ndarray,
+        labels: np.ndarray
     ) -> np.ndarray:
         """Compute face label classification confidence.
 
@@ -659,12 +698,9 @@ class FaceExtractor:
         del self.extractor
 
         annotation.face_label = self.identify(np.asarray(embeddings).squeeze()).tolist()
-        annotation.face_confidence = self.compute_confidence(
-            np.asarray(embeddings), np.asarray(annotation.face_label)
-        ).tolist()
-        annotation.time = (
-            np.array(annotation.frame) / video_dataset.video_fps
-        ).tolist()
+        annotation.face_average_embeddings = self.compute_avg_embeddings(np.asarray(embeddings), np.asarray(annotation.face_label))
+        annotation.face_confidence = self.compute_confidence(np.asarray(embeddings), np.asarray(annotation.face_label)).tolist()
+        annotation.time = (np.array(annotation.frame) / video_dataset.video_fps).tolist()
 
         del self.clusterer
 

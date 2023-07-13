@@ -37,8 +37,10 @@ class VideoAnnotation:
     face_confidence : list, optional
         Confidence of the `face_label` assignment. Is `numpy.nan` if no face was detected or
         only one face label was assigned.
-
+    face_average_embeddings : list, optional
+        Average embedding vector for each face in the input video.
     """
+    
     frame: Optional[List[int]] = field(default_factory=list)
     time: Optional[List[float]] = field(default_factory=list)
     face_box: Optional[List[List[float]]] = field(default_factory=list)
@@ -47,7 +49,7 @@ class VideoAnnotation:
     face_aus: Optional[List[List[float]]] = field(default_factory=list)
     face_label: Optional[List[Union[str, int]]] = field(default_factory=list)
     face_confidence: Optional[List[float]] = field(default_factory=list)
-
+    face_average_embeddings: Optional[dict] = field(default_factory=dict)
 
     @classmethod
     def _from_dict(cls, data: Dict):
@@ -700,8 +702,29 @@ class Multimodal:
 
 
     def _merge_video_annotation(self, data_frames: List):
+        # create a new VideoAnnotation instance and copy all fields to the new instance
+        # (except for average face embeddings) because the face embeddings have a different
+        # dimension to the other fields in the instance. if we include the face embeddings
+        # then the conversion of the data to a dataframe would fail.
         if self.video_annotation:
-            data_frames.append(pd.DataFrame(asdict(self.video_annotation)))
+            video_annotation_dict = asdict(self.video_annotation)
+            del video_annotation_dict['face_average_embeddings']
+            data_frames.append(pd.DataFrame(video_annotation_dict))
+
+            # video_annotation_minus_avg_face_embeddings = VideoAnnotation()
+            # video_annotation_minus_avg_face_embeddings.frame = self.video_annotation.frame
+            # video_annotation_minus_avg_face_embeddings.time = self.video_annotation.time
+            # video_annotation_minus_avg_face_embeddings.face_box = self.video_annotation.face_box
+            # video_annotation_minus_avg_face_embeddings.face_prob = self.video_annotation.face_prob
+            # video_annotation_minus_avg_face_embeddings.face_landmarks = self.video_annotation.face_landmarks
+            # video_annotation_minus_avg_face_embeddings.face_aus = self.video_annotation.face_aus
+            # video_annotation_minus_avg_face_embeddings.face_label = self.video_annotation.face_label
+            # video_annotation_minus_avg_face_embeddings.face_confidence = self.video_annotation.face_confidence
+            # # ensure that the average face embeddings field is excluded from the instance
+            # video_annotation_minus_avg_face_embeddings.face_average_embeddings = None
+            # dict_version = asdict(video_annotation_minus_avg_face_embeddings)
+            # del dict_version['face_average_embeddings']
+            # data_frames.append(pd.DataFrame(dict_version))
 
 
     def _merge_audio_text_features(self, data_frames: List):
