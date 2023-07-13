@@ -14,10 +14,12 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 import logging
 import os
 from collections import OrderedDict
+
 import gdown
 import torch
 from torch import nn
 from torchvision.models import ResNet50_Weights, resnet50
+
 from mexca.video.helper_classes import LinearBlock
 from mexca.video.mefl import MEFL
 
@@ -45,12 +47,16 @@ class MEFARG(nn.Module):
         super().__init__()
         self.logger = logging.getLogger("mexca.video.MEFARG")
         self.backbone = resnet50(weights=ResNet50_Weights.DEFAULT)
-        self.backbone.fc = nn.Identity() # Remove last FC layer to generate representations
+        self.backbone.fc = (
+            nn.Identity()
+        )  # Remove last FC layer to generate representations
         self.n_in_channels = 2048
         self.n_out_channels = self.n_in_channels // 4
 
         # Connect backbone with MEFL head
-        self.linear_global = LinearBlock(self.n_in_channels, self.n_out_channels)
+        self.linear_global = LinearBlock(
+            self.n_in_channels, self.n_out_channels
+        )
         self.head = MEFL(self.n_out_channels, n_main_aus, n_sub_aus)
 
     @classmethod

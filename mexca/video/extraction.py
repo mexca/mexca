@@ -6,6 +6,7 @@ import logging
 import os
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
@@ -16,10 +17,10 @@ from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.io import read_video, read_video_timestamps
 from tqdm import tqdm
+
 from mexca.data import VideoAnnotation
 from mexca.utils import ClassInitMessage, optional_float, optional_int, str2bool
 from mexca.video.mefarg import MEFARG
-
 
 EMPTY_VALUE = np.nan
 """Value that is returned if no faces are detected in a video frame.
@@ -102,9 +103,7 @@ class VideoDataset(Dataset):
         video_pts, video_fps = read_video_timestamps(video_file)
 
         self.file_name = os.path.basename(video_file)
-        self._filepath = (
-            video_file  # Store path to video for reading frames in __getitem__()
-        )
+        self._filepath = video_file  # Store path to video for reading frames in __getitem__()
 
         self.video_fps = video_fps
 
@@ -321,7 +320,9 @@ class FaceExtractor:
         if not self._extractor:
             self._extractor = MEFARG.from_pretrained(device=self.device)
             self._extractor.eval()
-            self.logger.debug("Initialized MEFARG action unit feature extractor")
+            self.logger.debug(
+                "Initialized MEFARG action unit feature extractor"
+            )
         return self._extractor
 
     @extractor.deleter
@@ -502,9 +503,8 @@ class FaceExtractor:
 
         return centroids, cluster_label_mapping
 
-    def compute_avg_embeddings(self,
-        embeddings: np.ndarray,
-        labels: np.ndarray
+    def compute_avg_embeddings(
+        self, embeddings: np.ndarray, labels: np.ndarray
     ) -> dict:
         """Computes average embedding vector for each face detected in the video.
 
@@ -521,13 +521,13 @@ class FaceExtractor:
             Dictionary with keys representing face labels and values representing
             the average embedding vector for each face label.
         """
-        self.logger.info('Computing average embeddings')
+        self.logger.info("Computing average embeddings")
 
         # collect face embeddings and map them to face labels
         face_embedding_dict = {}
-        for (embedding, label) in zip(embeddings, labels):
+        for embedding, label in zip(embeddings, labels):
             # do not take into account nan values for average embedding calculation
-            if (str(label) != 'nan'):
+            if str(label) != "nan":
                 if label in face_embedding_dict:
                     face_embedding_dict[label].append(embedding)
                 else:
@@ -536,13 +536,14 @@ class FaceExtractor:
         # calculate average embeddings for each face label
         face_avg_embedding_dict = {}
         for label, embeddings_lst in face_embedding_dict.items():
-            face_avg_embedding_dict[label] = np.mean(np.array(embeddings_lst), axis=0).tolist()
+            face_avg_embedding_dict[label] = np.mean(
+                np.array(embeddings_lst), axis=0
+            ).tolist()
 
         return face_avg_embedding_dict
 
-    def compute_confidence(self,
-        embeddings: np.ndarray,
-        labels: np.ndarray
+    def compute_confidence(
+        self, embeddings: np.ndarray, labels: np.ndarray
     ) -> np.ndarray:
         """Compute face label classification confidence.
 
@@ -560,7 +561,9 @@ class FaceExtractor:
 
         """
         self.logger.info("Computing face clustering confidence")
-        centroids, cluster_label_mapping = self._compute_centroids(embeddings, labels)
+        centroids, cluster_label_mapping = self._compute_centroids(
+            embeddings, labels
+        )
 
         # create empty array with same lenght as labels
         confidence = np.empty_like(labels)
@@ -587,7 +590,9 @@ class FaceExtractor:
                     # mimimum of all other distance
 
                     d2 = np.min(
-                        distances[np.arange(len(distances)) != cluster_centroid_idx]
+                        distances[
+                            np.arange(len(distances)) != cluster_centroid_idx
+                        ]
                     )
 
                     # confidence score: 0 if d1 = d2, 1 if d1 = 0
@@ -602,7 +607,7 @@ class FaceExtractor:
 
         return confidence
 
-    def apply( # pylint: disable=too-many-locals
+    def apply(  # pylint: disable=too-many-locals
         self,
         filepath: str,
         batch_size: int = 1,
@@ -646,9 +651,13 @@ class FaceExtractor:
         # Store features
         annotation = VideoAnnotation()
 
-        embeddings = []  # Embeddings are separate because they won't be returned
+        embeddings = (
+            []
+        )  # Embeddings are separate because they won't be returned
 
-        self.logger.info("Detecting and encoding faces, extracting facial features")
+        self.logger.info(
+            "Detecting and encoding faces, extracting facial features"
+        )
         for b, batch in tqdm(
             enumerate(batch_data_loader),
             total=len(batch_data_loader),
@@ -662,7 +671,9 @@ class FaceExtractor:
             for i, frame in enumerate(batch["Frame"]):
                 self.logger.debug("Processing frame %s", int(frame))
                 if faces[i] is None:
-                    self.logger.debug("No faces detected in frame %s", int(frame))
+                    self.logger.debug(
+                        "No faces detected in frame %s", int(frame)
+                    )
                     embeddings.append(
                         np.full((self.encoder.last_bn.num_features), np.nan)
                     )
@@ -674,7 +685,9 @@ class FaceExtractor:
 
                 else:
                     self.logger.debug(
-                        "%s faces detected in frame %s", len(faces[i]), int(frame)
+                        "%s faces detected in frame %s",
+                        len(faces[i]),
+                        int(frame),
                     )
                     embs = self.encode(faces[i])
                     for k, (box, prob, landmark, au, emb) in enumerate(
@@ -697,10 +710,18 @@ class FaceExtractor:
         del self.encoder
         del self.extractor
 
-        annotation.face_label = self.identify(np.asarray(embeddings).squeeze()).tolist()
-        annotation.face_average_embeddings = self.compute_avg_embeddings(np.asarray(embeddings), np.asarray(annotation.face_label))
-        annotation.face_confidence = self.compute_confidence(np.asarray(embeddings), np.asarray(annotation.face_label)).tolist()
-        annotation.time = (np.array(annotation.frame) / video_dataset.video_fps).tolist()
+        annotation.face_label = self.identify(
+            np.asarray(embeddings).squeeze()
+        ).tolist()
+        annotation.face_average_embeddings = self.compute_avg_embeddings(
+            np.asarray(embeddings), np.asarray(annotation.face_label)
+        )
+        annotation.face_confidence = self.compute_confidence(
+            np.asarray(embeddings), np.asarray(annotation.face_label)
+        ).tolist()
+        annotation.time = (
+            np.array(annotation.frame) / video_dataset.video_fps
+        ).tolist()
 
         del self.clusterer
 
@@ -722,7 +743,9 @@ def cli():
     )
 
     parser.add_argument("--batch-size", type=int, default=1, dest="batch_size")
-    parser.add_argument("--skip-frames", type=int, default=1, dest="skip_frames")
+    parser.add_argument(
+        "--skip-frames", type=int, default=1, dest="skip_frames"
+    )
     parser.add_argument(
         "--process-subclip",
         type=optional_float,
@@ -734,8 +757,12 @@ def cli():
         "--show-progress", type=str2bool, default=True, dest="show_progress"
     )
 
-    parser.add_argument("--min-face-size", type=int, default=20, dest="min_face_size")
-    parser.add_argument("--thresholds", type=float, nargs=3, default=[0.6, 0.7, 0.7])
+    parser.add_argument(
+        "--min-face-size", type=int, default=20, dest="min_face_size"
+    )
+    parser.add_argument(
+        "--thresholds", type=float, nargs=3, default=[0.6, 0.7, 0.7]
+    )
     parser.add_argument("--factor", type=float, default=0.709)
     parser.add_argument(
         "--post-process", type=str2bool, default=True, dest="post_process"
@@ -746,7 +773,9 @@ def cli():
     parser.add_argument(
         "--selection-method", type=str, default=None, dest="selection_method"
     )
-    parser.add_argument("--keep-all", type=str2bool, default=True, dest="keep_all")
+    parser.add_argument(
+        "--keep-all", type=str2bool, default=True, dest="keep_all"
+    )
     parser.add_argument("--device", type=str, default="cpu")
     parser.add_argument(
         "--max-cluster-frames",
@@ -755,7 +784,10 @@ def cli():
         dest="max_cluster_frames",
     )
     parser.add_argument(
-        "--embeddings-model", type=str, default="vggface2", dest="embeddings_model"
+        "--embeddings-model",
+        type=str,
+        default="vggface2",
+        dest="embeddings_model",
     )
 
     args = parser.parse_args().__dict__
@@ -780,7 +812,8 @@ def cli():
     output.write_json(
         os.path.join(
             outdir,
-            os.path.splitext(os.path.basename(filepath))[0] + "_video_annotation.json",
+            os.path.splitext(os.path.basename(filepath))[0]
+            + "_video_annotation.json",
         )
     )
 

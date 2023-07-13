@@ -2,8 +2,8 @@
 
 Construct a dictionary with keys as feature names and values as feature objects. The dictionary can
 be used to extract the specified features with the :class:`VoiceExtractor`. Feature objects require
-lower-level voice signal properties, which are defined in the :func:`requires` method of feach 
-feature class. The :class:`VoiceExtractor` class computes the properties and supplies them to 
+lower-level voice signal properties, which are defined in the :func:`requires` method of feach
+feature class. The :class:`VoiceExtractor` class computes the properties and supplies them to
 the feature objects.
 
 """
@@ -12,12 +12,31 @@ import argparse
 import logging
 import os
 from typing import Dict, Optional, Union
+
 import numpy as np
 from scipy.interpolate import interp1d
-from mexca.audio.features import (AlphaRatioFrames, AudioSignal, BaseFrames, FormantAmplitudeFrames, FormantAudioSignal,
-                                  FormantFrames, HammarIndexFrames, HnrFrames, JitterFrames, MelSpecFrames, MfccFrames,
-                                  PitchFrames, PitchHarmonicsFrames, PitchPulseFrames, RmsEnergyFrames, ShimmerFrames,
-                                  SpecFrames, SpectralFluxFrames, SpectralSlopeFrames)
+
+from mexca.audio.features import (
+    AlphaRatioFrames,
+    AudioSignal,
+    BaseFrames,
+    FormantAmplitudeFrames,
+    FormantAudioSignal,
+    FormantFrames,
+    HammarIndexFrames,
+    HnrFrames,
+    JitterFrames,
+    MelSpecFrames,
+    MfccFrames,
+    PitchFrames,
+    PitchHarmonicsFrames,
+    PitchPulseFrames,
+    RmsEnergyFrames,
+    ShimmerFrames,
+    SpecFrames,
+    SpectralFluxFrames,
+    SpectralSlopeFrames,
+)
 from mexca.data import VoiceFeatures, VoiceFeaturesConfig
 from mexca.utils import ClassInitMessage, optional_str
 
@@ -44,7 +63,9 @@ class BaseFeature:
         """
         return None
 
-    def _get_interp_fun(self, ts: np.ndarray, feature: np.ndarray) -> np.ndarray:
+    def _get_interp_fun(
+        self, ts: np.ndarray, feature: np.ndarray
+    ) -> np.ndarray:
         return interp1d(ts, feature, kind="linear", bounds_error=False)
 
     def apply(self, time: np.ndarray) -> np.ndarray:
@@ -81,9 +102,9 @@ class FeaturePitchF0(BaseFeature):
         return {"pitch_frames": PitchFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
-        return self._get_interp_fun(self.pitch_frames.ts, self.pitch_frames.frames)(
-            time
-        )
+        return self._get_interp_fun(
+            self.pitch_frames.ts, self.pitch_frames.frames
+        )(time)
 
 
 class FeatureJitter(BaseFeature):
@@ -103,9 +124,9 @@ class FeatureJitter(BaseFeature):
         return {"jitter_frames": JitterFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
-        return self._get_interp_fun(self.jitter_frames.ts, self.jitter_frames.frames)(
-            time
-        )
+        return self._get_interp_fun(
+            self.jitter_frames.ts, self.jitter_frames.frames
+        )(time)
 
 
 class FeatureShimmer(BaseFeature):
@@ -125,9 +146,9 @@ class FeatureShimmer(BaseFeature):
         return {"shimmer_frames": ShimmerFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
-        return self._get_interp_fun(self.shimmer_frames.ts, self.shimmer_frames.frames)(
-            time
-        )
+        return self._get_interp_fun(
+            self.shimmer_frames.ts, self.shimmer_frames.frames
+        )(time)
 
 
 class FeatureHnr(BaseFeature):
@@ -147,7 +168,9 @@ class FeatureHnr(BaseFeature):
         return {"hnr_frames": HnrFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
-        return self._get_interp_fun(self.hnr_frames.ts, self.hnr_frames.frames)(time)
+        return self._get_interp_fun(self.hnr_frames.ts, self.hnr_frames.frames)(
+            time
+        )
 
 
 class FeatureFormantFreq(BaseFeature):
@@ -177,8 +200,12 @@ class FeatureFormantFreq(BaseFeature):
         return {"formant_frames": FormantFrames}
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        formants_freqs = self.formant_frames.select_formant_attr(self.n_formant, 0)
-        return self._get_interp_fun(self.formant_frames.ts, formants_freqs)(time)
+        formants_freqs = self.formant_frames.select_formant_attr(
+            self.n_formant, 0
+        )
+        return self._get_interp_fun(self.formant_frames.ts, formants_freqs)(
+            time
+        )
 
 
 class FeatureFormantBandwidth(FeatureFormantFreq):
@@ -192,7 +219,9 @@ class FeatureFormantBandwidth(FeatureFormantFreq):
     """
 
     def apply(self, time: np.ndarray) -> Optional[np.ndarray]:
-        formants_bws = self.formant_frames.select_formant_attr(self.n_formant, 1)
+        formants_bws = self.formant_frames.select_formant_attr(
+            self.n_formant, 1
+        )
         return self._get_interp_fun(self.formant_frames.ts, formants_bws)(time)
 
 
@@ -231,6 +260,7 @@ class FeatureFormantAmplitude(BaseFeature):
 
 class FeatureAlphaRatio(BaseFeature):
     """Extract the alpha ratio in dB."""
+
     alpha_ratio_frames: Optional[AlphaRatioFrames] = None
 
     def requires(self) -> Optional[Dict[str, AlphaRatioFrames]]:
@@ -252,6 +282,7 @@ class FeatureAlphaRatio(BaseFeature):
 
 class FeatureHammarIndex(BaseFeature):
     """Extract the Hammarberg index in dB."""
+
     hammar_index_frames: Optional[HammarIndexFrames] = None
 
     def requires(self) -> Optional[Dict[str, HammarIndexFrames]]:
@@ -273,7 +304,7 @@ class FeatureHammarIndex(BaseFeature):
 
 class FeatureSpectralSlope(BaseFeature):
     """Extract spectral slopes for frequency bands.
-    
+
     Parameters
     ----------
     lower, upper: float
@@ -281,6 +312,7 @@ class FeatureSpectralSlope(BaseFeature):
         A band with these boundaries must exist in the required `spectral_slope_frames` object.
 
     """
+
     spectral_slope_frames: Optional[SpectralSlopeFrames] = None
 
     def __init__(self, lower: float, upper: float) -> None:
@@ -299,7 +331,9 @@ class FeatureSpectralSlope(BaseFeature):
         return {"spectral_slope_frames": SpectralSlopeFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
-        slope_idx = self.spectral_slope_frames.bands.index((self.lower, self.upper))
+        slope_idx = self.spectral_slope_frames.bands.index(
+            (self.lower, self.upper)
+        )
         return self._get_interp_fun(
             self.spectral_slope_frames.ts,
             self.spectral_slope_frames.frames[:, slope_idx],
@@ -319,14 +353,19 @@ class FeatureHarmonicDifference(BaseFeature):
     Raises
     ------
     ValueError
-        If `x_type` or `y_type` is not `'h'` or `'f'`.    
-    
+        If `x_type` or `y_type` is not `'h'` or `'f'`.
+
     """
+
     formant_amp_frames: Optional[FormantAmplitudeFrames] = None
     pitch_harmonics_frames: Optional[PitchHarmonicsFrames] = None
 
     def __init__(
-        self, x_idx: int = 0, x_type: str = "h", y_idx: int = 1, y_type: str = "h"
+        self,
+        x_idx: int = 0,
+        x_type: str = "h",
+        y_idx: int = 1,
+        y_type: str = "h",
     ):
         self.x_idx = x_idx
         self.x_type = x_type
@@ -335,7 +374,9 @@ class FeatureHarmonicDifference(BaseFeature):
 
     def requires(
         self,
-    ) -> Optional[Dict[str, Union[FormantAmplitudeFrames, PitchHarmonicsFrames]]]:
+    ) -> Optional[
+        Dict[str, Union[FormantAmplitudeFrames, PitchHarmonicsFrames]]
+    ]:
         """Specify objects required for feature extraction.
 
         Returns
@@ -352,14 +393,20 @@ class FeatureHarmonicDifference(BaseFeature):
     def _get_harmonic_or_formant(self, which: str = "x") -> np.ndarray:
         if getattr(self, which + "_type") == "h":
             var = 20 * np.log10(
-                self.pitch_harmonics_frames.frames[:, getattr(self, which + "_idx")]
+                self.pitch_harmonics_frames.frames[
+                    :, getattr(self, which + "_idx")
+                ]
             )
         elif getattr(self, which + "_type") == "f":
             # Formant amplitude is already on dB scale
-            var = self.formant_amp_frames.frames[:, getattr(self, which + "_idx")]
+            var = self.formant_amp_frames.frames[
+                :, getattr(self, which + "_idx")
+            ]
             # Multiply by F0 on dB scale
             if self.formant_amp_frames.rel_f0:
-                var = var + 20 * np.log10(self.pitch_harmonics_frames.frames[:, 0])
+                var = var + 20 * np.log10(
+                    self.pitch_harmonics_frames.frames[:, 0]
+                )
         else:
             raise ValueError(
                 f"'{which}_type' must be either 'h' (pitch harmonic) or 'f' (formant)"
@@ -385,6 +432,7 @@ class FeatureMfcc(BaseFeature):
         Index of the MFCC to be extracted.
 
     """
+
     mfcc_frames: Optional[MfccFrames] = None
 
     def __init__(self, n_mfcc: int = 0) -> None:
@@ -408,8 +456,8 @@ class FeatureMfcc(BaseFeature):
 
 
 class FeatureSpectralFlux(BaseFeature):
-    """Extract spectral flux.
-    """
+    """Extract spectral flux."""
+
     spec_flux_frames: Optional[SpectralFluxFrames] = None
 
     def requires(self) -> Optional[Dict[str, SpectralFluxFrames]]:
@@ -430,8 +478,8 @@ class FeatureSpectralFlux(BaseFeature):
 
 
 class FeatureRmsEnergy(BaseFeature):
-    """Extract the root mean squared energy in dB.
-    """
+    """Extract the root mean squared energy in dB."""
+
     rms_frames: Optional[RmsEnergyFrames] = None
 
     def requires(self) -> Optional[Dict[str, type]]:
@@ -446,7 +494,9 @@ class FeatureRmsEnergy(BaseFeature):
         return {"rms_frames": RmsEnergyFrames}
 
     def apply(self, time: np.ndarray) -> np.ndarray:
-        return self._get_interp_fun(self.rms_frames.ts, self.rms_frames.frames)(time)
+        return self._get_interp_fun(self.rms_frames.ts, self.rms_frames.frames)(
+            time
+        )
 
 
 class VoiceExtractor:
@@ -464,7 +514,11 @@ class VoiceExtractor:
 
     """
 
-    def __init__(self, features: Optional[Dict[str, BaseFeature]] = None, config: Optional[VoiceFeaturesConfig] = None):
+    def __init__(
+        self,
+        features: Optional[Dict[str, BaseFeature]] = None,
+        config: Optional[VoiceFeaturesConfig] = None,
+    ):
         self.logger = logging.getLogger("mexca.audio.extraction.VoiceExtractor")
 
         if features is None:
@@ -484,9 +538,11 @@ class VoiceExtractor:
     def _check_features(features: dict):
         for key, item in features.items():
             if not isinstance(key, str):
-                raise TypeError(f'Feature name {key} is not a string')
+                raise TypeError(f"Feature name {key} is not a string")
             if not isinstance(item, BaseFeature):
-                raise TypeError(f'Feature object {item} with name {key} is not a subclass of "mexca.audio.features.BaseFeature"')
+                raise TypeError(
+                    f'Feature object {item} with name {key} is not a subclass of "mexca.audio.features.BaseFeature"'
+                )
 
     @staticmethod
     def _set_default_features() -> Dict[str, BaseFeature]:
@@ -507,7 +563,9 @@ class VoiceExtractor:
             "alpha_ratio_db": FeatureAlphaRatio(),
             "hammar_index_db": FeatureHammarIndex(),
             "spectral_slope_0_500": FeatureSpectralSlope(lower=0, upper=500),
-            "spectral_slope_500_1500": FeatureSpectralSlope(lower=500, upper=1500),
+            "spectral_slope_500_1500": FeatureSpectralSlope(
+                lower=500, upper=1500
+            ),
             "h1_h2_diff_db": FeatureHarmonicDifference(),
             "h1_f3_diff_db": FeatureHarmonicDifference(y_idx=2, y_type="f"),
             "mfcc_1": FeatureMfcc(),
@@ -544,49 +602,119 @@ class VoiceExtractor:
         self.logger.debug("Extracting features with time step: %s", time_step)
 
         time = np.arange(
-            audio_signal.ts.min(), audio_signal.ts.max(), time_step, dtype=np.float32
+            audio_signal.ts.min(),
+            audio_signal.ts.max(),
+            time_step,
+            dtype=np.float32,
         )
         frame = np.array((time / time_step) * skip_frames, dtype=np.int32)
 
         sig_frames = BaseFrames.from_signal(
-            audio_signal, frame_len=self.config.frame_len, hop_len=self.config.hop_len, center=self.config.center, pad_mode=self.config.pad_mode
+            audio_signal,
+            frame_len=self.config.frame_len,
+            hop_len=self.config.hop_len,
+            center=self.config.center,
+            pad_mode=self.config.pad_mode,
         )
 
         spec_frames = SpecFrames.from_signal(
-            audio_signal, frame_len=self.config.frame_len, hop_len=self.config.hop_len, center=self.config.center, pad_mode=self.config.pad_mode, window=self.config.spec_window
+            audio_signal,
+            frame_len=self.config.frame_len,
+            hop_len=self.config.hop_len,
+            center=self.config.center,
+            pad_mode=self.config.pad_mode,
+            window=self.config.spec_window,
         )
         pitch_frames = PitchFrames.from_signal(
-            audio_signal, frame_len=self.config.frame_len, hop_len=self.config.hop_len, center=self.config.center, pad_mode=self.config.pad_mode, lower=self.config.pitch_lower_freq, upper=self.config.pitch_upper_freq, method=self.config.pitch_method
+            audio_signal,
+            frame_len=self.config.frame_len,
+            hop_len=self.config.hop_len,
+            center=self.config.center,
+            pad_mode=self.config.pad_mode,
+            lower=self.config.pitch_lower_freq,
+            upper=self.config.pitch_upper_freq,
+            method=self.config.pitch_method,
         )
         pulses_frames = PitchPulseFrames.from_signal_and_pitch_frames(
             audio_signal, pitch_frames
         )
-        jitter_frames = JitterFrames.from_pitch_pulse_frames(pulses_frames, rel=self.config.jitter_rel, lower=self.config.pitch_pulse_lower_period, upper=self.config.pitch_pulse_upper_period, max_period_ratio=self.config.pitch_pulse_max_period_ratio)
-        shimmer_frames = ShimmerFrames.from_pitch_pulse_frames(pulses_frames, rel=self.config.shimmer_rel, lower=self.config.pitch_pulse_lower_period, upper=self.config.pitch_pulse_upper_period, max_period_ratio=self.config.pitch_pulse_max_period_ratio, max_amp_factor=self.config.pitch_pulse_max_amp_factor)
-        hnr_frames = HnrFrames.from_frames(sig_frames, lower=self.config.hnr_lower_freq, rel_silence_threshold=self.config.hnr_rel_silence_threshold)
+        jitter_frames = JitterFrames.from_pitch_pulse_frames(
+            pulses_frames,
+            rel=self.config.jitter_rel,
+            lower=self.config.pitch_pulse_lower_period,
+            upper=self.config.pitch_pulse_upper_period,
+            max_period_ratio=self.config.pitch_pulse_max_period_ratio,
+        )
+        shimmer_frames = ShimmerFrames.from_pitch_pulse_frames(
+            pulses_frames,
+            rel=self.config.shimmer_rel,
+            lower=self.config.pitch_pulse_lower_period,
+            upper=self.config.pitch_pulse_upper_period,
+            max_period_ratio=self.config.pitch_pulse_max_period_ratio,
+            max_amp_factor=self.config.pitch_pulse_max_amp_factor,
+        )
+        hnr_frames = HnrFrames.from_frames(
+            sig_frames,
+            lower=self.config.hnr_lower_freq,
+            rel_silence_threshold=self.config.hnr_rel_silence_threshold,
+        )
 
         formant_signal = FormantAudioSignal.from_audio_signal(
-            audio_signal, preemphasis_from=self.config.formants_signal_preemphasis_from
+            audio_signal,
+            preemphasis_from=self.config.formants_signal_preemphasis_from,
         )
         formant_sig_frames = BaseFrames.from_signal(
-            formant_signal, frame_len=self.config.frame_len, hop_len=self.config.hop_len, center=self.config.center, pad_mode=self.config.pad_mode
+            formant_signal,
+            frame_len=self.config.frame_len,
+            hop_len=self.config.hop_len,
+            center=self.config.center,
+            pad_mode=self.config.pad_mode,
         )
         formant_frames = FormantFrames.from_frames(
-            formant_sig_frames, max_formants=self.config.formants_max, lower=self.config.formants_lower_freq, upper=self.config.formants_upper_freq, preemphasis_from=None, window=self.config.formants_window
+            formant_sig_frames,
+            max_formants=self.config.formants_max,
+            lower=self.config.formants_lower_freq,
+            upper=self.config.formants_upper_freq,
+            preemphasis_from=None,
+            window=self.config.formants_window,
         )
         pitch_harmonics = PitchHarmonicsFrames.from_spec_and_pitch_frames(
             spec_frames, pitch_frames, n_harmonics=self.config.pitch_n_harmonics
         )
         formant_amp_frames = (
             FormantAmplitudeFrames.from_formant_harmonics_and_pitch_frames(
-                formant_frames, pitch_harmonics, pitch_frames, lower=self.config.formants_amp_lower, upper=self.config.formants_amp_upper, rel_f0=self.config.formants_amp_rel_f0
+                formant_frames,
+                pitch_harmonics,
+                pitch_frames,
+                lower=self.config.formants_amp_lower,
+                upper=self.config.formants_amp_upper,
+                rel_f0=self.config.formants_amp_rel_f0,
             )
         )
-        alpha_ratio_frames = AlphaRatioFrames.from_spec_frames(spec_frames, lower_band=self.config.alpha_ratio_lower_band, upper_band=self.config.alpha_ratio_upper_band)
-        hammar_index_frames = HammarIndexFrames.from_spec_frames(spec_frames, pivot_point=self.config.hammar_index_pivot_point_freq, upper=self.config.hammar_index_upper_freq)
-        spectral_slope_frames = SpectralSlopeFrames.from_spec_frames(spec_frames, bands=self.config.spectral_slopes_bands)
-        mel_spec_frames = MelSpecFrames.from_spec_frames(spec_frames, n_mels=self.config.mel_spec_n_mels, lower=self.config.mel_spec_lower_freq, upper=self.config.mel_spec_upper_freq)
-        mfcc_frames = MfccFrames.from_mel_spec_frames(mel_spec_frames, n_mfcc=self.config.mfcc_n, lifter=self.config.mfcc_lifter)
+        alpha_ratio_frames = AlphaRatioFrames.from_spec_frames(
+            spec_frames,
+            lower_band=self.config.alpha_ratio_lower_band,
+            upper_band=self.config.alpha_ratio_upper_band,
+        )
+        hammar_index_frames = HammarIndexFrames.from_spec_frames(
+            spec_frames,
+            pivot_point=self.config.hammar_index_pivot_point_freq,
+            upper=self.config.hammar_index_upper_freq,
+        )
+        spectral_slope_frames = SpectralSlopeFrames.from_spec_frames(
+            spec_frames, bands=self.config.spectral_slopes_bands
+        )
+        mel_spec_frames = MelSpecFrames.from_spec_frames(
+            spec_frames,
+            n_mels=self.config.mel_spec_n_mels,
+            lower=self.config.mel_spec_lower_freq,
+            upper=self.config.mel_spec_upper_freq,
+        )
+        mfcc_frames = MfccFrames.from_mel_spec_frames(
+            mel_spec_frames,
+            n_mfcc=self.config.mfcc_n,
+            lifter=self.config.mfcc_lifter,
+        )
         spec_flux_frames = SpectralFluxFrames.from_spec_frames(spec_frames)
         rms_frames = RmsEnergyFrames.from_spec_frames(spec_frames)
 
@@ -609,7 +737,9 @@ class VoiceExtractor:
         ]
         requirements_types = [type(r) for r in requirements]
 
-        extracted_features = VoiceFeatures(frame=frame.tolist(), time=time.tolist())
+        extracted_features = VoiceFeatures(
+            frame=frame.tolist(), time=time.tolist()
+        )
         extracted_features.add_attributes(self.features.keys())
 
         for key, feat in self.features.items():
@@ -634,8 +764,12 @@ def cli():
     parser.add_argument("-f", "--filepath", type=str, required=True)
     parser.add_argument("-o", "--outdir", type=str, required=True)
     parser.add_argument("-t", "--time-step", type=float, dest="time_step")
-    parser.add_argument("--skip-frames", type=int, default=1, dest="skip_frames")
-    parser.add_argument("--config-filepath", type=optional_str, default=None, dest="config")
+    parser.add_argument(
+        "--skip-frames", type=int, default=1, dest="skip_frames"
+    )
+    parser.add_argument(
+        "--config-filepath", type=optional_str, default=None, dest="config"
+    )
 
     args = parser.parse_args().__dict__
 
@@ -647,7 +781,9 @@ def cli():
     extractor = VoiceExtractor(config=config)
 
     output = extractor.apply(
-        args["filepath"], time_step=args["time_step"], skip_frames=args["skip_frames"]
+        args["filepath"],
+        time_step=args["time_step"],
+        skip_frames=args["skip_frames"],
     )
 
     output.write_json(

@@ -15,15 +15,16 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 import sphinx
-if sphinx.__version__ == '5.1.0':
+
+if sphinx.__version__ == "5.1.0":
     # see https://github.com/sphinx-doc/sphinx/issues/10701
     # hope is it would get fixed for the next release
 
     # Although crash happens within NumpyDocstring, it is subclass of GoogleDocstring
     # so we need to overload method there
-    from sphinx.ext.napoleon.docstring import GoogleDocstring
     from functools import wraps
 
+    from sphinx.ext.napoleon.docstring import GoogleDocstring
 
     @wraps(GoogleDocstring._consume_inline_attribute)
     def _consume_inline_attribute_safe(self):
@@ -35,9 +36,9 @@ if sphinx.__version__ == '5.1.0':
     GoogleDocstring._consume_inline_attribute = _consume_inline_attribute_safe
 # -- Project information -----------------------------------------------------
 
-project = u"mexca"
-copyright = u"2023, Netherlands eScience Center and Hot Politics Lab, University of Amsterdam"
-author = u"Malte Lüken and Eva Viviani"
+project = "mexca"
+copyright = "2023, Netherlands eScience Center and Hot Politics Lab, University of Amsterdam"
+author = "Malte Lüken and Eva Viviani"
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -80,8 +81,14 @@ todo_include_todos = False
 
 # -- Use autoapi.extension to run sphinx-apidoc -------
 
-autoapi_dirs = ['../mexca']
-autoapi_options = [ 'members', 'show-inheritance', 'show-module-summary', 'special-members', 'imported-members', ]
+autoapi_dirs = ["../mexca"]
+autoapi_options = [
+    "members",
+    "show-inheritance",
+    "show-module-summary",
+    "special-members",
+    "imported-members",
+]
 
 # -- Options for HTML output ----------------------------------------------
 
@@ -98,14 +105,15 @@ html_theme = "sphinx_rtd_theme"
 
 # -- Options for Intersphinx
 
-intersphinx_mapping = {'python': ('https://docs.python.org/3', None),
-                       # Commonly used libraries, uncomment when used in package
-                       'librosa': ('https://librosa.org/doc/', None),
-                       'numpy': ('http://docs.scipy.org/doc/numpy/', None),
-                       'scipy': ('http://docs.scipy.org/doc/scipy/reference/', None),
-                       'pyannote.core': ('https://pyannote.github.io/pyannote-core/', None),
-                       'torch': ('https://pytorch.org/docs/stable/', None)
-                       # 'scikit-learn': ('https://scikit-learn.org/stable/', None),
-                       # 'matplotlib': ('https://matplotlib.org/stable/', None),
-                       # 'pandas': ('http://pandas.pydata.org/docs/', None),
-                       }
+intersphinx_mapping = {
+    "python": ("https://docs.python.org/3", None),
+    # Commonly used libraries, uncomment when used in package
+    "librosa": ("https://librosa.org/doc/", None),
+    "numpy": ("http://docs.scipy.org/doc/numpy/", None),
+    "scipy": ("http://docs.scipy.org/doc/scipy/reference/", None),
+    "pyannote.core": ("https://pyannote.github.io/pyannote-core/", None),
+    "torch": ("https://pytorch.org/docs/stable/", None)
+    # 'scikit-learn': ('https://scikit-learn.org/stable/', None),
+    # 'matplotlib': ('https://matplotlib.org/stable/', None),
+    # 'pandas': ('http://pandas.pydata.org/docs/', None),
+}

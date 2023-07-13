@@ -3,9 +3,15 @@
 
 import numpy as np
 import pandas as pd
-from mexca.data import (AudioTranscription, Multimodal, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation,
-                        VoiceFeatures)
 
+from mexca.data import (
+    AudioTranscription,
+    Multimodal,
+    SentimentAnnotation,
+    SpeakerAnnotation,
+    VideoAnnotation,
+    VoiceFeatures,
+)
 
 # Adapted from whisper.utils
 # See: https://github.com/openai/whisper/blob/28769fcfe50755a817ab922a7bc83483159600a9/whisper/utils.py
@@ -55,7 +61,9 @@ def _validate_face_features(multimodal: Multimodal):
     assert multimodal.features.face_confidence.dtype == "float64"
 
     assert all(len(bbox) == 4 for bbox in multimodal.features.face_box.dropna())
-    assert all(len(lmks) == 5 for lmks in multimodal.features.face_landmarks.dropna())
+    assert all(
+        len(lmks) == 5 for lmks in multimodal.features.face_landmarks.dropna()
+    )
     assert all(len(aus) == 41 for aus in multimodal.features.face_aus.dropna())
 
     assert (
@@ -115,7 +123,10 @@ def _validate_speech_segments(multimodal: Multimodal):
 
 
 def _validate_voice_feature(
-    feat: pd.Series, ref_feat: np.ndarray, d_type: str = "float64", is_pos: bool = False
+    feat: pd.Series,
+    ref_feat: np.ndarray,
+    d_type: str = "float64",
+    is_pos: bool = False,
 ):
     assert feat.dtype == d_type
     assert len(feat.dropna()) > 0
@@ -229,5 +240,11 @@ def _validate_multimodal(
 
     assert isinstance(output.features, pd.DataFrame)
 
-    assert output.features.frame.le(125).all() and output.features.frame.ge(0).all()
-    assert output.features.time.le(5.0).all() and output.features.time.ge(0.0).all()
+    assert (
+        output.features.frame.le(125).all()
+        and output.features.frame.ge(0).all()
+    )
+    assert (
+        output.features.time.le(5.0).all()
+        and output.features.time.ge(0.0).all()
+    )

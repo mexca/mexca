@@ -13,10 +13,12 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 
 import math
 from typing import Tuple
+
 import numpy as np
 import torch
 from torch import nn
 from torch.autograd import Variable
+
 from mexca.video.helper_classes import AUPredictor, LinearBlock
 
 
@@ -35,6 +37,7 @@ class CrossAttention(nn.Module):
     Linear layer weights are initialized with :math:`N(0, \\sqrt{\\frac{2}{out\\_features}})`.
 
     """
+
     def __init__(self, in_features: int):
         super().__init__()
         self.in_features = in_features
@@ -49,8 +52,12 @@ class CrossAttention(nn.Module):
         self.attention = nn.Softmax(dim=-1)
 
         # Param init
-        self.linear_k.weight.data.normal_(0, math.sqrt(2.0 / (in_features // 2)))
-        self.linear_q.weight.data.normal_(0, math.sqrt(2.0 / (in_features // 2)))
+        self.linear_k.weight.data.normal_(
+            0, math.sqrt(2.0 / (in_features // 2))
+        )
+        self.linear_q.weight.data.normal_(
+            0, math.sqrt(2.0 / (in_features // 2))
+        )
         self.linear_v.weight.data.normal_(0, math.sqrt(2.0 / in_features))
 
     def forward(self, y: torch.Tensor, x: torch.Tensor) -> torch.Tensor:
@@ -84,6 +91,7 @@ class GraphEdgeModel(nn.Module):
     Batch norm weights are initialized as 1 and biases as 0.
 
     """
+
     def __init__(self, in_features: int, n_nodes: int):
         super().__init__()
         self.in_features = in_features
@@ -97,12 +105,13 @@ class GraphEdgeModel(nn.Module):
         self.bn = nn.BatchNorm2d(self.n_nodes * self.n_nodes)
 
         # Param init
-        self.edge_proj.weight.data.normal_(0, math.sqrt(2. / self.in_features))
+        self.edge_proj.weight.data.normal_(0, math.sqrt(2.0 / self.in_features))
         self.bn.weight.data.fill_(1)
         self.bn.bias.data.zero_()
 
-
-    def forward(self, node_feature: torch.Tensor, global_feature: torch.Tensor) -> torch.Tensor:
+    def forward(
+        self, node_feature: torch.Tensor, global_feature: torch.Tensor
+    ) -> torch.Tensor:
         # Global feature: Face representation from backbone
         b, n, d, c = node_feature.shape
         global_feature = global_feature.repeat(1, n, 1).view(b, n, d, c)
@@ -136,7 +145,10 @@ class GatedGNNLayer(nn.Module):
     Batch norm weights are initialized as 1 and biases as 0.
 
     """
-    def __init__(self, in_features: int, n_nodes: int, dropout_rate: float = 0.1):
+
+    def __init__(
+        self, in_features: int, n_nodes: int, dropout_rate: float = 0.1
+    ):
         super().__init__()
         self.in_features = in_features
         self.n_nodes = n_nodes
@@ -164,7 +176,6 @@ class GatedGNNLayer(nn.Module):
         # Param init
         self._init_weights_linear(dim_in)
 
-
     def _init_weights_linear(self, dim_in: int, gain: float = 1.0):
         # conv1
         scale = gain * np.sqrt(2.0 / dim_in)
@@ -173,14 +184,19 @@ class GatedGNNLayer(nn.Module):
         self.linear_a.weight.data.normal_(0, scale)
         self.linear_b.weight.data.normal_(0, scale)
         self.linear_e.weight.data.normal_(0, scale)
-    
+
         self.bnv.weight.data.fill_(1)
         self.bnv.bias.data.zero_()
         self.bne.weight.data.fill_(1)
         self.bne.bias.data.zero_()
 
-
-    def forward(self, x: torch.Tensor, edge: torch.Tensor, start: torch.Tensor, end: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self,
+        x: torch.Tensor,
+        edge: torch.Tensor,
+        start: torch.Tensor,
+        end: torch.Tensor,
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         # Keep inputs
         res = x
         # Gating mechanism
@@ -188,19 +204,28 @@ class GatedGNNLayer(nn.Module):
         v_jx = self.linear_b(x)
         e = self.linear_e(edge)
 
-        edge = edge + self.act(self.bne(torch.einsum('ev, bvc -> bec', (end, v_ix)) + torch.einsum('ev, bvc -> bec',(start, v_jx)) + e))  # E x d_out
+        edge = edge + self.act(
+            self.bne(
+                torch.einsum("ev, bvc -> bec", (end, v_ix))
+                + torch.einsum("ev, bvc -> bec", (start, v_jx))
+                + e
+            )
+        )  # E x d_out
 
         e = self.sigmoid(edge)
         b, _, c = e.shape
-        e = e.view(b,self.n_nodes, self.n_nodes, c)
+        e = e.view(b, self.n_nodes, self.n_nodes, c)
         e = self.softmax(e)
         e = e.view(b, -1, c)
 
         # GNN convolution mechanism
         u_jx = self.linear_v(x)  # V x H_out
-        u_jx = torch.einsum('ev, bvc -> bec', (start, u_jx))  # E x H_out
+        u_jx = torch.einsum("ev, bvc -> bec", (start, u_jx))  # E x H_out
         u_ix = self.linear_u(x)  # V x H_out
-        x = u_ix + torch.einsum('ve, bec -> bvc', (end.t(), e * u_jx)) / self.n_nodes  # V x H_out
+        x = (
+            u_ix
+            + torch.einsum("ve, bec -> bvc", (end.t(), e * u_jx)) / self.n_nodes
+        )  # V x H_out
         x = res + self.act(self.bnv(x))
 
         return x, edge
@@ -223,22 +248,29 @@ class GatedGNN(nn.Module):
     Performs gated graph convolution according to Bresson and Laurent (2018, eq. 11) for multiple layers.
 
     """
+
     def __init__(self, in_features: int, n_nodes: int, n_layers: int = 2):
         super().__init__()
         self.in_features = in_features
         self.n_nodes = n_nodes
         # Init edge feature params
         start = torch.diagflat(torch.ones(self.n_nodes)).repeat(self.n_nodes, 1)
-        end = torch.diagflat(torch.ones(self.n_nodes)).repeat_interleave(self.n_nodes, dim = 0)
+        end = torch.diagflat(torch.ones(self.n_nodes)).repeat_interleave(
+            self.n_nodes, dim=0
+        )
         self.start = Variable(start, requires_grad=False)
         self.end = Variable(end, requires_grad=False)
         # Init gated GNN layers
-        graph_layers = [GatedGNNLayer(self.in_features, self.n_nodes) for _ in range(n_layers)]
+        graph_layers = [
+            GatedGNNLayer(self.in_features, self.n_nodes)
+            for _ in range(n_layers)
+        ]
 
         self.graph_layers = nn.ModuleList(graph_layers)
 
-
-    def forward(self, x: torch.Tensor, edge: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
+    def forward(
+        self, x: torch.Tensor, edge: torch.Tensor
+    ) -> Tuple[torch.Tensor, torch.Tensor]:
         dev = x.get_device()
         if dev >= 0:
             self.start = self.start.to(dev)
@@ -271,7 +303,10 @@ class MEFL(AUPredictor):
     SC layer weights are initialized using Glorot initialization (see :func:`torch.nn.init.xavier_uniform`).
 
     """
-    def __init__(self, in_features: int, n_main_nodes: int = 27, n_sub_nodes: int = 14):
+
+    def __init__(
+        self, in_features: int, n_main_nodes: int = 27, n_sub_nodes: int = 14
+    ):
         super().__init__(in_features, n_main_nodes, n_sub_nodes)
 
         # FC layers from AFG block
@@ -299,4 +334,3 @@ class MEFL(AUPredictor):
         f_v, f_e = self.gnn(f_v, f_e)
         # Predict action unit activations
         return super().forward(f_v)
-    

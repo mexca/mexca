@@ -14,12 +14,14 @@ import logging
 import math
 from copy import copy
 from typing import List, Optional, Tuple, Union
+
 import librosa
 import numpy as np
 from scipy.interpolate import interp1d
 from scipy.signal import find_peaks
 from scipy.signal.windows import get_window
 from sklearn.linear_model import LinearRegression
+
 from mexca.utils import ClassInitMessage
 
 
@@ -87,7 +89,9 @@ class AudioSignal(BaseSignal):
         self.logger.debug(ClassInitMessage())
 
     @classmethod
-    def from_file(cls, filename: str, sr: Optional[float] = None, mono: bool = True):
+    def from_file(
+        cls, filename: str, sr: Optional[float] = None, mono: bool = True
+    ):
         """Load a signal from an audio file.
 
         Parameters
@@ -123,12 +127,16 @@ class FormantAudioSignal(AudioSignal):
 
     @classmethod
     def from_audio_signal(
-        cls, audio_sig_obj: AudioSignal, preemphasis_from: Optional[float] = 50.0
+        cls,
+        audio_sig_obj: AudioSignal,
+        preemphasis_from: Optional[float] = 50.0,
     ):
         sig = audio_sig_obj.sig
 
         if preemphasis_from is not None:
-            pre_coef = cls._calc_preemphasis_coef(preemphasis_from, audio_sig_obj.sr)
+            pre_coef = cls._calc_preemphasis_coef(
+                preemphasis_from, audio_sig_obj.sr
+            )
             sig = librosa.effects.preemphasis(sig, coef=pre_coef)
 
         return cls(
@@ -355,7 +363,9 @@ class PitchFrames(BaseFrames):
                 pad_mode=pad_mode,
             )
         else:
-            raise NotImplementedError('Only the "pyin" method is currently available')
+            raise NotImplementedError(
+                'Only the "pyin" method is currently available'
+            )
 
         return cls(
             frames=pitch_f0,
@@ -412,7 +422,9 @@ class SpecFrames(BaseFrames):
     @property
     def freqs(self):
         if self._freqs is None:
-            self._freqs = librosa.fft_frequencies(sr=self.sr, n_fft=self.frame_len)
+            self._freqs = librosa.fft_frequencies(
+                sr=self.sr, n_fft=self.frame_len
+            )
         return self._freqs
 
     @classmethod
@@ -539,7 +551,8 @@ class FormantFrames(BaseFrames):
         idx_mid = 0.5 * (frame_len + 1)
         edge = np.exp(-12.0)
         return (
-            np.exp(-48.0 * (sample_idx - idx_mid) ** 2 / (frame_len) ** 2) - edge
+            np.exp(-48.0 * (sample_idx - idx_mid) ** 2 / (frame_len) ** 2)
+            - edge
         ) / (1.0 - edge)
 
     @classmethod
@@ -576,19 +589,24 @@ class FormantFrames(BaseFrames):
             pre_coef = math.exp(
                 -2 * math.pi * preemphasis_from * (1 / sig_frames_obj.sr)
             )
-            frames = librosa.effects.preemphasis(sig_frames_obj.frames, coef=pre_coef)
+            frames = librosa.effects.preemphasis(
+                sig_frames_obj.frames, coef=pre_coef
+            )
         if window is not None:
             if window == "praat_gaussian":
                 win = cls._praat_gauss_window(sig_frames_obj.frame_len)
             else:
-                win = get_window(window, sig_frames_obj.frame_len, fftbins=False)
+                win = get_window(
+                    window, sig_frames_obj.frame_len, fftbins=False
+                )
             frames = frames * win
 
         # Calc linear predictive coefficients
         coefs = librosa.lpc(frames, order=max_formants * 2)
         # Transform LPCs to formants
         formants = [
-            cls._calc_formants(coef, sig_frames_obj.sr, lower, upper) for coef in coefs
+            cls._calc_formants(coef, sig_frames_obj.sr, lower, upper)
+            for coef in coefs
         ]
 
         return cls(
@@ -624,7 +642,9 @@ class FormantFrames(BaseFrames):
         # Calc formant centre freq
         formant_freqs = ang_freq * nf_pi
         # Calc formant bandwidth
-        formant_bws = -np.log(np.apply_along_axis(complex_norm, 0, roots)) * nf_pi
+        formant_bws = (
+            -np.log(np.apply_along_axis(complex_norm, 0, roots)) * nf_pi
+        )
         # Select formants within boundaries
         in_bounds = np.logical_and(formant_freqs > lower, formant_freqs < upper)
         formants_sorted = sorted(
@@ -632,7 +652,9 @@ class FormantFrames(BaseFrames):
         )
         return formants_sorted
 
-    def select_formant_attr(self, formant_idx: int, attr_idx: int) -> np.ndarray:
+    def select_formant_attr(
+        self, formant_idx: int, attr_idx: int
+    ) -> np.ndarray:
         return np.array(
             [
                 f[formant_idx][attr_idx] if len(f) > formant_idx else np.nan
@@ -670,7 +692,9 @@ class PitchHarmonicsFrames(BaseFrames):
         pad_mode: str = "constant",
         n_harmonics: int = 100,
     ):
-        self.logger = logging.getLogger("mexca.audio.extraction.PitchHarmonicsFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.PitchHarmonicsFrames"
+        )
         self.n_harmonics = n_harmonics
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
@@ -746,7 +770,9 @@ class PitchHarmonicsFrames(BaseFrames):
         xfunc = np.vectorize(mag_interp_fun, signature="(f),(h)->(h)")
         harmonics_frames = xfunc(
             np.abs(spec_frames),
-            np.multiply.outer(f0_frames, np.arange(n_harmonics) + 1),  # Shift one up
+            np.multiply.outer(
+                f0_frames, np.arange(n_harmonics) + 1
+            ),  # Shift one up
         )
 
         return harmonics_frames
@@ -852,7 +878,9 @@ class FormantAmplitudeFrames(BaseFrames):
             harmonic_peaks_db = librosa.amplitude_to_db(harmonic_peaks)
 
             if rel_f0:
-                harmonic_peaks_db = harmonic_peaks_db - librosa.amplitude_to_db(f0_amp)
+                harmonic_peaks_db = harmonic_peaks_db - librosa.amplitude_to_db(
+                    f0_amp
+                )
 
             amp_frames.append(harmonic_peaks_db)
 
@@ -909,7 +937,9 @@ class PitchPulseFrames(BaseFrames):
         center: bool = True,
         pad_mode: str = "constant",
     ) -> None:
-        self.logger = logging.getLogger("mexca.audio.extraction.PitchPulseFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.PitchPulseFrames"
+        )
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
 
@@ -935,8 +965,13 @@ class PitchPulseFrames(BaseFrames):
         """
         # Access to padded signal required so we transform it here again! Could go into separate private method perhaps
         padding = [(0, 0) for _ in sig_obj.sig.shape]
-        padding[-1] = (pitch_frames_obj.frame_len // 2, pitch_frames_obj.frame_len // 2)
-        sig_padded = np.pad(sig_obj.sig, padding, mode=pitch_frames_obj.pad_mode)
+        padding[-1] = (
+            pitch_frames_obj.frame_len // 2,
+            pitch_frames_obj.frame_len // 2,
+        )
+        sig_padded = np.pad(
+            sig_obj.sig, padding, mode=pitch_frames_obj.pad_mode
+        )
         # Create ts for padded signal
         sig_padded_ts = librosa.samples_to_time(
             np.arange(sig_padded.shape[0]), sr=sig_obj.sr
@@ -1042,7 +1077,9 @@ class PitchPulseFrames(BaseFrames):
             start = new_ts_mid + 0.8 * new_t0_interp_mid
 
         # Find next pulse in new interval
-        return cls._get_next_pulse(sig, ts, t0_interp, start, stop, left, pulses)
+        return cls._get_next_pulse(
+            sig, ts, t0_interp, start, stop, left, pulses
+        )
 
     @classmethod
     def _detect_pulses_in_frame(
@@ -1075,10 +1112,14 @@ class PitchPulseFrames(BaseFrames):
         stop = ts_mid + t0_mid / 2
 
         # Get pulses to the left
-        cls._get_next_pulse(sig_frame, ts_sig_frame, t0, start, stop, True, pulses)
+        cls._get_next_pulse(
+            sig_frame, ts_sig_frame, t0, start, stop, True, pulses
+        )
 
         # Get pulses to the right
-        cls._get_next_pulse(sig_frame, ts_sig_frame, t0, start, stop, False, pulses)
+        cls._get_next_pulse(
+            sig_frame, ts_sig_frame, t0, start, stop, False, pulses
+        )
 
         return list(sorted(set(pulses)))
 
@@ -1095,7 +1136,9 @@ class PitchPeriodFrames(BaseFrames):
         lower: float,
         upper: float,
     ):
-        self.logger = logging.getLogger("mexca.audio.extraction.PitchPeriodFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.PitchPeriodFrames"
+        )
         self.lower = lower
         self.upper = upper
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
@@ -1164,7 +1207,9 @@ class JitterFrames(PitchPeriodFrames):
         self.logger = logging.getLogger("mexca.audio.extraction.JitterFrames")
         self.rel = rel
         self.max_period_ratio = max_period_ratio
-        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode, lower, upper)
+        super().__init__(
+            frames, sr, frame_len, hop_len, center, pad_mode, lower, upper
+        )
         self.logger.debug(ClassInitMessage())
 
     @classmethod
@@ -1193,7 +1238,9 @@ class JitterFrames(PitchPeriodFrames):
         """
         jitter_frames = np.array(
             [
-                cls._calc_jitter_frame(pulses, rel, lower, upper, max_period_ratio)
+                cls._calc_jitter_frame(
+                    pulses, rel, lower, upper, max_period_ratio
+                )
                 for pulses in pitch_pulse_frames_obj.frames
             ]
         )
@@ -1237,7 +1284,9 @@ class JitterFrames(PitchPeriodFrames):
             if len(period) > 1
         ]
 
-        if len(period_diff) == 0 or all(len(period) == 0 for period in period_diff):
+        if len(period_diff) == 0 or all(
+            len(period) == 0 for period in period_diff
+        ):
             return np.nan
 
         avg_period_diff = np.nanmean(
@@ -1246,7 +1295,9 @@ class JitterFrames(PitchPeriodFrames):
 
         if rel:  # Relative to mean period length
             avg_period_len = np.nanmean(
-                np.array([np.mean(period) for period in periods if len(period) > 1])
+                np.array(
+                    [np.mean(period) for period in periods if len(period) > 1]
+                )
             )
             return avg_period_diff / avg_period_len
 
@@ -1298,7 +1349,9 @@ class ShimmerFrames(PitchPeriodFrames):
         self.rel = rel
         self.max_period_ratio = max_period_ratio
         self.max_amp_factor = max_amp_factor
-        super().__init__(frames, sr, frame_len, hop_len, center, pad_mode, lower, upper)
+        super().__init__(
+            frames, sr, frame_len, hop_len, center, pad_mode, lower, upper
+        )
         self.logger.debug(ClassInitMessage())
 
     @classmethod
@@ -1479,7 +1532,11 @@ class HnrFrames(BaseFrames):
         """
         auto_cor = librosa.autocorrelate(sig_frames_obj.frames)
         harmonic_strength = np.apply_along_axis(
-            cls._find_max_peak, 1, auto_cor[:, 1:], sr=sig_frames_obj.sr, lower=lower
+            cls._find_max_peak,
+            1,
+            auto_cor[:, 1:],
+            sr=sig_frames_obj.sr,
+            lower=lower,
         )
         harmonic_comp = harmonic_strength / auto_cor[:, 0]
         hnr = harmonic_comp / (1 - harmonic_comp)
@@ -1551,7 +1608,9 @@ class AlphaRatioFrames(BaseFrames):
         lower_band: Tuple[float],
         upper_band: Tuple[float],
     ):
-        self.logger = logging.getLogger("mexca.audio.extraction.AlphaRatioFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.AlphaRatioFrames"
+        )
         self.lower_band = lower_band
         self.upper_band = upper_band
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
@@ -1646,7 +1705,9 @@ class HammarIndexFrames(BaseFrames):
         pivot_point: float,
         upper: float,
     ):
-        self.logger = logging.getLogger("mexca.audio.extraction.HammarIndexFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.HammarIndexFrames"
+        )
         self.pivot_point = pivot_point
         self.upper = upper
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
@@ -1682,7 +1743,8 @@ class HammarIndexFrames(BaseFrames):
         hammar_index_frames = np.zeros(lower_band.shape[0])
 
         upper_band_is_valid = np.logical_and(
-            np.any(np.isfinite(upper_band), axis=1), np.all(upper_band > 0, axis=1)
+            np.any(np.isfinite(upper_band), axis=1),
+            np.all(upper_band > 0, axis=1),
         )
 
         hammar_index_frames[~upper_band_is_valid] = np.nan
@@ -1731,7 +1793,9 @@ class SpectralSlopeFrames(BaseFrames):
         pad_mode: str,
         bands: Tuple[Tuple[float]],
     ):
-        self.logger = logging.getLogger("mexca.audio.extraction.HammarIndexFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.HammarIndexFrames"
+        )
         self.bands = bands
         super().__init__(frames, sr, frame_len, hop_len, center, pad_mode)
         self.logger.debug(ClassInitMessage())
@@ -1752,11 +1816,14 @@ class SpectralSlopeFrames(BaseFrames):
             Frequency bands in Hz for which slopes are estimated.
 
         """
-        spectral_slopes = np.zeros(shape=(spec_frames_obj.idx.shape[0], len(bands)))
+        spectral_slopes = np.zeros(
+            shape=(spec_frames_obj.idx.shape[0], len(bands))
+        )
 
         for i, band in enumerate(bands):
             band_freqs_mask = np.logical_and(
-                spec_frames_obj.freqs > band[0], spec_frames_obj.freqs <= band[1]
+                spec_frames_obj.freqs > band[0],
+                spec_frames_obj.freqs <= band[1],
             )
             band_power = np.abs(spec_frames_obj.frames[:, band_freqs_mask])
             band_freqs = spec_frames_obj.freqs[band_freqs_mask]
@@ -1778,13 +1845,17 @@ class SpectralSlopeFrames(BaseFrames):
     def _calc_spectral_slope(
         band_power: np.ndarray, band_freqs: np.ndarray
     ) -> np.ndarray:
-        band_power_is_valid = np.logical_and(np.isfinite(band_power), band_power > 0)
+        band_power_is_valid = np.logical_and(
+            np.isfinite(band_power), band_power > 0
+        )
 
         if np.all(~band_power_is_valid):
             return np.nan
 
         band_freqs_finite = band_freqs[band_power_is_valid]
-        band_power_finite_db = librosa.amplitude_to_db(band_power[band_power_is_valid])
+        band_power_finite_db = librosa.amplitude_to_db(
+            band_power[band_power_is_valid]
+        )
 
         linear_model = LinearRegression()
         linear_model.fit(band_freqs_finite.reshape(-1, 1), band_power_finite_db)
@@ -1828,7 +1899,9 @@ class MelSpecFrames(SpecFrames):
         self.n_mels = n_mels
         self.lower = lower
         self.upper = upper
-        super().__init__(frames, sr, window, frame_len, hop_len, center, pad_mode)
+        super().__init__(
+            frames, sr, window, frame_len, hop_len, center, pad_mode
+        )
         self.logger.debug(ClassInitMessage())
 
     @classmethod
@@ -1927,7 +2000,10 @@ class MfccFrames(MelSpecFrames):
 
     @classmethod
     def from_mel_spec_frames(
-        cls, mel_spec_frames_obj: MelSpecFrames, n_mfcc: int = 4, lifter: float = 22.0
+        cls,
+        mel_spec_frames_obj: MelSpecFrames,
+        n_mfcc: int = 4,
+        lifter: float = 22.0,
     ):
         """Estimate MFCCs from Mel spectogram frames.
 
@@ -1946,7 +2022,9 @@ class MfccFrames(MelSpecFrames):
 
         """
         mfcc_frames = librosa.feature.mfcc(
-            S=librosa.power_to_db(mel_spec_frames_obj.frames.T),  # dB on power spectrum
+            S=librosa.power_to_db(
+                mel_spec_frames_obj.frames.T
+            ),  # dB on power spectrum
             sr=mel_spec_frames_obj.sr,
             n_mfcc=n_mfcc,
             lifter=lifter,
@@ -2007,15 +2085,22 @@ class SpectralFluxFrames(SpecFrames):
         lower: float,
         upper: float,
     ) -> None:
-        self.logger = logging.getLogger("mexca.audio.extraction.SpectralFluxFrames")
+        self.logger = logging.getLogger(
+            "mexca.audio.extraction.SpectralFluxFrames"
+        )
         self.lower = lower
         self.upper = upper
-        super().__init__(frames, sr, window, frame_len, hop_len, center, pad_mode)
+        super().__init__(
+            frames, sr, window, frame_len, hop_len, center, pad_mode
+        )
         self.logger.debug(ClassInitMessage())
 
     @classmethod
     def from_spec_frames(
-        cls, spec_frames_obj: SpecFrames, lower: float = 0.0, upper: float = 5000.0
+        cls,
+        spec_frames_obj: SpecFrames,
+        lower: float = 0.0,
+        upper: float = 5000.0,
     ):
         """Calculate the spectral flux from spectrogram frames.
 
@@ -2034,7 +2119,9 @@ class SpectralFluxFrames(SpecFrames):
         )
         spec_mag = np.abs(spec_frames_obj.frames)
         spec_norm = np.sum(spec_mag, axis=1)
-        spec_diff = np.diff(spec_mag[:, spec_freq_mask] / spec_norm[:, None], axis=0)
+        spec_diff = np.diff(
+            spec_mag[:, spec_freq_mask] / spec_norm[:, None], axis=0
+        )
         spec_flux_frames = np.sum(spec_diff**2, axis=1)
 
         return cls(

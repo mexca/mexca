@@ -3,7 +3,8 @@
 
 import pytest
 import torch
-from mexca.video.anfl import ANFL, AUFeatureGenerator, FacialGraphGenerator, GNN
+
+from mexca.video.anfl import ANFL, GNN, AUFeatureGenerator, FacialGraphGenerator
 
 
 class TestGNN:
@@ -22,17 +23,14 @@ class TestGNN:
     @pytest.fixture
     def gnn(self):
         return GNN(self.in_features, self.n_nodes, self.n_neighbors)
-    
 
     def test_calc_adj_mat(self, gnn, inputs):
         adj_mat = gnn._calc_adj_mat(inputs, self.n_neighbors)
         assert adj_mat.shape == (1, self.n_nodes, self.n_nodes)
 
-
     def test_normalize_digraph(self, gnn, adj_mat):
         norm_adj_mat = gnn._normalize_digraph(adj_mat)
         assert norm_adj_mat.shape == adj_mat.shape
-
 
     def test_forward(self, gnn, inputs):
         with torch.no_grad():
@@ -47,11 +45,10 @@ class TestAUFeatureGenerator:
     @pytest.fixture
     def inputs(self):
         return torch.rand((1, 2, self.in_features))
-    
+
     @pytest.fixture
     def generator(self):
         return AUFeatureGenerator(self.in_features, self.out_features)
-    
 
     def test_forward(self, generator, inputs):
         with torch.no_grad():
@@ -68,11 +65,15 @@ class TestFacialGraphGenerator:
     @pytest.fixture
     def inputs(self):
         return torch.rand((1, self.n_main_nodes, self.in_features))
-    
+
     @pytest.fixture
     def generator(self):
-        return FacialGraphGenerator(self.in_features, self.n_main_nodes, self.n_sub_nodes, self.n_neighbors)
-    
+        return FacialGraphGenerator(
+            self.in_features,
+            self.n_main_nodes,
+            self.n_sub_nodes,
+            self.n_neighbors,
+        )
 
     def test_forward(self, generator, inputs):
         with torch.no_grad():
@@ -89,14 +90,17 @@ class TestANFL:
     @pytest.fixture
     def inputs(self):
         return torch.rand((1, 2, self.in_features))
-    
+
     @pytest.fixture
     def anfl(self):
-        return ANFL(self.in_features, self.n_main_nodes, self.n_sub_nodes, self.n_neighbors)
-    
+        return ANFL(
+            self.in_features,
+            self.n_main_nodes,
+            self.n_sub_nodes,
+            self.n_neighbors,
+        )
 
     def test_forward(self, anfl, inputs):
         with torch.no_grad():
             outputs = anfl.forward(inputs)
         assert outputs.shape == (1, self.n_main_nodes + self.n_sub_nodes)
-        

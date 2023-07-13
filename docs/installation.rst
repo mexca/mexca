@@ -84,7 +84,7 @@ Issues installing mexca for M1 Macbook users
 
 Many deep learning libraries that we import in mexca do not fully support the Apple M1 yet, which can lead to several issues when installing mexca. We provide few workarounds for the most common issues. They have been tested on Python 3.9.0 in a conda environment (last update 3/10/2022).
 
-Error n. 1: 
+Error n. 1:
 
 - OSError cannot load libsndfile.dylib (Github issue `#311 <https://github.com/bastibe/python-soundfile/pull/311>`_):
 
@@ -94,11 +94,11 @@ Error n. 1:
 
 To fix this:
 
-1. Make sure that you have installed libsndfile via brew, if not `install it <https://formulae.brew.sh/formula/libsndfile>`_. 
-2. Copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘ 
+1. Make sure that you have installed libsndfile via brew, if not `install it <https://formulae.brew.sh/formula/libsndfile>`_.
+2. Copy the libsndfile installed from Homebrew (/opt/homebrew/lib/_soundfile_data/libsndfile.dylib) into the expected folder ‘python3.9/site-packages/_soundfile_data/‘
 3. Restart the kernel.
 
-Error n. 2: 
+Error n. 2:
 
 - OSError cannot load libllvmlite.dylib (Github issue `#650 <https://github.com/numba/llvmlite/issues/650>`_):
 

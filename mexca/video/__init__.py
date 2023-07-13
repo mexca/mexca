@@ -3,7 +3,6 @@
 
 import importlib.util
 
-
 all = []
 
 if importlib.util.find_spec("facenet_pytorch") is not None:
