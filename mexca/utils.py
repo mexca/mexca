@@ -55,8 +55,8 @@ def _validate_face_features(multimodal: Multimodal):
     assert multimodal.features.face_confidence.dtype == "float64"
 
     assert all(len(bbox) == 4 for bbox in multimodal.features.face_box.dropna())
-    assert all(len(lmks) == 68 for lmks in multimodal.features.face_landmarks.dropna())
-    assert all(len(aus) == 20 for aus in multimodal.features.face_aus.dropna())
+    assert all(len(lmks) == 5 for lmks in multimodal.features.face_landmarks.dropna())
+    assert all(len(aus) == 41 for aus in multimodal.features.face_aus.dropna())
 
     assert (
         multimodal.features.face_box.isna()

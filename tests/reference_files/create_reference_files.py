@@ -17,26 +17,14 @@ video_filepath = os.path.join(
 )
 
 video_reference_path = os.path.join(
-    'tests', 'reference_files', 'face_features_video_audio_5_seconds.json'
+    'tests', 'reference_files', 'test_video_audio_5_seconds_video_annotation.json'
 )
 
-face_extractor_xgb_mobilefacenet = FaceExtractor(num_faces=4)
+face_extractor = FaceExtractor(num_faces=4)
 
-video_annotation_xgb_mobilefacenet = face_extractor_xgb_mobilefacenet.apply(video_filepath, batch_size=5, skip_frames=5)
+video_annotation = face_extractor.apply(video_filepath, batch_size=5, skip_frames=5)
 
-face_extractor_svm_mobilenet = FaceExtractor(num_faces=4, au_model='svm', landmark_model='mobilenet')
-
-video_annotation_svm_mobilenet = face_extractor_svm_mobilenet.apply(video_filepath, batch_size=5, skip_frames=5)
-
-face_extractor_xgb_pfld = FaceExtractor(num_faces=4, landmark_model='pfld')
-
-video_annotation_xgb_pfld = face_extractor_xgb_pfld.apply(video_filepath, batch_size=5, skip_frames=5)
-
-video_annotation_xgb_mobilefacenet.face_aus_svm = video_annotation_svm_mobilenet.face_aus
-video_annotation_xgb_mobilefacenet.face_landmarks_mobilenet = video_annotation_svm_mobilenet.face_landmarks
-video_annotation_xgb_mobilefacenet.face_landmarks_pfld = video_annotation_xgb_pfld.face_landmarks
-
-video_annotation_xgb_mobilefacenet.write_json(video_reference_path)
+video_annotation.write_json(video_reference_path)
 
 audio_filepath = os.path.join(
     'tests', 'test_files', 'test_video_audio_5_seconds.wav'
