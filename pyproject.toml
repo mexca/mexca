@@ -19,3 +19,8 @@ skip_missing_interpreters = true
 commands = pytest
 extras = dev
 """
+
+[tool.black]
+src = ["mexca", "tests"]
+line-length = 80
+target-version = ['py38']
