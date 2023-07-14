@@ -2,28 +2,29 @@
 """
 
 import librosa
-import pytest
 import numpy as np
+import pytest
+
 from mexca.audio.features import (
     AlphaRatioFrames,
     AudioSignal,
     BaseFrames,
     BaseSignal,
-    FormantFrames,
     FormantAmplitudeFrames,
+    FormantFrames,
     HammarIndexFrames,
+    HnrFrames,
+    JitterFrames,
     MelSpecFrames,
     MfccFrames,
     PitchFrames,
     PitchHarmonicsFrames,
     PitchPulseFrames,
-    SpectralFluxFrames,
-    SpecFrames,
-    SpectralSlopeFrames,
-    JitterFrames,
+    RmsEnergyFrames,
     ShimmerFrames,
-    HnrFrames,
-    RmsEnergyFrames
+    SpecFrames,
+    SpectralFluxFrames,
+    SpectralSlopeFrames,
 )
 
 
@@ -37,7 +38,9 @@ class TestBaseSignal:
 
     @pytest.fixture
     def sig_obj(self):
-        return BaseSignal(np.random.uniform(-1, 1, self.n_samples), self.n_samples)
+        return BaseSignal(
+            np.random.uniform(-1, 1, self.n_samples), self.n_samples
+        )
 
     def test_idx(self, sig_obj):
         idx = sig_obj.idx
@@ -74,14 +77,18 @@ class TestBaseFrames:
 
     def test_idx(self, sig_obj, frames_scope):
         idx = frames_scope.idx
-        assert np.all(idx == np.arange((sig_obj.sig.shape[0] + 1) // self.hop_len + 1))
+        assert np.all(
+            idx == np.arange((sig_obj.sig.shape[0] + 1) // self.hop_len + 1)
+        )
 
     def test_ts(self, frames_scope):
         ts = frames_scope.ts
         assert np.all(
             ts
             == librosa.frames_to_time(
-                frames_scope.idx, sr=frames_scope.sr, hop_length=frames_scope.hop_len
+                frames_scope.idx,
+                sr=frames_scope.sr,
+                hop_length=frames_scope.hop_len,
             )
         )
 
@@ -99,7 +106,11 @@ class TestPitchFrames(TestBaseFrames):
 
     def test_pitch_pyin(self, pitch_frames_obj):
         pitch_f0 = pitch_frames_obj.frames
-        assert pitch_f0.shape == pitch_frames_obj.ts.shape == pitch_frames_obj.idx.shape
+        assert (
+            pitch_f0.shape
+            == pitch_frames_obj.ts.shape
+            == pitch_frames_obj.idx.shape
+        )
         assert np.all(np.logical_or(pitch_f0 > 0, np.isnan(pitch_f0)))
 
 
@@ -116,7 +127,11 @@ class TestSpecFrames(TestBaseFrames):
 
     def test_spec(self, spec_frames_obj):
         spec = spec_frames_obj.frames
-        assert spec.shape[:1] == spec_frames_obj.ts.shape == spec_frames_obj.idx.shape
+        assert (
+            spec.shape[:1]
+            == spec_frames_obj.ts.shape
+            == spec_frames_obj.idx.shape
+        )
         assert np.all(
             np.iscomplex(spec[:, 1:-1])
         )  # First and last columns are not complex
@@ -189,7 +204,9 @@ class TestFormantAmplitudeFrames(TestFormantFrames, TestPitchHarmonicsFrames):
     def frames_scope(self, formant_amp_frames_obj):
         return formant_amp_frames_obj
 
-    def test_formant_amplitude(self, formant_amp_frames_obj, formant_frames_obj):
+    def test_formant_amplitude(
+        self, formant_amp_frames_obj, formant_frames_obj
+    ):
         amp = formant_amp_frames_obj.frames
         assert isinstance(amp, np.ndarray)
         assert (
@@ -203,7 +220,9 @@ class TestFormantAmplitudeFrames(TestFormantFrames, TestPitchHarmonicsFrames):
 class TestPitchPulseFrames(TestPitchFrames):
     @pytest.fixture
     def pulses_frames_obj(self, sig_obj, pitch_frames_obj):
-        return PitchPulseFrames.from_signal_and_pitch_frames(sig_obj, pitch_frames_obj)
+        return PitchPulseFrames.from_signal_and_pitch_frames(
+            sig_obj, pitch_frames_obj
+        )
 
     @pytest.fixture
     def frames_scope(self, pulses_frames_obj):
@@ -235,11 +254,20 @@ class TestPitchPulseFrames(TestPitchFrames):
         start = 0.5 - 0.0025
         stop = 0.5 + 0.0025
         pulses = []
-        pulses_frames_obj._get_next_pulse(frame, ts, t0, start, stop, True, pulses)
-        pulses_frames_obj._get_next_pulse(frame, ts, t0, start, stop, False, pulses)
+        pulses_frames_obj._get_next_pulse(
+            frame, ts, t0, start, stop, True, pulses
+        )
+        pulses_frames_obj._get_next_pulse(
+            frame, ts, t0, start, stop, False, pulses
+        )
         assert len(pulses) > 0
         assert np.all(
-            np.array([isinstance(puls, tuple) and puls[0] >= 0 and puls[1] >= 0 for puls in pulses])
+            np.array(
+                [
+                    isinstance(puls, tuple) and puls[0] >= 0 and puls[1] >= 0
+                    for puls in pulses
+                ]
+            )
         )
 
 
@@ -254,7 +282,11 @@ class TestJitterFrames(TestPitchPulseFrames):
 
     def test_jitter(self, jitter_frames_obj):
         jitter = jitter_frames_obj.frames
-        assert jitter.shape == jitter_frames_obj.ts.shape == jitter_frames_obj.idx.shape
+        assert (
+            jitter.shape
+            == jitter_frames_obj.ts.shape
+            == jitter_frames_obj.idx.shape
+        )
         assert np.all(np.logical_or(jitter > 0, np.isnan(jitter)))
 
     def test_calc_jitter_frame(self, pulses_frames_obj, jitter_frames_obj):
@@ -281,7 +313,9 @@ class TestShimmerFrames(TestPitchPulseFrames):
     def test_shimmer(self, shimmer_frames_obj):
         shimmer = shimmer_frames_obj.frames
         assert (
-            shimmer.shape == shimmer_frames_obj.ts.shape == shimmer_frames_obj.idx.shape
+            shimmer.shape
+            == shimmer_frames_obj.ts.shape
+            == shimmer_frames_obj.idx.shape
         )
         assert np.all(np.logical_or(shimmer > 0, np.isnan(shimmer)))
 
@@ -301,7 +335,9 @@ class TestShimmerFrames(TestPitchPulseFrames):
         _, mask = shimmer_frames_obj._calc_period_length(
             pulses_frames_obj.frames[1], 0.0001, 0.02
         )
-        amps = shimmer_frames_obj._get_amplitude(pulses_frames_obj.frames[1], mask)
+        amps = shimmer_frames_obj._get_amplitude(
+            pulses_frames_obj.frames[1], mask
+        )
         assert isinstance(amps, list)
 
 
@@ -309,29 +345,40 @@ class TestHnrFrames(TestBaseFrames):
     @pytest.fixture
     def hnr_frames_obj(self, sig_frames_obj):
         return HnrFrames.from_frames(sig_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, hnr_frames_obj):
         return hnr_frames_obj
-    
 
     def test_hnr(self, hnr_frames_obj):
         hnr = hnr_frames_obj.frames
         assert hnr.shape == hnr_frames_obj.ts.shape == hnr_frames_obj.idx.shape
         assert np.all(np.logical_or(10 ** (hnr / 10) > 0, np.isnan(hnr)))
 
-
     def test_find_max_peak(self, hnr_frames_obj):
-        sig = (1 + 0.3 * np.sin(2 * np.pi * 140 * np.linspace(0, 1, self.frame_len)))
+        sig = 1 + 0.3 * np.sin(
+            2 * np.pi * 140 * np.linspace(0, 1, self.frame_len)
+        )
         autocor = librosa.autocorrelate(sig)
-        max_peak = hnr_frames_obj._find_max_peak(autocor, hnr_frames_obj.sr, hnr_frames_obj.lower)
-        assert max_peak == autocor[(1 / np.arange(autocor.shape[0]) * hnr_frames_obj.sr) < hnr_frames_obj.sr / 2].max()
-
+        max_peak = hnr_frames_obj._find_max_peak(
+            autocor, hnr_frames_obj.sr, hnr_frames_obj.lower
+        )
+        assert (
+            max_peak
+            == autocor[
+                (1 / np.arange(autocor.shape[0]) * hnr_frames_obj.sr)
+                < hnr_frames_obj.sr / 2
+            ].max()
+        )
 
     def test_find_max_peak_all_below_threshold(self, hnr_frames_obj):
-        sig = (1 + 0.3 * np.sin(2 * np.pi * 0 * np.linspace(0, 1, self.frame_len)))
+        sig = 1 + 0.3 * np.sin(
+            2 * np.pi * 0 * np.linspace(0, 1, self.frame_len)
+        )
         autocor = librosa.autocorrelate(sig)
-        max_peak = hnr_frames_obj._find_max_peak(autocor, hnr_frames_obj.sr, hnr_frames_obj.lower)
+        max_peak = hnr_frames_obj._find_max_peak(
+            autocor, hnr_frames_obj.sr, hnr_frames_obj.lower
+        )
         assert np.isnan(max_peak)
 
 
@@ -339,63 +386,78 @@ class TestAlphaRatioFrames(TestSpecFrames):
     @pytest.fixture
     def alpha_ratio_frames_obj(self, spec_frames_obj):
         return AlphaRatioFrames.from_spec_frames(spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, alpha_ratio_frames_obj):
         return alpha_ratio_frames_obj
-    
 
     def test_alpha_ratio(self, alpha_ratio_frames_obj):
         alpha_ratio = alpha_ratio_frames_obj.frames
-        assert alpha_ratio.shape == alpha_ratio_frames_obj.ts.shape == alpha_ratio_frames_obj.idx.shape
-        assert np.all(np.logical_or(10 ** (alpha_ratio / 10) > 0, np.isnan(alpha_ratio)))
+        assert (
+            alpha_ratio.shape
+            == alpha_ratio_frames_obj.ts.shape
+            == alpha_ratio_frames_obj.idx.shape
+        )
+        assert np.all(
+            np.logical_or(10 ** (alpha_ratio / 10) > 0, np.isnan(alpha_ratio))
+        )
 
 
 class TestHammarIndexFrames(TestSpecFrames):
     @pytest.fixture
     def hammar_index_frames_obj(self, spec_frames_obj):
         return HammarIndexFrames.from_spec_frames(spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, hammar_index_frames_obj):
         return hammar_index_frames_obj
-    
 
     def test_hammar_index(self, hammar_index_frames_obj):
         hammar_index = hammar_index_frames_obj.frames
-        assert hammar_index.shape == hammar_index_frames_obj.ts.shape == hammar_index_frames_obj.idx.shape
-        assert np.all(np.logical_or(10 ** (hammar_index / 10) > 0, np.isnan(hammar_index)))
+        assert (
+            hammar_index.shape
+            == hammar_index_frames_obj.ts.shape
+            == hammar_index_frames_obj.idx.shape
+        )
+        assert np.all(
+            np.logical_or(10 ** (hammar_index / 10) > 0, np.isnan(hammar_index))
+        )
 
 
 class TestSpectralSlopeFrames(TestSpecFrames):
     @pytest.fixture
     def spectral_slope_frames_obj(self, spec_frames_obj):
         return SpectralSlopeFrames.from_spec_frames(spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, spectral_slope_frames_obj):
         return spectral_slope_frames_obj
-    
 
     def test_spectral_slope(self, spectral_slope_frames_obj):
         spectral_slope = spectral_slope_frames_obj.frames
-        assert spectral_slope.shape[:1] == spectral_slope_frames_obj.ts.shape == spectral_slope_frames_obj.idx.shape
-    
+        assert (
+            spectral_slope.shape[:1]
+            == spectral_slope_frames_obj.ts.shape
+            == spectral_slope_frames_obj.idx.shape
+        )
 
     def test_calc_spectral_slope(self, spectral_slope_frames_obj):
         n = 512
         band_power = np.random.uniform(0, 1, n)
         band_freqs = np.random.uniform(0, 8000, n)
-        coefs = spectral_slope_frames_obj._calc_spectral_slope(band_power, band_freqs)
+        coefs = spectral_slope_frames_obj._calc_spectral_slope(
+            band_power, band_freqs
+        )
         assert coefs.shape == (1,)
-
 
     def test_calc_spectral_slope_nan(self, spectral_slope_frames_obj):
         n = 512
         band_power = np.random.uniform(0, 1, n)
         band_freqs = np.random.uniform(0, 8000, n)
         band_power[1:3] = np.nan
-        coefs = spectral_slope_frames_obj._calc_spectral_slope(band_power, band_freqs)
+        coefs = spectral_slope_frames_obj._calc_spectral_slope(
+            band_power, band_freqs
+        )
         assert coefs.shape == (1,)
 
 
@@ -403,15 +465,18 @@ class TestMelSpecFrames(TestSpecFrames):
     @pytest.fixture
     def mel_spec_frames_obj(self, spec_frames_obj):
         return MelSpecFrames.from_spec_frames(spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, mel_spec_frames_obj):
         return mel_spec_frames_obj
-    
 
     def test_spectral_slope(self, mel_spec_frames_obj):
         mel_spec = mel_spec_frames_obj.frames
-        assert mel_spec.shape[:1] == mel_spec_frames_obj.ts.shape == mel_spec_frames_obj.idx.shape
+        assert (
+            mel_spec.shape[:1]
+            == mel_spec_frames_obj.ts.shape
+            == mel_spec_frames_obj.idx.shape
+        )
         assert mel_spec.shape[1] == mel_spec_frames_obj.n_mels
 
 
@@ -419,15 +484,18 @@ class TestMfccFrames(TestMelSpecFrames):
     @pytest.fixture
     def mfcc_frames_obj(self, mel_spec_frames_obj):
         return MfccFrames.from_mel_spec_frames(mel_spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, mfcc_frames_obj):
         return mfcc_frames_obj
-    
 
     def test_mfcc(self, mfcc_frames_obj):
         mfcc = mfcc_frames_obj.frames
-        assert mfcc.shape[:1] == mfcc_frames_obj.ts.shape == mfcc_frames_obj.idx.shape
+        assert (
+            mfcc.shape[:1]
+            == mfcc_frames_obj.ts.shape
+            == mfcc_frames_obj.idx.shape
+        )
         assert mfcc.shape[1] == mfcc_frames_obj.n_mfcc
 
 
@@ -435,21 +503,25 @@ class TestSpectralFluxFrames(TestSpecFrames):
     @pytest.fixture
     def spectral_flux_frames_obj(self, spec_frames_obj):
         return SpectralFluxFrames.from_spec_frames(spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, spectral_flux_frames_obj):
         return spectral_flux_frames_obj
-    
 
     def test_idx(self, sig_obj, frames_scope):
         idx = frames_scope.idx
-        assert np.all(idx == np.arange((sig_obj.sig.shape[0] + 1) // self.hop_len))
-
+        assert np.all(
+            idx == np.arange((sig_obj.sig.shape[0] + 1) // self.hop_len)
+        )
 
     def test_spectral_flux(self, spectral_flux_frames_obj):
         spectral_flux = spectral_flux_frames_obj.frames
 
-        assert spectral_flux.shape == spectral_flux_frames_obj.ts.shape == spectral_flux_frames_obj.idx.shape
+        assert (
+            spectral_flux.shape
+            == spectral_flux_frames_obj.ts.shape
+            == spectral_flux_frames_obj.idx.shape
+        )
         assert np.all(spectral_flux > 0)
 
 
@@ -457,14 +529,17 @@ class TestRmsEnergyFrames(TestSpecFrames):
     @pytest.fixture
     def rms_energy_frames_obj(self, spec_frames_obj):
         return RmsEnergyFrames.from_spec_frames(spec_frames_obj)
-    
+
     @pytest.fixture
     def frames_scope(self, rms_energy_frames_obj):
         return rms_energy_frames_obj
-        
 
     def test_rms_energy(self, rms_energy_frames_obj):
         rms_energy = rms_energy_frames_obj.frames
-        
-        assert rms_energy.shape == rms_energy_frames_obj.ts.shape == rms_energy_frames_obj.idx.shape
+
+        assert (
+            rms_energy.shape
+            == rms_energy_frames_obj.ts.shape
+            == rms_energy_frames_obj.idx.shape
+        )
         assert np.all(10 ** (rms_energy / 10.0) > 0)

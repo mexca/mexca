@@ -13,6 +13,7 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 
 import math
 from typing import Optional
+
 import torch
 import torch.nn.functional as F
 from torch import nn
@@ -44,7 +45,10 @@ class LinearBlock(nn.Module):
     """
 
     def __init__(
-        self, in_features: int, out_features: Optional[int] = None, drop: float = 0.0
+        self,
+        in_features: int,
+        out_features: Optional[int] = None,
+        drop: float = 0.0,
     ):
         super().__init__()
         out_features = out_features or in_features
@@ -67,12 +71,10 @@ class LinearBlock(nn.Module):
 
 class AUPredictor(nn.Module):
     """Meta class for predicting action unit (AU) activations"""
+
     def __init__(
-            self,
-            in_features: int,
-            n_main_nodes: int = 27,
-            n_sub_nodes: int = 14
-        ):
+        self, in_features: int, n_main_nodes: int = 27, n_sub_nodes: int = 14
+    ):
         super().__init__()
         self.in_features = in_features
         self.n_main_nodes = n_main_nodes
@@ -95,8 +97,8 @@ class AUPredictor(nn.Module):
         nn.init.xavier_uniform_(self.main_sc)
         nn.init.xavier_uniform_(self.sub_sc)
 
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor: #pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         b, n, c = x.shape
 
         # eq. 2

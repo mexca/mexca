@@ -14,8 +14,10 @@ Code adapted from the `OpenGraphAU <https://github.com/lingjivoo/OpenGraphAU/tre
 # pylint: disable=invalid-name
 
 import math
+
 import torch
 from torch import nn
+
 from mexca.video.helper_classes import AUPredictor, LinearBlock
 
 
@@ -69,7 +71,9 @@ class GNN(nn.Module):
         # Calc dot product
         sim = torch.einsum("b i j, b j k -> b i k", sim, sim.transpose(1, 2))
         # Get top k similar nodes
-        threshold = sim.topk(k=k, dim=-1, largest=True)[0][:, :, -1].view(b, n, 1)
+        threshold = sim.topk(k=k, dim=-1, largest=True)[0][:, :, -1].view(
+            b, n, 1
+        )
         adj_mat = (sim >= threshold).float()
         return adj_mat
 
@@ -85,8 +89,12 @@ class GNN(nn.Module):
         if dev >= 0:
             norm_degs_matrix = norm_degs_matrix.to(dev)
 
-        norm_degs_matrix = norm_degs_matrix.view(1, n, n) * degs_inv_sqrt.view(b, n, 1)
-        norm_adj_mat = torch.bmm(torch.bmm(norm_degs_matrix, adj_mat), norm_degs_matrix)
+        norm_degs_matrix = norm_degs_matrix.view(1, n, n) * degs_inv_sqrt.view(
+            b, n, 1
+        )
+        norm_adj_mat = torch.bmm(
+            torch.bmm(norm_degs_matrix, adj_mat), norm_degs_matrix
+        )
 
         return norm_adj_mat
 
@@ -96,7 +104,9 @@ class GNN(nn.Module):
         # Calc connectivity matrix
         con_mat = self._normalize_digraph(adj_mat)
         # eq. 1
-        aggregate = torch.einsum("b i j, b j k -> b i k", con_mat, self.linear_v(x))
+        aggregate = torch.einsum(
+            "b i j, b j k -> b i k", con_mat, self.linear_v(x)
+        )
         x = self.relu(x + self.bnv(aggregate + self.linear_u(x)))
         return x
 
@@ -177,7 +187,9 @@ class FacialGraphGenerator(AUPredictor):
         super().__init__(in_features, n_main_nodes, n_sub_nodes)
 
         # Layers
-        self.gnn = GNN(self.in_features, self.n_main_nodes, n_neighbors=n_neighbors)
+        self.gnn = GNN(
+            self.in_features, self.n_main_nodes, n_neighbors=n_neighbors
+        )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         f_v = self.gnn(x)

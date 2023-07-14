@@ -5,7 +5,9 @@ import argparse
 import logging
 import os
 from typing import Optional, Union
+
 from pyannote.audio import Pipeline
+
 from mexca.data import SpeakerAnnotation
 from mexca.utils import ClassInitMessage, bool_or_str, optional_int
 
@@ -52,7 +54,9 @@ class SpeakerIdentifier:
         num_speakers: Optional[int] = None,
         use_auth_token: Union[bool, str] = True,
     ):
-        self.logger = logging.getLogger("mexca.audio.identification.SpeakerIdentifier")
+        self.logger = logging.getLogger(
+            "mexca.audio.identification.SpeakerIdentifier"
+        )
         self.num_speakers = num_speakers
         self.use_auth_token = use_auth_token
         # Lazy initialization
@@ -68,7 +72,8 @@ class SpeakerIdentifier:
         if not self._pipeline:
             try:
                 self._pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization", use_auth_token=self.use_auth_token
+                    "pyannote/speaker-diarization",
+                    use_auth_token=self.use_auth_token,
                 )
 
             except EnvironmentError as exc:
@@ -137,7 +142,10 @@ def cli():
         "--num-speakers", type=optional_int, default=None, dest="num_speakers"
     )
     parser.add_argument(
-        "--use-auth-token", type=bool_or_str, default=True, dest="use_auth_token"
+        "--use-auth-token",
+        type=bool_or_str,
+        default=True,
+        dest="use_auth_token",
     )
 
     args = parser.parse_args().__dict__

@@ -35,6 +35,7 @@ The sections below outline the steps in each case.
 1. add your own tests (if necessary);
 1. update or expand the documentation;
 1. update the `CHANGELOG.md` file with change;
+1. make sure your changes adhere to the style requirements by running ``pre-commit install``. If you commit changes, ``pre-commit`` first checks if the style is correct and corrects it otherwise;
 1. push your feature branch to (your fork of) the mexca repository on GitHub;
 1. create the pull request, e.g. following the instructions [here](https://help.github.com/articles/creating-a-pull-request/).
 

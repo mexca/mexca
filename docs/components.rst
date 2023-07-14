@@ -28,7 +28,7 @@ This component takes an audio file as input and applies three steps using the sp
 VoiceExtractor
 --------------
 
-This component takes the audio file as input and extracts voice features using `librosa <https://librosa.org/doc/latest/index.html>`_ [5]_. 
+This component takes the audio file as input and extracts voice features using `librosa <https://librosa.org/doc/latest/index.html>`_ [5]_.
 For the default set of voice features that are extracted, see the :ref:`output <voice_features_output>` section.
 
 

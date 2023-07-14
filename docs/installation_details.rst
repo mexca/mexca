@@ -63,11 +63,11 @@ Installation
 
 Before installing mexca, make sure, all other :ref:`Requirements` are installed.
 
-After creating and activating the virtual environment, run ``pip install mexca`` in the Terminal to install the mexca base package from PyPI. 
+After creating and activating the virtual environment, run ``pip install mexca`` in the Terminal to install the mexca base package from PyPI.
 This will only install the dependencies of the base package. The pipeline components can still be run as Docker containers.
 
 .. note::
-    
+
     This setup requires that Docker is installed on your system.
 
 To run the components without containers, their additional dependencies must be installed via:

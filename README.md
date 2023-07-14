@@ -13,6 +13,7 @@
 [![DOI](https://zenodo.org/badge/500818250.svg)](https://zenodo.org/badge/latestdoi/500818250)
 [![docker hub badge](https://img.shields.io/static/v1?label=Docker%20Hub&message=mexca&color=blue&style=flat&logo=docker)](https://hub.docker.com/u/mexca)
 [![docker build badge](https://img.shields.io/github/actions/workflow/status/mexca/mexca/docker.yml?label=Docker%20build&logo=docker)](https://github.com/mexca/mexca/actions/workflows/docker.yml)
+[![black code style badge](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 <div align="center">
 <img src="mexca_logo.png">
@@ -22,10 +23,10 @@ mexca is an open-source Python package which aims to capture human emotion expre
 
 ## How To Use Mexca
 
-mexca implements the customizable yet easy-to-use Multimodal Emotion eXpression Capture Amsterdam (MEXCA) pipeline for extracting emotion expression features from videos. 
-It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and dialogue/spoken text). 
-The blocks can also be integrated into a single pipeline to extract the features from all modalities at once. 
-Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations. 
+mexca implements the customizable yet easy-to-use Multimodal Emotion eXpression Capture Amsterdam (MEXCA) pipeline for extracting emotion expression features from videos.
+It contains building blocks that can be used to extract features for individual modalities (i.e., facial expressions, voice, and dialogue/spoken text).
+The blocks can also be integrated into a single pipeline to extract the features from all modalities at once.
+Next to extracting features, mexca can also identify the speakers shown in the video by clustering speaker and face representations.
 This allows users to compare emotion expressions across speakers, time, and contexts.
 
 Please cite mexca if you use it for scientific or commercial purposes.
@@ -46,8 +47,8 @@ quickly try out the package. Using the containers also adds stability to your pr
 
 ### Requirements
 
-mexca requires Python version >= 3.7 and <= 3.9. It further depends on [FFmpeg](https://ffmpeg.org/) (for video and audio processing), 
-which is usually automatically installed through the MoviePy package (i.e., its imageio dependency). In case the automatic install fails, 
+mexca requires Python version >= 3.7 and <= 3.9. It further depends on [FFmpeg](https://ffmpeg.org/) (for video and audio processing),
+which is usually automatically installed through the MoviePy package (i.e., its imageio dependency). In case the automatic install fails,
 it must be installed manually.
 
 To download and run the components as Docker containers, Docker must be installed on your system. Instructions on how to install
@@ -104,9 +105,13 @@ If you would like to learn how to use mexca, take a look at our [example](https:
 To create and apply the MEXCA pipeline with container components to a video file run the following code in a Jupyter notebook or a Python script (requires the base package and Docker):
 
 ```python
-from mexca.container import (AudioTranscriberContainer, FaceExtractorContainer,
-                             SentimentExtractorContainer, SpeakerIdentifierContainer, 
-                             VoiceExtractorContainer)
+from mexca.container import (
+    AudioTranscriberContainer,
+    FaceExtractorContainer,
+    SentimentExtractorContainer,
+    SpeakerIdentifierContainer,
+    VoiceExtractorContainer,
+)
 from mexca.pipeline import Pipeline
 
 # Set path to video file

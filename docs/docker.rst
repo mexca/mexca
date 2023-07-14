@@ -41,11 +41,11 @@ mexca runs the containerized components automatically via the `docker <https://d
 
 Each container has an entrypoint which is a Python CLI and explained in the :ref:`Command Line` section.
 
-*Explanation of the command*: 
+*Explanation of the command*:
 
 - The `-t` flag indicates that a specific tag of the Docker image should be run.
-- With the `-v` flag, a folder from the host system is mounted onto the container. Here, the absolute path to the folder that should be mounted must be supplied as well as the destination folder in the container (here `/mnt/vol`). 
-  This allows the container to access the video file to which the pipeline will be applied to and write the output on the host system. 
+- With the `-v` flag, a folder from the host system is mounted onto the container. Here, the absolute path to the folder that should be mounted must be supplied as well as the destination folder in the container (here `/mnt/vol`).
+  This allows the container to access the video file to which the pipeline will be applied to and write the output on the host system.
 - This is followed by the name of the image and the tag (e.g., `mexca/face-extractor:latest`).
 - Append the arguments for the container entrypoint CLI at last (e.g., a file name).
 

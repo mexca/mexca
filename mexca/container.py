@@ -3,12 +3,20 @@
 
 import os
 from typing import List, Optional, Tuple, Union
+
 import docker
 from docker.errors import DockerException
 from docker.types import Mount
+
 from mexca import __version__ as VERSION
-from mexca.data import (AudioTranscription, SentimentAnnotation, SpeakerAnnotation, VideoAnnotation, VoiceFeatures,
-                        VoiceFeaturesConfig)
+from mexca.data import (
+    AudioTranscription,
+    SentimentAnnotation,
+    SpeakerAnnotation,
+    VideoAnnotation,
+    VoiceFeatures,
+    VoiceFeaturesConfig,
+)
 
 
 class BaseContainer:
@@ -21,8 +29,8 @@ class BaseContainer:
         This is mainly useful for debugging.
 
     """
-    mounts: Optional[None] = None
 
+    mounts: Optional[None] = None
 
     def __init__(self, image_name: str, get_latest_tag: bool = False):
         if get_latest_tag:
@@ -51,7 +59,9 @@ class BaseContainer:
 
     @staticmethod
     def _create_out_path_stem(filepath: str, outdir: str):
-        return os.path.join(outdir, os.path.splitext(os.path.basename(filepath))[0])
+        return os.path.join(
+            outdir, os.path.splitext(os.path.basename(filepath))[0]
+        )
 
     @staticmethod
     def _create_base_cmd(filepath: str) -> List[str]:
@@ -85,7 +95,7 @@ class FaceExtractorContainer(BaseContainer):
 
     """
 
-    def __init__( #pylint: disable=too-many-arguments,too-many-locals
+    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
         self,
         num_faces: Optional[int],
         min_face_size: int = 20,
@@ -246,7 +256,10 @@ class VoiceExtractorContainer(BaseContainer):
     """
 
     def __init__(
-        self, config: Optional[VoiceFeaturesConfig] = None, image_name: str = "mexca/voice-extractor", get_latest_tag: bool = False
+        self,
+        config: Optional[VoiceFeaturesConfig] = None,
+        image_name: str = "mexca/voice-extractor",
+        get_latest_tag: bool = False,
     ):
         self.config = config
         super().__init__(image_name=image_name, get_latest_tag=get_latest_tag)
@@ -256,13 +269,21 @@ class VoiceExtractorContainer(BaseContainer):
     ) -> VoiceFeatures:
         outdir = self._create_mounts(filepath=filepath)
 
-        cmd_args = ["--time-step", str(time_step), "--skip-frames", str(skip_frames)]
+        cmd_args = [
+            "--time-step",
+            str(time_step),
+            "--skip-frames",
+            str(skip_frames),
+        ]
 
         if self.config is not None:
-            config_path = self._create_out_path_stem(filepath=filepath, outdir=outdir) + "voice_features_config.yml"
+            config_path = (
+                self._create_out_path_stem(filepath=filepath, outdir=outdir)
+                + "voice_features_config.yml"
+            )
             self.config.write_yaml(config_path)
             cmd_args.extend(["--config-filepath", config_path])
-        
+
         cmd = self._create_base_cmd(filepath=filepath)
 
         self._run_container(cmd + cmd_args)

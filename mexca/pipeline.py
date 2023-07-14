@@ -5,7 +5,9 @@ import logging
 import logging.config
 import os
 from typing import Optional, Tuple, Union
+
 from moviepy.editor import VideoFileClip
+
 from mexca.data import Multimodal
 from mexca.utils import ClassInitMessage
 
@@ -84,14 +86,26 @@ class Pipeline:
     ... )
 
     """
-    def __init__(self,
-        face_extractor: Optional[Union['FaceExtractor', 'FaceExtractorContainer']] = None,
-        speaker_identifier: Optional[Union['SpeakerIdentifier', 'SpeakerIdentifierContainer']] = None,
-        voice_extractor: Optional[Union['VoiceExtractor', 'VoiceExtractorContainer']] = None,
-        audio_transcriber: Optional[Union['AudioTranscriber', 'AudioTranscriberContainer']] = None,
-        sentiment_extractor: Optional[Union['SentimentExtractor', 'SentimentExtractorContainer']] = None
+
+    def __init__(
+        self,
+        face_extractor: Optional[
+            Union["FaceExtractor", "FaceExtractorContainer"]
+        ] = None,
+        speaker_identifier: Optional[
+            Union["SpeakerIdentifier", "SpeakerIdentifierContainer"]
+        ] = None,
+        voice_extractor: Optional[
+            Union["VoiceExtractor", "VoiceExtractorContainer"]
+        ] = None,
+        audio_transcriber: Optional[
+            Union["AudioTranscriber", "AudioTranscriberContainer"]
+        ] = None,
+        sentiment_extractor: Optional[
+            Union["SentimentExtractor", "SentimentExtractorContainer"]
+        ] = None,
     ):
-        self.logger = logging.getLogger('mexca.pipeline.Pipeline')
+        self.logger = logging.getLogger("mexca.pipeline.Pipeline")
         self.face_extractor = face_extractor
         self.speaker_identifier = speaker_identifier
         self.voice_extractor = voice_extractor
@@ -99,16 +113,17 @@ class Pipeline:
         self.sentiment_extractor = sentiment_extractor
         self.logger.debug(ClassInitMessage())
 
-
-    def apply(self, # pylint: disable=too-many-locals
+    # pylint: disable=too-many-locals
+    def apply(
+        self,
         filepath: str,
         frame_batch_size: int = 1,
         skip_frames: int = 1,
         process_subclip: Tuple[Optional[float]] = (0, None),
         language: Optional[str] = None,
         keep_audiofile: bool = False,
-        show_progress: bool = True
-    ) -> 'Multimodal':
+        show_progress: bool = True,
+    ) -> "Multimodal":
         """
         Extract emotion expression features from a video file.
 
@@ -155,71 +170,73 @@ class Pipeline:
         """
         if show_progress:
             logging.getLogger(__name__).setLevel(logging.INFO)
-            
 
-        self.logger.info('Starting MEXCA pipeline')
+        self.logger.info("Starting MEXCA pipeline")
         output = Multimodal(filename=filepath)
 
         with VideoFileClip(filepath) as clip:
-            audio_path = os.path.splitext(filepath)[0] + '.wav'
-            subclip = clip.subclip(
-                process_subclip[0],
-                process_subclip[1]
+            audio_path = os.path.splitext(filepath)[0] + ".wav"
+            subclip = clip.subclip(process_subclip[0], process_subclip[1])
+            self.logger.debug(
+                "Reading video file from %s to %s", subclip.start, subclip.end
             )
-            self.logger.debug('Reading video file from %s to %s', subclip.start, subclip.end)
             output.duration = subclip.duration
             output.fps = subclip.fps
             output.fps_adjusted = subclip.fps / skip_frames
             time_step = 1 / (subclip.fps / skip_frames)
 
             if self.speaker_identifier or self.voice_extractor:
-                self.logger.debug('Writing audio file')
-                subclip.audio.write_audiofile(audio_path, logger=None, fps=16000, ffmpeg_params=["-ac", "1"])
-                self.logger.info('Wrote audio file to %s', audio_path)
+                self.logger.debug("Writing audio file")
+                subclip.audio.write_audiofile(
+                    audio_path,
+                    logger=None,
+                    fps=16000,
+                    ffmpeg_params=["-ac", "1"],
+                )
+                self.logger.info("Wrote audio file to %s", audio_path)
 
         if self.face_extractor:
-            self.logger.info('Processing video frames')
+            self.logger.info("Processing video frames")
             video_annotation = self.face_extractor.apply(
                 filepath,
                 batch_size=frame_batch_size,
                 skip_frames=skip_frames,
                 process_subclip=process_subclip,
-                show_progress=show_progress
+                show_progress=show_progress,
             )
             output.video_annotation = video_annotation
 
         if self.speaker_identifier:
-            self.logger.info('Identifying speakers')
+            self.logger.info("Identifying speakers")
             audio_annotation = self.speaker_identifier.apply(audio_path)
 
             output.audio_annotation = audio_annotation
 
             if self.audio_transcriber:
-                self.logger.info('Transcribing speech segments to text')
+                self.logger.info("Transcribing speech segments to text")
                 transcription = self.audio_transcriber.apply(
                     audio_path,
                     audio_annotation,
                     language=language,
-                    show_progress=show_progress
+                    show_progress=show_progress,
                 )
 
                 output.transcription = transcription
 
                 if self.sentiment_extractor:
-                    self.logger.info('Extracting sentiment from transcribed text')
+                    self.logger.info(
+                        "Extracting sentiment from transcribed text"
+                    )
                     sentiment = self.sentiment_extractor.apply(
-                        transcription=transcription,
-                        show_progress=show_progress
+                        transcription=transcription, show_progress=show_progress
                     )
 
                     output.sentiment = sentiment
 
         if self.voice_extractor:
-            self.logger.info('Extracting voice features')
+            self.logger.info("Extracting voice features")
             voice_features = self.voice_extractor.apply(
-                audio_path,
-                time_step=time_step,
-                skip_frames=skip_frames
+                audio_path, time_step=time_step, skip_frames=skip_frames
             )
 
             output.voice_features = voice_features
@@ -227,8 +244,8 @@ class Pipeline:
         output.merge_features()
 
         if not keep_audiofile and os.path.exists(audio_path):
-            self.logger.info('Removing audio file at %s', audio_path)
+            self.logger.info("Removing audio file at %s", audio_path)
             os.remove(audio_path)
 
-        self.logger.info('MEXCA pipeline finished')
+        self.logger.info("MEXCA pipeline finished")
         return output
