@@ -4,6 +4,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0-beta] - 2023-07-17
+
+Replaces the methods for predicting facial landmarks and action unit activations. Landmarks are now predicted by facenet-pytorch and action units by the MEFARG model instead of py-feat.
+
+### Added
+
+- The `FaceExtractor` component computes average face embeddings via the `compute_avg_embeddings()` method
+- The `VideoAnnotation` data class has an additional field `face_average_embeddings`, containing the average face representations for each detected face cluster
+- The `AudioTranscriber` component returns the confidence of the transcription (average over each word sequence)
+- The `TranscriptionData` data class has an additional field `confidence` for the transcription confidence
+- `ruamel.yaml` is added as an explicit dependency for the SpeakerIdentifier component
+- `gdown` is added as a dependency for the FaceExtractor component
+- Package code adheres to black code style
+- Adds pre-commit configuration (enable with `pre-commit install`) in `.pre-commit-config.yaml`
+- Adds `black` and `pre-commit` to .\[dev\] requirements
+
+### Changed
+
+- The `mexca.video` module is split into several submodules: `extraction`, `mefl`, `anfl`, `mefarg`, and `helper_classes`
+- Facial landmarks are predicted by `facenet_pytorch.MTCNN` instead of `feat.detector.Detector`
+- Facial action units are predicted by `mexca.video.mefarg.MEFARG` instead of `feat.detector.Detector`
+- Word-level timestamps are obtained from the native `whisper` package instead of `stable-ts`
+
+### Removed
+
+- `py-feat` is removed from the dependencies of the FaceExtractor component
+- `stable-ts` is removed from the dependencies of the AudioTranscriber component
+
+
 ## [0.4.0-beta] - 2023-04-26
 
 Adds voice features, improves the documentation, and updates the example notebooks. Enables GPU support for all pipeline components.
@@ -52,7 +81,7 @@ Improves the audio transcription and sentiment extraction workflows. Refactors t
     - `AudioSignal`, `BaseSignal` for loading and storing signals in the `mexca.audio.features` module
     - `BaseFrames`, `FormantFrames`, `FormantAmplitudeFrames`, `HnrFrames`, `JitterFrames`, `PitchFrames`, `PitchHarmonicsFrames`, `PitchPeriodFrames`, `PitchPulseFrames`, `ShimmerFrames`, `SpecFrames` for computing and storing formant features, glottal pulse features, and pitch features in the `mexca.audio.features` module
     - `BaseFeature`, `FeaturePitchF0`, `FeatureJitter`, `FeatureShimmer`, `FeatureHnr`, `FeatureFormantFreq`, `FeatureFormantBandwidth`, `FeatureFormantAmplitude` for extracting and interpolating voice features in the `mexca.audio.extraction` module
-- An `all` extra requirements group which installs the requirements for all of mexca's components (i.e., `pip install mexca[all]`, #64) 
+- An `all` extra requirements group which installs the requirements for all of mexca's components (i.e., `pip install mexca[all]`, #64)
 
 ### Changed
 
