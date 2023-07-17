@@ -95,7 +95,7 @@ class FaceExtractorContainer(BaseContainer):
 
     """
 
-    def __init__(  # pylint: disable=too-many-arguments,too-many-locals
+    def __init__(  # pylint: disable=too-many-arguments
         self,
         num_faces: Optional[int],
         min_face_size: int = 20,
@@ -108,8 +108,6 @@ class FaceExtractorContainer(BaseContainer):
         device: Optional["torch.device"] = "cpu",
         max_cluster_frames: Optional[int] = None,
         embeddings_model: str = "vggface2",
-        au_model: str = "xgb",
-        landmark_model: str = "mobilefacenet",
         image_name: str = "mexca/face-extractor",
         get_latest_tag: bool = False,
     ):
@@ -124,8 +122,6 @@ class FaceExtractorContainer(BaseContainer):
         self.device = device
         self.max_cluster_frames = max_cluster_frames
         self.embeddings_model = embeddings_model
-        self.au_model = au_model
-        self.landmark_model = landmark_model
 
         super().__init__(image_name=image_name, get_latest_tag=get_latest_tag)
 
@@ -171,10 +167,6 @@ class FaceExtractorContainer(BaseContainer):
             self.max_cluster_frames,
             "--embeddings-model",
             self.embeddings_model,
-            "--au-model",
-            self.au_model,
-            "--landmark-model",
-            self.landmark_model,
         ]
 
         # Convert cli args to string (otherwise docker entrypoint can't read them)
