@@ -11,6 +11,7 @@ the feature objects.
 import argparse
 import logging
 import os
+from abc import ABC, abstractmethod
 from typing import Dict, Optional, Union
 
 import numpy as np
@@ -40,16 +41,18 @@ from mexca.data import VoiceFeatures, VoiceFeaturesConfig
 from mexca.utils import ClassInitMessage, optional_str
 
 
-class BaseFeature:
-    """Base class for features.
+class BaseFeature(ABC):
+    """Abstract base class for features.
 
     Can be used to create custom voice feature extraction classes.
     """
 
+    @property
+    @abstractmethod
     def requires(self) -> Optional[Dict[str, type]]:
         """Specify objects required for feature extraction.
 
-        This method can be overwritten to return a dictionary with keys as the names of objects
+        This abstract method must be overwritten to return a dictionary with keys as the names of objects
         required for computing features and values the types of these objects. The :class:`VoiceExtractor`
         object will look for objects with the specified types and add them as attributes to the feature
         class with the names of the dictionary keys.
@@ -67,6 +70,7 @@ class BaseFeature:
     ) -> np.ndarray:
         return interp1d(ts, feature, kind="linear", bounds_error=False)
 
+    @abstractmethod
     def apply(self, time: np.ndarray) -> np.ndarray:
         """Extract features at time points by linear interpolation.
 
@@ -89,6 +93,7 @@ class FeaturePitchF0(BaseFeature):
 
     pitch_frames: Optional[PitchFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, PitchFrames]]:
         """Specify objects required for feature extraction.
 
@@ -111,6 +116,7 @@ class FeatureJitter(BaseFeature):
 
     jitter_frames: Optional[JitterFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, JitterFrames]]:
         """Specify objects required for feature extraction.
 
@@ -133,6 +139,7 @@ class FeatureShimmer(BaseFeature):
 
     shimmer_frames: Optional[ShimmerFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, ShimmerFrames]]:
         """Specify objects required for feature extraction.
 
@@ -155,6 +162,7 @@ class FeatureHnr(BaseFeature):
 
     hnr_frames: Optional[HnrFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, HnrFrames]]:
         """Specify objects required for feature extraction.
 
@@ -187,6 +195,7 @@ class FeatureFormantFreq(BaseFeature):
     def __init__(self, n_formant: int):
         self.n_formant = n_formant
 
+    @property
     def requires(self) -> Optional[Dict[str, FormantFrames]]:
         """Specify objects required for feature extraction.
 
@@ -239,6 +248,7 @@ class FeatureFormantAmplitude(BaseFeature):
     def __init__(self, n_formant: int):
         self.n_formant = n_formant
 
+    @property
     def requires(self) -> Optional[Dict[str, FormantAmplitudeFrames]]:
         """Specify objects required for feature extraction.
 
@@ -262,6 +272,7 @@ class FeatureAlphaRatio(BaseFeature):
 
     alpha_ratio_frames: Optional[AlphaRatioFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, AlphaRatioFrames]]:
         """Specify objects required for feature extraction.
 
@@ -284,6 +295,7 @@ class FeatureHammarIndex(BaseFeature):
 
     hammar_index_frames: Optional[HammarIndexFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, HammarIndexFrames]]:
         """Specify objects required for feature extraction.
 
@@ -318,6 +330,7 @@ class FeatureSpectralSlope(BaseFeature):
         self.lower = lower
         self.upper = upper
 
+    @property
     def requires(self) -> Optional[Dict[str, type]]:
         """Specify objects required for feature extraction.
 
@@ -371,6 +384,7 @@ class FeatureHarmonicDifference(BaseFeature):
         self.y_idx = y_idx
         self.y_type = y_type
 
+    @property
     def requires(
         self,
     ) -> Optional[
@@ -437,6 +451,7 @@ class FeatureMfcc(BaseFeature):
     def __init__(self, n_mfcc: int = 0) -> None:
         self.n_mfcc = n_mfcc
 
+    @property
     def requires(self) -> Optional[Dict[str, MfccFrames]]:
         """Specify objects required for feature extraction.
 
@@ -459,6 +474,7 @@ class FeatureSpectralFlux(BaseFeature):
 
     spec_flux_frames: Optional[SpectralFluxFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, SpectralFluxFrames]]:
         """Specify objects required for feature extraction.
 
@@ -481,6 +497,7 @@ class FeatureRmsEnergy(BaseFeature):
 
     rms_frames: Optional[RmsEnergyFrames] = None
 
+    @property
     def requires(self) -> Optional[Dict[str, type]]:
         """Specify objects required for feature extraction.
 
@@ -742,7 +759,7 @@ class VoiceExtractor:
         extracted_features.add_attributes(self.features.keys())
 
         for key, feat in self.features.items():
-            for attr, req in feat.requires().items():
+            for attr, req in feat.requires.items():
                 idx = requirements_types.index(req)
                 setattr(feat, attr, requirements[idx])
 
