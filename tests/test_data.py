@@ -19,6 +19,7 @@ from mexca.data import (
     TranscriptionData,
     VideoAnnotation,
     VoiceFeatures,
+    VoiceFeaturesConfig,
     _get_rttm_header,
 )
 from mexca.utils import _validate_multimodal
@@ -34,6 +35,25 @@ class TestVideoAnnotation:
         assert isinstance(annotation, VideoAnnotation)
         assert annotation.frame == [0, 1, 2]
         os.remove(filename)
+
+
+class TestVoiceFeaturesConfig:
+    filename = "test.yaml"
+
+    @pytest.fixture
+    def config(self):
+        return VoiceFeaturesConfig()
+
+    def test_write_read(self, config):
+        config.write_yaml(self.filename)
+
+        assert os.path.exists(self.filename)
+
+        new_config = config.from_yaml(self.filename)
+
+        assert isinstance(new_config, VoiceFeaturesConfig)
+
+        os.remove(self.filename)
 
 
 class TestVoiceFeatures:

@@ -7,6 +7,7 @@ import numpy as np
 import pytest
 
 from mexca.audio.extraction import (
+    BaseFeature,
     FeaturePitchF0,
     VoiceExtractor,
     VoiceFeaturesConfig,
@@ -14,24 +15,10 @@ from mexca.audio.extraction import (
 from mexca.data import VoiceFeatures
 
 
-@pytest.fixture
-def config():
-    return VoiceFeaturesConfig()
-
-
-class TestVoiceFeaturesConfig:
-    filename = "test.yaml"
-
-    def test_write_read(self, config):
-        config.write_yaml(self.filename)
-
-        assert os.path.exists(self.filename)
-
-        new_config = config.from_yaml(self.filename)
-
-        assert isinstance(new_config, VoiceFeaturesConfig)
-
-        os.remove(self.filename)
+class TestBaseFeature:
+    def test_abstract_methods(self):
+        with pytest.raises(TypeError):
+            _ = BaseFeature()
 
 
 class TestVoiceExtractor:
@@ -41,8 +28,16 @@ class TestVoiceExtractor:
     )
 
     @pytest.fixture
+    def config(self):
+        return VoiceFeaturesConfig()
+
+    @pytest.fixture
     def voice_extractor(self):
         return VoiceExtractor()
+
+    @pytest.fixture
+    def voice_extractor_config(self, config):
+        return VoiceExtractor(config=config)
 
     def test_feature_dict(self):
         with pytest.raises(TypeError):
@@ -51,6 +46,15 @@ class TestVoiceExtractor:
 
     def test_apply(self, voice_extractor):
         features = voice_extractor.apply(self.filepath, self.time_step)
+        assert isinstance(features, VoiceFeatures)
+        assert np.issubdtype(np.array(features.frame).dtype, np.int_)
+        assert np.all(np.array(features.frame) >= 0) and np.all(
+            np.array(features.frame) <= 125
+        )
+        assert len(features.frame) == len(features.pitch_f0_hz)
+
+    def test_apply_config(self, voice_extractor_config):
+        features = voice_extractor_config.apply(self.filepath, self.time_step)
         assert isinstance(features, VoiceFeatures)
         assert np.issubdtype(np.array(features.frame).dtype, np.int_)
         assert np.all(np.array(features.frame) >= 0) and np.all(
