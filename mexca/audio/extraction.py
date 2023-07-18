@@ -14,29 +14,28 @@ import os
 from typing import Dict, Optional, Union
 
 import numpy as np
-from scipy.interpolate import interp1d
-
-from mexca.audio.features import (
-    AlphaRatioFrames,
-    AudioSignal,
-    BaseFrames,
-    FormantAmplitudeFrames,
-    FormantAudioSignal,
-    FormantFrames,
-    HammarIndexFrames,
-    HnrFrames,
+from emvoice.energy import HnrFrames, RmsEnergyFrames
+from emvoice.formants import FormantAmplitudeFrames, FormantFrames
+from emvoice.frames import BaseFrames
+from emvoice.pitch import (
     JitterFrames,
-    MelSpecFrames,
-    MfccFrames,
     PitchFrames,
     PitchHarmonicsFrames,
     PitchPulseFrames,
-    RmsEnergyFrames,
     ShimmerFrames,
+)
+from emvoice.signal import AudioSignal, FormantAudioSignal
+from emvoice.spectral import (
+    AlphaRatioFrames,
+    HammarIndexFrames,
+    MelSpecFrames,
+    MfccFrames,
     SpecFrames,
     SpectralFluxFrames,
     SpectralSlopeFrames,
 )
+from scipy.interpolate import interp1d
+
 from mexca.data import VoiceFeatures, VoiceFeaturesConfig
 from mexca.utils import ClassInitMessage, optional_str
 
