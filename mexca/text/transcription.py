@@ -242,7 +242,7 @@ class AudioTranscriber:
 
                     idx += sent_len + 1
 
-        del self._transcriber
+        del self.transcriber
 
         return transcription
 

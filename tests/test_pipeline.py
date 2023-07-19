@@ -17,6 +17,10 @@ class TestPipeline:
     filepath = os.path.join(
         "tests", "test_files", "test_video_audio_5_seconds.mp4"
     )
+    filepath_list = [
+        filepath,
+        os.path.join("tests", "test_files", "test_video_audio_5_seconds_2.mp4"),
+    ]
 
     @pytest.fixture
     def full_pipeline(self, num_faces=2, num_speakers=2):
@@ -93,6 +97,44 @@ class TestPipeline:
             check_transcription=check_darwin,
             check_sentiment=check_darwin,
         )  # Currently fails only on macOS for unknown reason
+
+    def test_full_pipeline_filepath_list(self, full_pipeline):
+        result = full_pipeline.apply(
+            self.filepath_list,
+            frame_batch_size=5,
+            skip_frames=5,
+            keep_audiofile=True,  # Otherwise test audio file is removed
+        )
+
+        check_darwin = platform.system() != "Darwin"
+
+        assert isinstance(result, list)
+
+        for r in result:
+            _validate_multimodal(
+                r,
+                check_transcription=check_darwin,
+                check_sentiment=check_darwin,
+            )  # Currently fails only on macOS for unknown reason
+
+    def test_full_pipeline_file_not_found(self, full_pipeline):
+        not_a_file_path = os.path.join("not", "a", "file")
+
+        with pytest.raises(FileNotFoundError):
+            _ = full_pipeline.apply(
+                not_a_file_path,
+                frame_batch_size=5,
+                skip_frames=5,
+                keep_audiofile=True,  # Otherwise test audio file is removed
+            )
+
+        with pytest.raises(FileNotFoundError):
+            _ = full_pipeline.apply(
+                [not_a_file_path, self.filepath],
+                frame_batch_size=5,
+                skip_frames=5,
+                keep_audiofile=True,  # Otherwise test audio file is removed
+            )
 
     def test_face_extractor_pipeline(self, face_extractor_pipeline):
         result = face_extractor_pipeline.apply(

@@ -4,6 +4,7 @@
 import logging
 import logging.config
 import os
+from collections.abc import Iterable
 from typing import Optional, Tuple, Union
 
 from moviepy.editor import VideoFileClip
@@ -116,14 +117,14 @@ class Pipeline:
     # pylint: disable=too-many-locals
     def apply(
         self,
-        filepath: str,
+        filepath: Union[str, Iterable],
         frame_batch_size: int = 1,
         skip_frames: int = 1,
         process_subclip: Tuple[Optional[float]] = (0, None),
         language: Optional[str] = None,
         keep_audiofile: bool = False,
         show_progress: bool = True,
-    ) -> "Multimodal":
+    ) -> Union["Multimodal", Iterable]:
         """
         Extract emotion expression features from a video file.
 
@@ -131,8 +132,8 @@ class Pipeline:
 
         Parameters
         ----------
-        filepath: str
-            Path to the video file.
+        filepath: str or collections.abc.Iterable
+            Path to the video file or iterable returning paths to multiple video files.
         frame_batch_size: int, default=1
             Size of the batch of video frames that are loaded and processed at the same time.
         skip_frames: int, default=1
@@ -151,9 +152,11 @@ class Pipeline:
 
         Returns
         -------
-        Multimodal
+        Multimodal or collections.abc.Iterable
             A data class object that contains the extracted merged features in the `features` attribute.
             See the `Output <https://mexca.readthedocs.io/en/latest/output.html>`_ section for details.
+            If `filepath` is an :class:`collections.abc.Iterable` returns an :class:`collections.abc.Iterable`
+            of :class:`mexca.data.Multimodal` objects.
 
         See Also
         --------
@@ -162,14 +165,65 @@ class Pipeline:
         Examples
         --------
         >>> import pandas as pd
+        >>> from mexca.data import Multimodal
+        >>> # Single video file
         >>> filepath = 'path/to/video'
         >>> output = pipeline.apply(filepath)
+        >>> assert isinstance(output, Multimodal)
+        True
         >>> assert isinstance(output.features, pd.DataFrame)
+        True
+        >>> # List of video files
+        >>> filepaths = ['path/to/video', 'path/to/another/video']
+        >>> output = pipeline.apply(filepaths)
+        >>> assert isinstance(output, list)
+        True
+        >>> assert [isinstance(r, Multimodal) for r in output]
         True
 
         """
+
+        if isinstance(filepath, str) and os.path.exists(filepath):
+            return self._apply(
+                filepath,
+                frame_batch_size,
+                skip_frames,
+                process_subclip,
+                language,
+                keep_audiofile,
+                show_progress,
+            )
+        if isinstance(filepath, Iterable):
+            if all(os.path.exists(f) for f in filepath):
+                return [
+                    self._apply(
+                        f,
+                        frame_batch_size,
+                        skip_frames,
+                        process_subclip,
+                        language,
+                        keep_audiofile,
+                        show_progress,
+                    )
+                    for f in filepath
+                ]
+        raise FileNotFoundError(
+            """Argument 'filepath' must be a path to an existing file or an
+            iterable returning paths to existing files"""
+        )
+
+    def _apply(
+        self,
+        filepath: os.PathLike,
+        frame_batch_size: int = 1,
+        skip_frames: int = 1,
+        process_subclip: Tuple[Optional[float]] = (0, None),
+        language: Optional[str] = None,
+        keep_audiofile: bool = False,
+        show_progress: bool = True,
+    ) -> "Multimodal":
         if show_progress:
-            logging.getLogger(__name__).setLevel(logging.INFO)
+            logging.getLogger(f"{__name__}:{filepath}").setLevel(logging.INFO)
 
         self.logger.info("Starting MEXCA pipeline")
         output = Multimodal(filename=filepath)
