@@ -789,7 +789,7 @@ def cli():
 
     args = parser.parse_args().__dict__
 
-    if "config" in args:
+    if isinstance(args["config"], str) and os.path.exists(args["config"]):
         config = VoiceFeaturesConfig.from_yaml(args["config"])
     else:
         config = VoiceFeaturesConfig()
