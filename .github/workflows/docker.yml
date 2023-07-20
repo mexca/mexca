@@ -15,82 +15,59 @@ jobs:
   build:
     name: Build Docker containers
     runs-on: ubuntu-latest
-    # strategy:
-    #   matrix:
-    #     component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
-    env:
-      version: v0.5.0
+    strategy:
+      matrix:
+        component: ["face-extractor", "speaker-identifier", "voice-extractor", "audio-transcriber", "sentiment-extractor"]
     steps:
-      - name: Checkout
+      -
+        name: Checkout
         uses: actions/checkout@v3
-      - name: Get branch name
+      -
+        name: Get branch name
         id: branch-name
         uses: tj-actions/branch-names@v6
-      - name: Set up Docker Buildx
+      -
+        name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v2
-      - name: Build FaceExtractor
-        uses: docker/build-push-action@v3
+      -
+        name: Cache Docker layers
+        uses: actions/cache@v3
         with:
-          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
-          context: ./docker/face-extractor
-          load: true
-          push: false
-          no-cache: true
-          tags: mexca/face-extractor:${{env.version}}
-      - name: Build SpeakerIdentifier
+          path: /tmp/.buildx-cache
+          key: ${{ runner.os }}-${{ matrix.component }}-buildx-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-${{ matrix.component }}-buildx-
+      -
+        name: Build component from main as 'latest' tag
         uses: docker/build-push-action@v3
         with:
           build-args: |
-            HF_TOKEN=${{secrets.HF_TOKEN }}
+            HF_TOKEN=${{ secrets.HF_TOKEN }}
             branch=${{ steps.branch-name.outputs.current_branch }}
-          context: ./docker/speaker-identifier
+          context: ./docker/${{ matrix.component }}
           load: true
           push: false
-          no-cache: true
-          tags: mexca/speaker-identifier:${{env.version}}
-      - name: Build VoiceExtractor
-        uses: docker/build-push-action@v3
-        with:
-          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
-          context: ./docker/voice-extractor
-          load: true
-          push: false
-          no-cache: true
-          tags: mexca/voice-extractor:${{env.version}}
-      - name: Build AudioTranscriber
-        uses: docker/build-push-action@v3
-        with:
-          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
-          context: ./docker/audio-transcriber
-          load: true
-          push: false
-          no-cache: true
-          tags: mexca/audio-transcriber:${{env.version}}
-      - name: Build SentimentExtractor
-        uses: docker/build-push-action@v3
-        with:
-          build-args: branch=${{ steps.branch-name.outputs.current_branch }}
-          context: ./docker/sentiment-extractor
-          load: true
-          push: false
-          no-cache: true
-          tags: mexca/sentiment-extractor:${{env.version}}
-      - name: Set up Python 3.9
+          tags: mexca/${{ matrix.component }}:latest
+      -
+        name: Set up Python 3.9
         uses: actions/setup-python@v3
         with:
           python-version: "3.9"
           cache: 'pip'
           cache-dependency-path: setup.cfg
-      - name: Python info
+      -
+        name: Python info
         shell: bash -l {0}
         run: |
           which python3
           python3 --version
-      - name: Upgrade pip and install dependencies
+      -
+        name: Upgrade pip and install dependencies
         run: |
           python3 -m pip install --upgrade pip setuptools wheel
           python3 -m pip install .[dev]
-      - name: Run container tests
+      -
+        name: Run container tests
         env:
-          HF_TOKEN: ${{secrets.HF_TOKEN }}
-        run: pytest -vv tests/test_container.py
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: pytest -vv tests/test_container.py -E ${{ matrix.component }}

@@ -79,6 +79,10 @@ class BaseContainer:
 
         container.wait()
 
+    @staticmethod
+    def _remove_output(filepath: str):
+        os.remove(filepath)
+
 
 class FaceExtractorContainer(BaseContainer):
     """Container for `FaceExtractor` component.
@@ -178,10 +182,16 @@ class FaceExtractorContainer(BaseContainer):
 
         self._run_container(cmd + cmd_args_str)
 
-        return VideoAnnotation.from_json(
+        outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
             + "_video_annotation.json"
         )
+
+        result = VideoAnnotation.from_json(outpath)
+
+        self._remove_output(outpath)
+
+        return result
 
 
 class SpeakerIdentifierContainer(BaseContainer):
@@ -224,10 +234,16 @@ class SpeakerIdentifierContainer(BaseContainer):
 
         self._run_container(cmd + cmd_args)
 
-        return SpeakerAnnotation.from_rttm(
+        outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
             + "_audio_annotation.rttm"
         )
+
+        result = SpeakerAnnotation.from_rttm(outpath)
+
+        self._remove_output(outpath)
+
+        return result
 
 
 class VoiceExtractorContainer(BaseContainer):
@@ -270,23 +286,34 @@ class VoiceExtractorContainer(BaseContainer):
 
         if self.config is not None:
             config_path = (
-                self._create_out_path_stem(filepath=filepath, outdir=outdir)
-                + "voice_features_config.yml"
+                self._create_out_path_stem(filepath, outdir)
+                + "_voice_features_config.yml"
             )
             self.config.write_yaml(config_path)
-            cmd_args.extend(["--config-filepath", config_path])
+            cmd_args.extend(
+                [
+                    "--config-filepath",
+                    "../mnt/vol/" + os.path.basename(config_path),
+                ]
+            )
 
         cmd = self._create_base_cmd(filepath=filepath)
 
         self._run_container(cmd + cmd_args)
 
         if self.config is not None:
-            os.remove(config_path)
+            self._remove_output(config_path)
 
-        return VoiceFeatures.from_json(
+        outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
             + "_voice_features.json"
         )
+
+        result = VoiceFeatures.from_json(outpath)
+
+        self._remove_output(outpath)
+
+        return result
 
 
 class AudioTranscriberContainer(BaseContainer):
@@ -321,30 +348,39 @@ class AudioTranscriberContainer(BaseContainer):
     def apply(
         self,
         filepath: str,
-        _,  # audio_annotation in AudioTranscriber.apply()
+        audio_annotation: SpeakerAnnotation,  # audio_annotation in AudioTranscriber.apply()
         language: Optional[str] = None,
         show_progress: bool = True,
     ) -> AudioTranscription:
+        outdir = self._create_mounts(filepath=filepath)
+
+        annotation_filename = (
+            self._create_out_path_stem(filepath, outdir)
+            + "_audio_annotation.rttm"
+        )
+        audio_annotation.write_rttm(annotation_filename)
+
         cmd_args = [
             "--show-progress",
             str(show_progress),
             "--annotation-path",
-            "../mnt/vol/"
-            + os.path.splitext(os.path.basename(filepath))[0]
-            + "_audio_annotation.rttm",
+            "../mnt/vol/" + os.path.basename(annotation_filename),
             "--language",
             str(language),
         ]
         cmd = self._create_base_cmd(filepath=filepath)
 
-        outdir = self._create_mounts(filepath=filepath)
-
         self._run_container(cmd + cmd_args)
 
-        transcription = AudioTranscription.from_srt(
+        outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
             + "_transcription.srt"
         )
+
+        transcription = AudioTranscription.from_srt(outpath)
+
+        self._remove_output(outpath)
+        self._remove_output(annotation_filename)
 
         return transcription
 
@@ -374,25 +410,52 @@ class SentimentExtractorContainer(BaseContainer):
     def apply(
         self, transcription: AudioTranscription, show_progress: bool = True
     ) -> SentimentAnnotation:
+        outdir = self._create_mounts(filepath=transcription.filename)
+
+        filepath_split = os.path.splitext(
+            os.path.basename(transcription.filename)
+        )
+
+        if filepath_split[-1] == ".srt":
+            transcription_filename = (
+                self._create_out_path_stem(transcription.filename, outdir)
+                + ".srt"
+            )
+        elif filepath_split[-1] in (".wav", ".mp3"):
+            transcription_filename = (
+                self._create_out_path_stem(transcription.filename, outdir)
+                + "_transcription.srt"
+            )
+        else:
+            raise ValueError(
+                "Object 'transcription' must have a 'filename' attribute pointing to a .srt or audio file"
+            )
+
+        transcription.write_srt(transcription_filename)
+
         cmd_args = [
             "--transcription-path",
-            "../mnt/vol/" + os.path.basename(transcription.filename),
+            "../mnt/vol/" + os.path.basename(transcription_filename),
             "--outdir",
             "../mnt/vol",
             "--show-progress",
             str(show_progress),
         ]
 
-        outdir = self._create_mounts(filepath=transcription.filename)
-
         self._run_container(cmd_args)
 
-        base_dir = "_".join(
-            self._create_out_path_stem(
-                filepath=transcription.filename, outdir=outdir
-            ).split("_")[:-1]
+        outpath = (
+            "_".join(
+                self._create_out_path_stem(
+                    filepath=transcription_filename, outdir=outdir
+                ).split("_")[:-1]
+            )
+            + "_sentiment.json"
         )
 
-        sentiment = SentimentAnnotation.from_json(base_dir + "_sentiment.json")
+        sentiment = SentimentAnnotation.from_json(outpath)
+
+        self._remove_output(outpath)
+        self._remove_output(transcription_filename)
 
         return sentiment

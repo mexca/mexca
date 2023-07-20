@@ -9,7 +9,7 @@ if importlib.util.find_spec("pyannote") is not None:
     from .identification import SpeakerIdentifier
 
     all.append("SpeakerIdentifier")
-if importlib.util.find_spec("librosa") is not None:
+if importlib.util.find_spec("emvoice") is not None:
     from .extraction import VoiceExtractor
 
     all.append("VoiceExtractor")
