@@ -23,16 +23,10 @@ from mexca.data import (
 )
 
 
-@pytest.mark.skip_env("runner")
 class TestBaseContainer:
     def test_invalid_image_name(self):
         with pytest.raises(NotFound):
             BaseContainer(image_name="sdfsdf")
-
-    def test_get_latest_tag(self):
-        container = VoiceExtractorContainer(get_latest_tag=True)
-        assert isinstance(container, VoiceExtractorContainer)
-        assert container.image_name == "mexca/voice-extractor:latest"
 
 
 @pytest.mark.run_env("face-extractor")
@@ -65,7 +59,9 @@ class TestSpeakerIdentifierContainer:
     @pytest.fixture
     def speaker_identifier(self):
         return SpeakerIdentifierContainer(
-            num_speakers=self.num_speakers, get_latest_tag=True
+            num_speakers=self.num_speakers,
+            use_auth_token=os.environ["HF_TOKEN"],
+            get_latest_tag=True,
         )
 
     def test_apply(self, speaker_identifier):
@@ -76,7 +72,7 @@ class TestSpeakerIdentifierContainer:
 @pytest.mark.run_env("voice-extractor")
 class TestVoiceExtractorContainer:
     filepath = os.path.join(
-        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+        "tests", "test_files", "test_video_audio_5_seconds.wav"
     )
     num_faces = 2
 

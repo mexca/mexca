@@ -38,9 +38,8 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-${{ matrix.component }}-buildx-
       -
-        name: Build component from main as 'latest' tag and export
+        name: Build component from main as 'latest' tag
         uses: docker/build-push-action@v3
-        # if: github.event_name == 'workflow_dispatch'
         with:
           build-args: |
             HF_TOKEN=${{ secrets.HF_TOKEN }}
@@ -49,7 +48,6 @@ jobs:
           load: true
           push: false
           tags: mexca/${{ matrix.component }}:latest
-          outputs: type=docker,dest=/tmp/${{ matrix.component }}.tar
       -
         name: Set up Python 3.9
         uses: actions/setup-python@v3
