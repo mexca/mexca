@@ -2,6 +2,7 @@ import os
 
 import pytest
 from docker.errors import NotFound
+from intervaltree import Interval, IntervalTree
 
 from mexca.container import (
     AudioTranscriberContainer,
@@ -11,8 +12,15 @@ from mexca.container import (
     SpeakerIdentifierContainer,
     VoiceExtractorContainer,
 )
-from mexca.pipeline import Pipeline
-from mexca.utils import _validate_multimodal
+from mexca.data import (
+    AudioTranscription,
+    SentimentAnnotation,
+    SpeakerAnnotation,
+    TranscriptionData,
+    VideoAnnotation,
+    VoiceFeatures,
+    VoiceFeaturesConfig,
+)
 
 
 @pytest.mark.skip_env("runner")
@@ -27,138 +35,131 @@ class TestBaseContainer:
         assert container.image_name == "mexca/voice-extractor:latest"
 
 
-@pytest.mark.skip_env("runner")
-class TestPipelineContainer:
-    use_auth_token = (
-        os.environ["HF_TOKEN"] if "HF_TOKEN" in os.environ else True
-    )
+@pytest.mark.run_env("face-extractor")
+class TestFaceExtractorContainer:
     filepath = os.path.join(
         "tests", "test_files", "test_video_audio_5_seconds.mp4"
     )
-    components = [
-        "face-extractor",
-        "speaker-identifier",
-        "voice-extractor",
-        "audio-transcriber",
-        "sentiment-extractor",
-    ]
+    num_faces = 2
 
     @pytest.fixture
-    def face_extractor_pipeline(self, num_faces=2):
-        pipeline = Pipeline(
-            face_extractor=FaceExtractorContainer(num_faces=num_faces)
+    def face_extractor(self):
+        return FaceExtractorContainer(
+            num_faces=self.num_faces, get_latest_tag=True
         )
 
-        return pipeline
+    def test_apply(self, face_extractor):
+        result = face_extractor.apply(
+            self.filepath, batch_size=5, skip_frames=5
+        )
+        assert isinstance(result, VideoAnnotation)
+
+
+@pytest.mark.run_env("speaker-identifier")
+class TestSpeakerIdentifierContainer:
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.wav"
+    )
+    num_speakers = 2
 
     @pytest.fixture
-    def speaker_identifier_pipeline(self, num_speakers=2):
-        pipeline = Pipeline(
-            speaker_identifier=SpeakerIdentifierContainer(
-                num_speakers=num_speakers, use_auth_token=self.use_auth_token
-            )
+    def speaker_identifier(self):
+        return SpeakerIdentifierContainer(
+            num_speakers=self.num_speakers, get_latest_tag=True
         )
 
-        return pipeline
+    def test_apply(self, speaker_identifier):
+        result = speaker_identifier.apply(self.filepath)
+        assert isinstance(result, SpeakerAnnotation)
+
+
+@pytest.mark.run_env("voice-extractor")
+class TestVoiceExtractorContainer:
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+    )
+    num_faces = 2
 
     @pytest.fixture
-    def voice_extractor_pipeline(self):
-        pipeline = Pipeline(voice_extractor=VoiceExtractorContainer())
-
-        return pipeline
+    def voice_extractor(self):
+        return VoiceExtractorContainer(get_latest_tag=True)
 
     @pytest.fixture
-    def speaker_identifier_transcription_pipeline(self, num_speakers=2):
-        pipeline = Pipeline(
-            speaker_identifier=SpeakerIdentifierContainer(
-                num_speakers=num_speakers, use_auth_token=self.use_auth_token
+    def config(self):
+        return VoiceFeaturesConfig(pitch_upper_freq=2000)
+
+    @pytest.fixture
+    def voice_extractor_config(self, config):
+        return VoiceExtractorContainer(config=config, get_latest_tag=True)
+
+    def test_apply(self, voice_extractor):
+        result = voice_extractor.apply(
+            self.filepath, time_step=0.2, skip_frames=1
+        )
+        assert isinstance(result, VoiceFeatures)
+
+    def test_apply_config(self, voice_extractor_config):
+        result = voice_extractor_config.apply(
+            self.filepath, time_step=0.2, skip_frames=1
+        )
+        assert isinstance(result, VoiceFeatures)
+
+
+@pytest.mark.run_env("audio-transcriber")
+class TestAudioTranscriberContainer:
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.wav"
+    )
+    annotation_path = os.path.join(
+        "tests",
+        "reference_files",
+        "test_video_audio_5_seconds_audio_annotation.rttm",
+    )
+    annotation = SpeakerAnnotation.from_rttm(annotation_path)
+    num_speakers = 2
+
+    @pytest.fixture
+    def audio_transcriber(self):
+        return AudioTranscriberContainer(
+            whisper_model="tiny", get_latest_tag=True
+        )
+
+    def test_apply(self, audio_transcriber):
+        result = audio_transcriber.apply(self.filepath, self.annotation)
+        assert isinstance(result, AudioTranscription)
+
+
+@pytest.mark.run_env("sentiment-extractor")
+class TestSentimentExtractorContainer:
+    transcription_path = os.path.join(
+        "tests",
+        "reference_files",
+        "test_video_audio_5_seconds_transcription.srt",
+    )
+
+    @pytest.fixture
+    def transcription(self):
+        transcription = AudioTranscription(
+            filename=self.transcription_path,
+            subtitles=IntervalTree(
+                [
+                    Interval(
+                        begin=0,
+                        end=1,
+                        data=TranscriptionData(
+                            index=0, text="Today was a good day!", speaker="0"
+                        ),
+                    )
+                ]
             ),
-            audio_transcriber=AudioTranscriberContainer(whisper_model="tiny"),
         )
 
-        return pipeline
+        return transcription
 
     @pytest.fixture
-    def speaker_identifier_transcription_sentiment_pipeline(
-        self, num_speakers=2
-    ):
-        pipeline = Pipeline(
-            speaker_identifier=SpeakerIdentifierContainer(
-                num_speakers=num_speakers, use_auth_token=self.use_auth_token
-            ),
-            audio_transcriber=AudioTranscriberContainer(whisper_model="tiny"),
-            sentiment_extractor=SentimentExtractorContainer(),
-        )
+    def sentiment_extractor(self):
+        return SentimentExtractorContainer(get_latest_tag=True)
 
-        return pipeline
-
-    def test_face_extractor_pipeline(self, face_extractor_pipeline):
-        result = face_extractor_pipeline.apply(
-            self.filepath,
-            frame_batch_size=5,
-            skip_frames=5,
-            keep_audiofile=True,
-        )
-
-        _validate_multimodal(
-            result,
-            check_audio_annotation=False,
-            check_voice_features=False,
-            check_transcription=False,
-            check_sentiment=False,
-        )
-
-    def test_speaker_identifier_pipeline(self, speaker_identifier_pipeline):
-        result = speaker_identifier_pipeline.apply(
-            self.filepath,
-            keep_audiofile=True,  # Otherwise test audio file is removed
-        )
-
-        _validate_multimodal(
-            result,
-            check_video_annotation=False,
-            check_voice_features=False,
-            check_transcription=False,
-            check_sentiment=False,
-        )
-
-    def test_voice_extractor_pipeline(self, voice_extractor_pipeline):
-        result = voice_extractor_pipeline.apply(
-            self.filepath,
-            keep_audiofile=True,  # Otherwise test audio file is removed
-        )
-
-        _validate_multimodal(
-            result,
-            check_video_annotation=False,
-            check_audio_annotation=False,
-            check_transcription=False,
-            check_sentiment=False,
-        )
-
-    def test_speaker_identifier_transcription_pipeline(
-        self, speaker_identifier_transcription_pipeline
-    ):
-        result = speaker_identifier_transcription_pipeline.apply(
-            self.filepath,
-            keep_audiofile=True,  # Otherwise test audio file is removed
-        )
-
-        _validate_multimodal(
-            result,
-            check_video_annotation=False,
-            check_voice_features=False,
-            check_sentiment=False,
-        )
-
-    def test_speaker_identifier_transcription_sentiment_pipeline(
-        self, speaker_identifier_transcription_sentiment_pipeline
-    ):
-        result = speaker_identifier_transcription_sentiment_pipeline.apply(
-            self.filepath,
-            keep_audiofile=True,  # Otherwise test audio file is removed
-        )
-
-        _validate_multimodal(
-            result, check_video_annotation=False, check_voice_features=False
-        )
+    def test_apply(self, sentiment_extractor, transcription):
+        result = sentiment_extractor.apply(transcription)
+        assert isinstance(result, SentimentAnnotation)

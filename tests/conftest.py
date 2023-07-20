@@ -20,7 +20,10 @@ def pytest_addoption(parser):
 def pytest_configure(config):
     """Register additional markers for `env` and `os`."""
     config.addinivalue_line(
-        "markers", "skip_env(name): mark test to run only on named environment"
+        "markers", "skip_env(name): mark test to skip on named environment"
+    )
+    config.addinivalue_line(
+        "markers", "run_env(name): mark test to run only on named environment"
     )
     config.addinivalue_line(
         "markers", "skip_os(name): mark test to run only on named os"
@@ -29,21 +32,30 @@ def pytest_configure(config):
 
 def pytest_runtest_setup(item):
     """Define actions when markers are set."""
-    envnames = [mark.args[0] for mark in item.iter_markers(name="skip_env")]
+    skip_envnames = [
+        mark.args[0] for mark in item.iter_markers(name="skip_env")
+    ]
+    run_envnames = [mark.args[0] for mark in item.iter_markers(name="run_env")]
     osnames = [mark.args[0] for mark in item.iter_markers(name="skip_os")]
-    if envnames and osnames:
+
+    if skip_envnames and osnames and run_envnames:
         if (
-            item.config.getoption("-E") in envnames
+            item.config.getoption("-E") in skip_envnames
+            and item.config.getoption("-E") not in run_envnames
             and platform.system() in osnames[0]
         ):
             pytest.skip(
-                f"Test skipped because env in {envnames} and os in {osnames[0]}"
+                f"Test skipped because env in {skip_envnames} and os in {osnames[0]}"
             )
 
-    elif envnames:
-        if item.config.getoption("-E") in envnames:
-            pytest.skip(f"Test skipped because env in {envnames}")
+    elif (
+        item.config.getoption("-E")
+        and item.config.getoption("-E") not in run_envnames
+    ):
+        pytest.skip(f"Test skipped because env NOT in {run_envnames}")
 
-    elif osnames:
-        if platform.system() in osnames[0]:
-            pytest.skip(f"Test skipped because os in {osnames[0]}")
+    elif skip_envnames and item.config.getoption("-E") in skip_envnames:
+        pytest.skip(f"Test skipped because env in {skip_envnames}")
+
+    elif osnames and platform.system() in osnames[0]:
+        pytest.skip(f"Test skipped because os in {osnames[0]}")
