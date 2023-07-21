@@ -2,10 +2,9 @@
 
 import os
 import subprocess
-from datetime import timedelta
 
+import numpy as np
 import pytest
-import srt
 import whisper
 
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
@@ -46,6 +45,27 @@ class TestAudioTranscription:
             assert isinstance(seg.end, float)
             assert 5.0 >= seg.end >= 0.0
             assert isinstance(seg.data.text, str)
+
+    @pytest.fixture
+    def timestamps(self):
+        return [
+            {"start": 0.1, "end": 0.2, "probability": 0.75},
+            {"start": 0.3, "end": 0.4, "probability": 0.25},
+        ]
+
+    def test_get_timestamp(self, audio_transcriber, timestamps):
+        idx = 1
+        assert 0.3 == audio_transcriber._get_timestamp(timestamps, idx)
+        assert 0.4 == audio_transcriber._get_timestamp(timestamps, idx, "end")
+
+    def test_get_avg_confidence(self, audio_transcriber, timestamps):
+        idx = 0
+        assert 0.5 == audio_transcriber._get_avg_confidence(
+            timestamps, idx, len(timestamps)
+        )
+        assert np.isnan(
+            audio_transcriber._get_avg_confidence(timestamps, idx, 0)
+        )
 
     def test_cli(self):
         out_filename = (

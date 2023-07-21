@@ -7,8 +7,9 @@ import os
 import re
 import warnings
 from dataclasses import asdict
-from typing import Optional, Union
+from typing import Dict, List, Optional, Union
 
+import numpy as np
 import torch
 import whisper
 from intervaltree import Interval, IntervalTree
@@ -209,10 +210,6 @@ class AudioTranscriber:
                         (idx + sent_len),
                         timestamp_type="end",
                     )
-                    # Calculate average probability of transcription accuracy for sentence
-                    conf = self._get_avg_confidence(
-                        whole_word_timestamps, idx, sent_len
-                    )
 
                     self.logger.debug(
                         "Processing sentence %s from %s to %s with text: %s",
@@ -223,6 +220,11 @@ class AudioTranscriber:
                     )
 
                     if (sent_end - sent_start) > 0:
+                        # Calculate average probability of transcription accuracy for sentence
+                        conf = self._get_avg_confidence(
+                            whole_word_timestamps, idx, sent_len
+                        )
+                        # Add transcription to output
                         transcription.subtitles.add(
                             Interval(
                                 begin=seg.begin + sent_start,
@@ -267,19 +269,26 @@ class AudioTranscriber:
 
     @staticmethod
     def _get_timestamp(
-        word_timestamps: list, idx: int, timestamp_type: str = "start"
+        word_timestamps: List[Dict[str, Union[str, float]]],
+        idx: int,
+        timestamp_type: str = "start",
     ) -> float:
         # get word-level timestamp for the word located at index idx in sequence list of words
         return word_timestamps[idx][timestamp_type]
 
     @staticmethod
     def _get_avg_confidence(
-        word_timestamps: list, idx: int, sentence_len: int
+        word_timestamps: List[Dict[str, Union[str, float]]],
+        idx: int,
+        sentence_len: int,
     ) -> float:
         # Computes the average probability / accuracy of
         # transcription for a given sentence. Sums the
         # probabilities for individual words in the sentence
         # and divide by the sentence length
+        if len(word_timestamps) == 0 or sentence_len == 0:
+            return np.nan
+
         total = 0.0
         for j, word in enumerate(word_timestamps):
             if idx <= j < sentence_len:
