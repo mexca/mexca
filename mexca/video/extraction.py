@@ -187,13 +187,14 @@ class FaceExtractor:
     num_faces : int, optional
         Number of faces to identify.
     min_face_size : int, default=20
-        Minimum size required for detected faces (in pixels).
+        Minimum face size (in pixels) for face detection in MTCNN.
     thresholds : tuple, default=(0.6, 0.7, 0.7)
-        Face detection thesholds.
+        Thesholds for face detection in MTCNN.
     factor : float, default=0.709
-        Factor used to create a scaling pyramid of face sizes.
+        Factor used to create a scaling pyramid of face sizes in MTCNN.
     post_process : bool, default=True
         Whether detected faces are post processed before computing embeddings.
+        The post processing standardizes the detected faces.
     select_largest : bool, default=True
         Whether to return the largest face or the one with the highest probability
         if multiple faces are detected.
@@ -209,6 +210,11 @@ class FaceExtractor:
         costs for long videos.
     embeddings_model : {'vggface2', 'casia-webface'}, default='vggface2'
         Pretrained Inception Resnet V1 model for computing face embeddings.
+    post_min_face_size : tuple, default=(45.0, 45.0)
+        Minimal width and height (in pixels) for filtering out faces after detection.
+        This can be useful to exclude small faces before clustering their embeddings
+        and can improve clustering performance.
+
 
     """
 
@@ -225,6 +231,7 @@ class FaceExtractor:
         device: torch.device = torch.device(type="cpu"),
         max_cluster_frames: Optional[int] = None,
         embeddings_model: str = "vggface2",
+        post_min_face_size: Tuple[float, float] = (45.0, 45.0),
     ):
         self.logger = logging.getLogger("mexca.video.FaceExtractor")
         self.min_face_size = min_face_size
@@ -239,6 +246,7 @@ class FaceExtractor:
         self.embeddings_model = embeddings_model
         self.num_faces = num_faces
         self.max_cluster_frames = max_cluster_frames
+        self.post_min_face_size = post_min_face_size
 
         # Lazy initialization: See getter functions
         self._detector = None
@@ -452,6 +460,7 @@ class FaceExtractor:
             Is `None` if a frame contains no faces.
 
         """
+        self.logger.info("Extracting facial action unit activations")
 
         aus_list = []
 
@@ -607,6 +616,16 @@ class FaceExtractor:
 
         return confidence
 
+    @staticmethod
+    def _calc_face_size(bbox: List[float]) -> Tuple[float, float]:
+        """Calculate the size of a detected face bounding box."""
+
+        box_size = (bbox[2] - bbox[0], bbox[3] - bbox[1])
+        if box_size[0] > 0.0 and box_size[1] > 0.0:
+            return box_size
+
+        raise RuntimeError(f"Bounding box had a non positive size {box_size}")
+
     def apply(  # pylint: disable=too-many-locals
         self,
         filepath: str,
@@ -665,6 +684,7 @@ class FaceExtractor:
         ):
             self.logger.debug("Processing batch %s", b)
             faces, boxes, probs, landmarks = self.detect(batch["Image"])
+
             aus = self.extract(faces)
 
             # If no faces were detected in batch
@@ -689,11 +709,28 @@ class FaceExtractor:
                         len(faces[i]),
                         int(frame),
                     )
+
                     embs = self.encode(faces[i])
                     for k, (box, prob, landmark, au, emb) in enumerate(
                         zip(boxes[i], probs[i], landmarks[i], aus[i], embs)
                     ):
                         self.logger.debug("Processing face %s", k)
+                        try:
+                            box_size = self._calc_face_size(box)
+                        except RuntimeError as exc:
+                            self.logger.exception("RunTimeError: %s", exc)
+                            continue
+                        # If bbox is smaller than min, skip face
+                        if (
+                            box_size[0] < self.post_min_face_size[0]
+                            or box_size[1] < self.post_min_face_size[1]
+                        ):
+                            self.logger.debug(
+                                "Skipped face %s because its size %s is smaller than threshold",
+                                k,
+                                box_size,
+                            )
+                            continue
                         # Convert everything to lists to make saving and loading easier
                         annotation.frame.append(int(frame))
                         annotation.face_box.append(box.tolist())

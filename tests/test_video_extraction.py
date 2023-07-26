@@ -72,6 +72,10 @@ class TestFaceExtractor:
     def extractor(self):
         return FaceExtractor(num_faces=4)
 
+    @pytest.fixture
+    def extractor_min_size(self):
+        return FaceExtractor(num_faces=4, post_min_face_size=(0.0, 0.0))
+
     @staticmethod
     def check_private_attrs(extractor):
         assert not extractor._detector
@@ -199,6 +203,14 @@ class TestFaceExtractor:
         # I expect confidence of V3 to be less than V2, as this is more close to V1 than V2
         assert confidence[3] < confidence[2]
 
+    def test_calc_face_size(self, extractor):
+        bbox = np.array([20, 60, 80, 120])
+        size = extractor._calc_face_size(bbox)
+        assert size[0] == bbox[2] - bbox[0] and size[1] == bbox[3] - bbox[1]
+
+        with pytest.raises(RuntimeError):
+            extractor._calc_face_size(np.flip(bbox))
+
     def test_apply(self, extractor):
         features = extractor.apply(
             self.filepath, batch_size=5, skip_frames=5, show_progress=False
@@ -220,8 +232,8 @@ class TestFaceExtractor:
             assert len(getattr(features, attr)) == len(self.features[attr])
             assert len(getattr(features, attr)) == len(features.frame)
 
-    def test_apply_no_face_batch(self, extractor):
-        features = extractor.apply(
+    def test_apply_no_face_batch(self, extractor_min_size):
+        features = extractor_min_size.apply(
             self.filepath,
             batch_size=1,
             skip_frames=5,
