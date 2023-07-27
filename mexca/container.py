@@ -187,7 +187,7 @@ class FaceExtractorContainer(BaseContainer):
             + "_video_annotation.json"
         )
 
-        result = VideoAnnotation.from_json(outpath)
+        result = VideoAnnotation.from_json(outpath, extra_filename=filepath)
 
         self._remove_output(outpath)
 
@@ -239,7 +239,7 @@ class SpeakerIdentifierContainer(BaseContainer):
             + "_audio_annotation.rttm"
         )
 
-        result = SpeakerAnnotation.from_rttm(outpath)
+        result = SpeakerAnnotation.from_rttm(outpath, extra_filename=filepath)
 
         self._remove_output(outpath)
 
@@ -309,7 +309,9 @@ class VoiceExtractorContainer(BaseContainer):
             + "_voice_features.json"
         )
 
-        result = VoiceFeatures.from_json(outpath)
+        result = VoiceFeatures.from_json(
+            filename=outpath, extra_filename=filepath
+        )
 
         self._remove_output(outpath)
 
@@ -377,7 +379,9 @@ class AudioTranscriberContainer(BaseContainer):
             + "_transcription.srt"
         )
 
-        transcription = AudioTranscription.from_srt(outpath)
+        transcription = AudioTranscription.from_srt(
+            outpath, extra_filename=filepath
+        )
 
         self._remove_output(outpath)
         self._remove_output(annotation_filename)
@@ -453,7 +457,9 @@ class SentimentExtractorContainer(BaseContainer):
             + "_sentiment.json"
         )
 
-        sentiment = SentimentAnnotation.from_json(outpath)
+        sentiment = SentimentAnnotation.from_json(
+            outpath, extra_filename=transcription_filename
+        )
 
         self._remove_output(outpath)
         self._remove_output(transcription_filename)

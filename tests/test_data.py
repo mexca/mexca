@@ -1,13 +1,15 @@
 """Test data classes and methods.
 """
 
-import datetime
+import json
 import os
+from typing import List
 
+import numpy as np
 import pytest
-import srt
 from intervaltree import Interval, IntervalTree
 from pyannote.core import Annotation, Segment
+from pydantic import create_model
 
 from mexca.data import (
     AudioTranscription,
@@ -20,25 +22,114 @@ from mexca.data import (
     VideoAnnotation,
     VoiceFeatures,
     VoiceFeaturesConfig,
+    _check_common_length,
+    _check_sorted,
+    _float2str,
     _get_rttm_header,
 )
 from mexca.utils import _validate_multimodal
 
 
+def test_float2str():
+    assert _float2str(3.0) == "3"
+    assert _float2str("3") == "3"
+    assert _float2str(3) == "3"
+    assert _float2str(0.1) == "0"
+    assert _float2str(None) is None
+
+
+def test_check_sorted():
+    list_sorted = [0, 1, 2]
+    assert _check_sorted(list_sorted) == list_sorted
+    with pytest.raises(ValueError):
+        _check_sorted([1, 0, 2])
+
+
+def test_check_common_length():
+    TestClass = create_model(
+        "TestClass",
+        frame=(List, [0, 1, 2]),
+        b=(List, [0, 1, 2]),
+        c=(float, 1.0),
+    )
+    obj = TestClass()
+    assert _check_common_length(obj) == obj
+    obj.b = [0, 1]
+    with pytest.raises(ValueError):
+        _check_common_length(obj)
+
+
 class TestVideoAnnotation:
-    def test_write_from_json(self):
-        filename = "test.json"
-        annotation = VideoAnnotation(frame=[0, 1, 2])
-        annotation.write_json(filename)
-        assert os.path.exists(filename)
-        annotation = VideoAnnotation.from_json(filename=filename)
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+    )
+    destpath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.json"
+    )
+    schema_path = os.path.join(
+        "tests", "reference_files", "VideoAnnotation_schema.json"
+    )
+
+    @pytest.fixture
+    def annotation(self):
+        return VideoAnnotation(
+            filename=self.filepath,
+            frame=[0, 1, 2],
+            time=[0.2, 0.4, 0.6],
+            face_box=[[0, 1, 2, 3], [0, 1, 2, 3], None],
+            face_prob=[0.5, 0.9, None],
+            face_landmarks=[[[0, 1]], [[0, 1]], None],
+            face_aus=[[0.1, 0.2], [0.1, 0.2], None],
+            face_label=[3.0, 4.0, None],
+            face_confidence=[0.9, None, None],
+            face_average_embeddings={
+                "3": np.random.randn(512),
+                "4": np.random.randn(512),
+            },
+        )
+
+    def test_check_sorted_validators(self, annotation):
+        with pytest.raises(ValueError):
+            annotation.frame = [1, 0, 2]
+        with pytest.raises(ValueError):
+            annotation.time = [0.6, 0.4, 0.2]
+
+    def test_check_len_validators(self, annotation):
+        with pytest.raises(ValueError):
+            annotation.face_box = [[0, 1, 2], [0, 1, 2, 3], None]
+
+        with pytest.raises(ValueError):
+            annotation.face_landmarks = [[[0, 1, 2]], [[0, 1]], None]
+
+    def test_check_model_validators(self, annotation):
+        with pytest.raises(ValueError):
+            annotation.face_box = [[0, 1, 2, 3], None, [0, 1, 2, 3]]
+
+        with pytest.raises(ValueError):
+            annotation.face_label = ["1", "2", None]
+
+    def test_write_from_json(self, annotation):
+        annotation.write_json(self.destpath)
+        assert os.path.exists(self.destpath)
+        annotation = VideoAnnotation.from_json(filename=self.destpath)
         assert isinstance(annotation, VideoAnnotation)
-        assert annotation.frame == [0, 1, 2]
-        os.remove(filename)
+        os.remove(self.destpath)
+
+    def test_json_schema(self):
+        with open(self.schema_path, "r", encoding="utf-8") as file:
+            schema = json.load(file)
+        ref_schema = VideoAnnotation.model_json_schema()
+        del schema["description"], ref_schema["description"]
+
+        assert ref_schema == schema
 
 
 class TestVoiceFeaturesConfig:
     filename = "test.yaml"
+
+    schema_path = os.path.join(
+        "tests", "reference_files", "VoiceFeaturesConfig_schema.json"
+    )
 
     @pytest.fixture
     def config(self):
@@ -55,18 +146,49 @@ class TestVoiceFeaturesConfig:
 
         os.remove(self.filename)
 
+    def test_json_schema(self):
+        with open(self.schema_path, "r", encoding="utf-8") as file:
+            schema = json.load(file)
+        ref_schema = VoiceFeaturesConfig.model_json_schema()
+        del schema["description"], ref_schema["description"]
+
+        assert ref_schema == schema
+
 
 class TestVoiceFeatures:
-    def test_write_from_json(self):
-        filename = "test.json"
-        annotation = VoiceFeatures(frame=[0, 1, 2], time=[0, 1, 2])
-        annotation.write_json(filename)
-        assert os.path.exists(filename)
-        annotation = VoiceFeatures.from_json(filename=filename)
-        assert isinstance(annotation, VoiceFeatures)
-        assert annotation.frame == [0, 1, 2]
-        assert annotation.time == [0, 1, 2]
-        os.remove(filename)
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+    )
+    destpath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.json"
+    )
+
+    @pytest.fixture
+    def voice_features(self):
+        return VoiceFeatures(
+            filename=self.filepath, frame=[0, 1, 2], time=[0, 1, 2]
+        )
+
+    def test_check_sorted_validators(self, voice_features):
+        with pytest.raises(ValueError):
+            voice_features.frame = [1, 0, 2]
+        with pytest.raises(ValueError):
+            voice_features.time = [0.6, 0.4, 0.2]
+
+    def test_check_len_validators(self, voice_features):
+        with pytest.raises(ValueError):
+            voice_features.add_feature("test", [0, 1])
+
+    def test_add_feature(self, voice_features):
+        voice_features.add_feature("test", [0, 1, 2])
+        assert "test" in voice_features.model_fields_set
+
+    def test_write_from_json(self, voice_features):
+        voice_features.write_json(self.destpath)
+        assert os.path.exists(self.destpath)
+        voice_features = VoiceFeatures.from_json(filename=self.destpath)
+        assert isinstance(voice_features, VoiceFeatures)
+        os.remove(self.destpath)
 
 
 def test_get_rttm_header():
@@ -76,15 +198,24 @@ def test_get_rttm_header():
 
 
 class TestSpeakerAnnotation:
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+    )
+    destpath = os.path.join(
+        "tests",
+        "test_files",
+        "test_video_audio_5_seconds_audio_annotation.rttm",
+    )
+
     @staticmethod
     def check_object(obj):
         assert isinstance(obj, SpeakerAnnotation)
-        assert len(obj) == 1
-        assert isinstance(list(obj.items())[0].data, SegmentData)
+        assert len(obj.segments) == 1
+        assert isinstance(list(obj.segments.items())[0].data, SegmentData)
 
     def test_from_pyannote(self):
-        annotation = Annotation()
-        annotation[Segment(0, 1), "A"] = "spk_1"
+        annotation = Annotation(uri=self.filepath)
+        annotation[Segment(0, 1), "A"] = "1"
 
         speaker_annotation = SpeakerAnnotation.from_pyannote(
             annotation=annotation
@@ -93,32 +224,40 @@ class TestSpeakerAnnotation:
         self.check_object(speaker_annotation)
 
     def test_write_from_rttm(self):
-        filename = "test.rttm"
         speaker_annotation = SpeakerAnnotation(
-            [
-                Interval(
-                    0.0,
-                    1.0,
-                    data=SegmentData(
-                        filename=filename, channel=1, name="spk_1"
-                    ),
-                )
-            ]
+            filename=self.filepath,
+            channel=1,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        0.0,
+                        1.0,
+                        data=SegmentData(name="1"),
+                    )
+                ]
+            ),
         )
 
-        speaker_annotation.write_rttm(filename=filename)
-        assert os.path.exists(filename)
+        speaker_annotation.write_rttm(filename=self.destpath)
+        assert os.path.exists(self.destpath)
 
-        speaker_annotation = SpeakerAnnotation.from_rttm(filename)
+        speaker_annotation = SpeakerAnnotation.from_rttm(self.destpath)
         self.check_object(speaker_annotation)
-        os.remove(filename)
+        os.remove(self.destpath)
 
 
 class TestAudioTranscription:
     def test_write_from_srt(self):
-        filename = "test.srt"
+        filepath = os.path.join(
+            "tests", "test_files", "test_video_audio_5_seconds.mp4"
+        )
+        destpath = os.path.join(
+            "tests",
+            "test_files",
+            "test_video_audio_5_seconds_transcription.srt",
+        )
         transcription = AudioTranscription(
-            filename=filename,
+            filename=filepath,
             subtitles=IntervalTree(
                 [
                     Interval(
@@ -132,41 +271,55 @@ class TestAudioTranscription:
             ),
         )
 
-        transcription.write_srt(filename=filename)
-        assert os.path.exists(filename)
+        transcription.write_srt(filename=destpath)
+        assert os.path.exists(destpath)
 
-        transcription = AudioTranscription.from_srt(filename=filename)
+        transcription = AudioTranscription.from_srt(filename=destpath)
         assert isinstance(transcription, AudioTranscription)
         for seg in transcription.subtitles.items():
             assert isinstance(seg.data, TranscriptionData)
 
-        os.remove(filename)
+        os.remove(destpath)
 
 
 class TestSentimentAnnotation:
     def test_write_from_json(self):
-        filename = "test.json"
-        sentiment = SentimentAnnotation(
-            [
-                Interval(
-                    begin=0,
-                    end=1,
-                    data=SentimentData(text="test", pos=0.4, neg=0.4, neu=0.2),
-                )
-            ]
+        filepath = os.path.join(
+            "tests", "test_files", "test_video_audio_5_seconds.mp4"
         )
-        sentiment.write_json(filename)
-        assert os.path.exists(filename)
-        sentiment = SentimentAnnotation.from_json(filename=filename)
+        destpath = os.path.join(
+            "tests",
+            "test_files",
+            "test_video_audio_5_seconds_transcription.json",
+        )
+        sentiment = SentimentAnnotation(
+            filename=filepath,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        begin=0,
+                        end=1,
+                        data=SentimentData(
+                            text="test", pos=0.4, neg=0.4, neu=0.2
+                        ),
+                    )
+                ]
+            ),
+        )
+        sentiment.write_json(destpath)
+        assert os.path.exists(destpath)
+        sentiment = SentimentAnnotation.from_json(filename=destpath)
         assert isinstance(sentiment, SentimentAnnotation)
-        for sent in sentiment.items():
+        for sent in sentiment.segments.items():
             assert isinstance(sent.data, SentimentData)
-        os.remove(filename)
+        os.remove(destpath)
 
 
 class TestMultimodal:
     ref_dir = os.path.join("tests", "reference_files")
-    filepath = "test_video_audio_5_seconds.mp4"
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+    )
 
     @pytest.fixture
     def video_annotation(self) -> VideoAnnotation:
@@ -179,18 +332,22 @@ class TestMultimodal:
     @pytest.fixture
     def audio_annotation(self) -> SpeakerAnnotation:
         return SpeakerAnnotation(
-            [
-                Interval(
-                    begin=1.92,
-                    end=2.92,
-                    data=SegmentData(filename=self.filepath, channel=0, name=0),
-                ),
-                Interval(
-                    begin=3.86,
-                    end=4.87,
-                    data=SegmentData(filename=self.filepath, channel=0, name=0),
-                ),
-            ]
+            filename=self.filepath,
+            channel=1,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        begin=1.92,
+                        end=2.92,
+                        data=SegmentData(name="1"),
+                    ),
+                    Interval(
+                        begin=3.86,
+                        end=4.87,
+                        data=SegmentData(name="1"),
+                    ),
+                ]
+            ),
         )
 
     @pytest.fixture
@@ -211,14 +368,14 @@ class TestMultimodal:
                         begin=2.00,
                         end=2.41,
                         data=TranscriptionData(
-                            index=0, text="Thank you, honey.", speaker="0"
+                            index=0, text="Thank you, honey.", speaker="1"
                         ),
                     ),
                     Interval(
                         begin=4.47,
                         end=4.67,
                         data=TranscriptionData(
-                            index=1, text="I, uh...", speaker="0"
+                            index=1, text="I, uh...", speaker="1"
                         ),
                     ),
                 ]
@@ -228,22 +385,28 @@ class TestMultimodal:
     @pytest.fixture
     def sentiment(self) -> SentimentAnnotation:
         return SentimentAnnotation(
-            [
-                Interval(
-                    begin=2.00,
-                    end=2.41,
-                    data=SentimentData(
-                        text="Thank you, honey.", pos=0.88, neg=0.02, neu=0.1
+            filename=self.filepath,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        begin=2.00,
+                        end=2.41,
+                        data=SentimentData(
+                            text="Thank you, honey.",
+                            pos=0.88,
+                            neg=0.02,
+                            neu=0.1,
+                        ),
                     ),
-                ),
-                Interval(
-                    begin=4.47,
-                    end=4.67,
-                    data=SentimentData(
-                        text="I, uh...", pos=0.1, neg=0.37, neu=0.53
+                    Interval(
+                        begin=4.47,
+                        end=4.67,
+                        data=SentimentData(
+                            text="I, uh...", pos=0.1, neg=0.37, neu=0.53
+                        ),
                     ),
-                ),
-            ]
+                ]
+            ),
         )
 
     @pytest.fixture

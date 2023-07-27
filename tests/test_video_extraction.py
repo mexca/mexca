@@ -12,7 +12,7 @@ from facenet_pytorch import MTCNN, InceptionResnetV1
 from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader
 
-from mexca.data import VideoAnnotation
+from mexca.data import EMPTY_VALUE, VideoAnnotation
 from mexca.video.extraction import (
     FaceExtractor,
     NotEnoughFacesError,
@@ -74,7 +74,7 @@ class TestFaceExtractor:
 
     @pytest.fixture
     def extractor_min_size(self):
-        return FaceExtractor(num_faces=4, post_min_face_size=(0.0, 0.0))
+        return FaceExtractor(num_faces=2, post_min_face_size=(0.0, 0.0))
 
     @staticmethod
     def check_private_attrs(extractor):
@@ -241,7 +241,7 @@ class TestFaceExtractor:
             show_progress=False,
         )
         assert isinstance(features, VideoAnnotation)
-        assert np.isnan(features.face_prob[0])
+        assert features.face_prob[0] is EMPTY_VALUE
 
     def test_cli(self):
         out_filename = (

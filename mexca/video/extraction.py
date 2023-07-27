@@ -18,13 +18,10 @@ from torchvision import transforms
 from torchvision.io import read_video, read_video_timestamps
 from tqdm import tqdm
 
-from mexca.data import VideoAnnotation
+from mexca.data import EMPTY_VALUE, VideoAnnotation
 from mexca.utils import ClassInitMessage, optional_float, optional_int, str2bool
 from mexca.video.mefarg import MEFARG
 
-EMPTY_VALUE = np.nan
-"""Value that is returned if no faces are detected in a video frame.
-"""
 # Package versions are pinned so we can ignore future and deprecation warnings
 # Ignore warning from facenet_pytorch
 #
@@ -626,6 +623,12 @@ class FaceExtractor:
 
         raise RuntimeError(f"Bounding box had a non positive size {box_size}")
 
+    def _check_face_size(self, box_size: Tuple[float, float]) -> bool:
+        return (
+            box_size[0] >= self.post_min_face_size[0]
+            or box_size[1] >= self.post_min_face_size[1]
+        )
+
     def apply(  # pylint: disable=too-many-locals
         self,
         filepath: str,
@@ -668,7 +671,7 @@ class FaceExtractor:
         batch_data_loader = DataLoader(video_dataset, batch_size=batch_size)
 
         # Store features
-        annotation = VideoAnnotation()
+        annotation = VideoAnnotation(filename=filepath)
 
         embeddings = (
             []
@@ -690,7 +693,13 @@ class FaceExtractor:
             # If no faces were detected in batch
             for i, frame in enumerate(batch["Frame"]):
                 self.logger.debug("Processing frame %s", int(frame))
-                if faces[i] is None:
+                if boxes[i] is not None:
+                    box_invalid = [
+                        not self._check_face_size(self._calc_face_size(box))
+                        for box in boxes[i]
+                    ]
+
+                if faces[i] is None or all(box_invalid):
                     self.logger.debug(
                         "No faces detected in frame %s", int(frame)
                     )
@@ -711,24 +720,24 @@ class FaceExtractor:
                     )
 
                     embs = self.encode(faces[i])
-                    for k, (box, prob, landmark, au, emb) in enumerate(
-                        zip(boxes[i], probs[i], landmarks[i], aus[i], embs)
+                    for k, (box, box_v, prob, landmark, au, emb) in enumerate(
+                        zip(
+                            boxes[i],
+                            box_invalid,
+                            probs[i],
+                            landmarks[i],
+                            aus[i],
+                            embs,
+                        )
                     ):
                         self.logger.debug("Processing face %s", k)
-                        try:
-                            box_size = self._calc_face_size(box)
-                        except RuntimeError as exc:
-                            self.logger.exception("RunTimeError: %s", exc)
-                            continue
+
                         # If bbox is smaller than min, skip face
-                        if (
-                            box_size[0] < self.post_min_face_size[0]
-                            or box_size[1] < self.post_min_face_size[1]
-                        ):
+                        if box_v:
                             self.logger.debug(
                                 "Skipped face %s because its size %s is smaller than threshold",
                                 k,
-                                box_size,
+                                box_v,
                             )
                             continue
                         # Convert everything to lists to make saving and loading easier
@@ -747,14 +756,15 @@ class FaceExtractor:
         del self.encoder
         del self.extractor
 
-        annotation.face_label = self.identify(
-            np.asarray(embeddings).squeeze()
-        ).tolist()
+        face_label = self.identify(np.asarray(embeddings).squeeze()).tolist()
+        annotation.face_label = [
+            lbl if np.isfinite(lbl) else EMPTY_VALUE for lbl in face_label
+        ]
         annotation.face_average_embeddings = self.compute_avg_embeddings(
-            np.asarray(embeddings), np.asarray(annotation.face_label)
+            np.asarray(embeddings), np.asarray(face_label)
         )
         annotation.face_confidence = self.compute_confidence(
-            np.asarray(embeddings), np.asarray(annotation.face_label)
+            np.asarray(embeddings), np.asarray(face_label)
         ).tolist()
         annotation.time = (
             np.array(annotation.frame) / video_dataset.video_fps

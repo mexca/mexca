@@ -3,7 +3,6 @@
 
 import json
 import sys
-from dataclasses import asdict, dataclass, field, fields, make_dataclass
 from datetime import timedelta
 from functools import reduce
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
@@ -13,55 +12,170 @@ import pandas as pd
 import srt
 import yaml
 from intervaltree import Interval, IntervalTree
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    FilePath,
+    NonNegativeFloat,
+    NonNegativeInt,
+    PositiveFloat,
+    PositiveInt,
+    computed_field,
+    create_model,
+    field_validator,
+    model_validator,
+)
+from pydantic.functional_validators import BeforeValidator
+from typing_extensions import Annotated
+
+EMPTY_VALUE = None
+"""Value that is returned if a feature is not present.
+"""
+
+_ProbFloat = Annotated[Optional[NonNegativeFloat], Field(le=1.0)]
 
 
-@dataclass
-class VideoAnnotation:
+def _float2str(x: Union[Optional[float], Optional[str]]) -> Optional[str]:
+    if isinstance(x, str):
+        return x
+    if isinstance(x, (float, int)):
+        return str(int(x))
+    return None
+
+
+_Float2Str = Annotated[
+    Optional[str],
+    BeforeValidator(_float2str),
+]
+
+
+def _check_sorted(x: List):
+    if x == sorted(x):
+        return x
+    raise ValueError("Attribute must be in ascending order")
+
+
+def _check_common_length(obj: BaseModel) -> Any:
+    for v in obj.model_fields:
+        a = getattr(obj, v)
+        if isinstance(a, list) and len(a) > 0 and len(a) != len(obj.frame):
+            raise ValueError(
+                f"List attribute {v} must have the same length as 'frame'"
+            )
+
+    return obj
+
+
+# Adapted from librosa package: https://github.com/librosa/librosa/blob/main/librosa/_typing.py
+_Window = Union[str, Tuple[Any, ...], float]
+
+
+class VideoAnnotation(BaseModel):
     """Video annotation class for storing facial features.
 
     Parameters
     ----------
-    frame : list, optional
+    filename: pydantic.FilePath
+        Path to the video file. Must be a valid path.
+    frame : list
         Index of each frame.
-    time : list, optional
+    time : list
         Timestamp of each frame in seconds.
     face_box : list, optional
-        Bounding box of a detected face. Is `numpy.nan` if no face was detected.
+        Bounding box of a detected face. Is `None` if no face was detected.
     face_prob : list, optional
-        Probability of a detected face. Is `numpy.nan` if no face was detected.
+        Probability of a detected face. Is `None` if no face was detected.
     face_landmarks : list, optional
-        Facial landmarks of a detected face. Is `numpy.nan` if no face was detected.
+        Facial landmarks of a detected face. Is `None` if no face was detected.
     face_aus : list, optional
-        Facial action unit activations of a detected face. Is `numpy.nan` if no face was detected.
+        Facial action unit activations of a detected face. Is `None` if no face was detected.
     face_label : list, optional
-        Label of a detected face. Is `numpy.nan` if no face was detected.
+        Label of a detected face. Is `None` if no face was detected.
     face_confidence : list, optional
-        Confidence of the `face_label` assignment. Is `numpy.nan` if no face was detected or
+        Confidence of the `face_label` assignment. Is `None` if no face was detected or
         only one face label was assigned.
-    face_average_embeddings : list, optional
-        Average embedding vector for each face in the input video.
+    face_average_embeddings : dict, optional
+        Average embedding vector (list of 512 float elements) for each face in the input video.
     """
 
-    frame: Optional[List[int]] = field(default_factory=list)
-    time: Optional[List[float]] = field(default_factory=list)
-    face_box: Optional[List[List[float]]] = field(default_factory=list)
-    face_prob: Optional[List[float]] = field(default_factory=list)
-    face_landmarks: Optional[List[List[List[float]]]] = field(
+    filename: FilePath
+    frame: List[NonNegativeInt] = Field(default_factory=list)
+    time: List[NonNegativeFloat] = Field(default_factory=list)
+    face_box: Optional[List[Optional[List[NonNegativeFloat]]]] = Field(
         default_factory=list
     )
-    face_aus: Optional[List[List[float]]] = field(default_factory=list)
-    face_label: Optional[List[Union[str, int]]] = field(default_factory=list)
-    face_confidence: Optional[List[float]] = field(default_factory=list)
-    face_average_embeddings: Optional[dict] = field(default_factory=dict)
+    face_prob: Optional[List[_ProbFloat]] = Field(default_factory=list)
+    face_landmarks: Optional[
+        List[Optional[List[List[NonNegativeFloat]]]]
+    ] = Field(default_factory=list)
+    face_aus: Optional[List[Optional[List[_ProbFloat]]]] = Field(
+        default_factory=list
+    )
+    face_label: Optional[List[_Float2Str]] = Field(default_factory=list)
+    face_confidence: Optional[List[_ProbFloat]] = Field(default_factory=list)
+    face_average_embeddings: Optional[Dict[_Float2Str, List[float]]] = Field(
+        default_factory=dict
+    )
+
+    model_config = ConfigDict(validate_assignment=True)
+
+    _check_sorted_frame = field_validator("frame", mode="after")(_check_sorted)
+    _check_sorted_time = field_validator("time", mode="after")(_check_sorted)
+
+    @field_validator("face_box", mode="after")
+    def _check_len_face_box(cls, v):
+        if v is not None and any(len(e) != 4 for e in v if e is not None):
+            raise ValueError("All face boxes must have four coordinates")
+        return v
+
+    @field_validator("face_landmarks", mode="after")
+    def _check_len_face_landmarks(cls, v):
+        if v is not None and any(
+            len(b) != 2 for e in v if e is not None for b in e
+        ):
+            raise ValueError(
+                "All face landmarks must have x and y coordinate pairs"
+            )
+        return v
+
+    @model_validator(mode="after")
+    def _check_finite(self) -> "VideoAnnotation":
+        for frm, box, prob, lmk, au, label in zip(
+            self.frame,
+            self.face_box,
+            self.face_prob,
+            self.face_landmarks,
+            self.face_aus,
+            self.face_label,
+        ):
+            if box is None and not (box == prob == lmk == au == label):
+                raise ValueError(
+                    f"Face boxes, probabilities, landmarks, action units, and labels not all valid or invalid for frame {frm}"
+                )
+
+        return self
+
+    _common_length = model_validator(mode="after")(_check_common_length)
+
+    @model_validator(mode="after")
+    def _check_face_labels(self) -> "VideoAnnotation":
+        if not self.face_average_embeddings or not self.face_label:
+            return self
+        unique_labels = set(self.face_label)
+
+        if all(
+            lbl in self.face_average_embeddings.keys()
+            for lbl in unique_labels
+            if lbl is not None
+        ):
+            return self
+        raise ValueError(
+            f"Keys in 'face_average_embeddings' {self.face_average_embeddings.keys()} must be the same as unique values in 'face_label' {unique_labels}"
+        )
 
     @classmethod
-    def _from_dict(cls, data: Dict):
-        field_names = [f.name for f in fields(cls)]
-        filtered_data = {k: v for k, v in data.items() if k in field_names}
-        return cls(**filtered_data)
-
-    @classmethod
-    def from_json(cls, filename: str):
+    def from_json(cls, filename: str, extra_filename: Optional[str] = None):
         """Load a video annotation from a JSON file.
 
         Parameters
@@ -74,7 +188,10 @@ class VideoAnnotation:
         with open(filename, "r", encoding="utf-8") as file:
             data = json.load(file)
 
-        return cls._from_dict(data=data)
+        if extra_filename is not None:
+            data["filename"] = extra_filename
+
+        return cls(**data)
 
     def write_json(self, filename: str):
         """Write the video annotation to a JSON file.
@@ -86,11 +203,10 @@ class VideoAnnotation:
 
         """
         with open(filename, "w", encoding="utf-8") as file:
-            json.dump(asdict(self), file, allow_nan=True)
+            file.write(self.model_dump_json())
 
 
-@dataclass(frozen=True)
-class VoiceFeaturesConfig:
+class VoiceFeaturesConfig(BaseModel):
     """Configure the calculation of signal properties used for voice feature extraction.
 
     Create a pseudo-immutable object with attributes that are recognized by the
@@ -173,59 +289,50 @@ class VoiceFeaturesConfig:
 
     """
 
-    frame_len: int = 1024
-    hop_len: int = 256
+    frame_len: PositiveInt = 1024
+    hop_len: PositiveInt = 256
     center: bool = True
     pad_mode: str = "constant"
-    spec_window: Optional[Union[str, float, Tuple]] = "hann"
-    pitch_lower_freq: float = 75.0
-    pitch_upper_freq: float = 600.0
+    spec_window: _Window = "hann"
+    pitch_lower_freq: NonNegativeFloat = 75.0
+    pitch_upper_freq: NonNegativeFloat = 600.0
     pitch_method: str = "pyin"
-    pitch_n_harmonics: int = 100
-    pitch_pulse_lower_period: float = 0.0001
-    pitch_pulse_upper_period: float = 0.02
-    pitch_pulse_max_period_ratio: float = 1.3
-    pitch_pulse_max_amp_factor: float = 1.6
+    pitch_n_harmonics: PositiveInt = 100
+    pitch_pulse_lower_period: PositiveFloat = 0.0001
+    pitch_pulse_upper_period: PositiveFloat = 0.02
+    pitch_pulse_max_period_ratio: PositiveFloat = 1.3
+    pitch_pulse_max_amp_factor: PositiveFloat = 1.6
     jitter_rel: bool = True
     shimmer_rel: bool = True
-    hnr_lower_freq: float = 75.0
-    hnr_rel_silence_threshold: float = 0.1
-    formants_max: int = 5
-    formants_lower_freq: float = 50.0
-    formants_upper_freq: float = 5450.0
-    formants_signal_preemphasis_from: Optional[float] = None
-    formants_window: Optional[Union[str, float, Tuple]] = "praat_gaussian"
-    formants_amp_lower: float = 0.8
-    formants_amp_upper: float = 1.2
+    hnr_lower_freq: PositiveFloat = 75.0
+    hnr_rel_silence_threshold: PositiveFloat = 0.1
+    formants_max: PositiveInt = 5
+    formants_lower_freq: NonNegativeFloat = 50.0
+    formants_upper_freq: NonNegativeFloat = 5450.0
+    formants_signal_preemphasis_from: Optional[NonNegativeFloat] = None
+    formants_window: _Window = "praat_gaussian"
+    formants_amp_lower: PositiveFloat = 0.8
+    formants_amp_upper: PositiveFloat = 1.2
     formants_amp_rel_f0: bool = True
-    alpha_ratio_lower_band: Tuple = (50.0, 1000.0)
-    alpha_ratio_upper_band: Tuple = (1000.0, 5000.0)
-    hammar_index_pivot_point_freq: float = 2000.0
-    hammar_index_upper_freq: float = 5000.0
-    spectral_slopes_bands: Tuple[Tuple[float]] = ((0.0, 500.0), (500.0, 1500.0))
-    mel_spec_n_mels: int = 26
-    mel_spec_lower_freq: float = 20.0
-    mel_spec_upper_freq: float = 8000.0
-    mfcc_n: int = 4
-    mfcc_lifter: int = 22
-
-    @classmethod
-    def _transform_sequence(cls, obj: Any) -> Any:
-        # Recursively transform sequences to tuples
-        if isinstance(obj, list):
-            return tuple(cls._transform_sequence(e) for e in obj)
-        return obj
-
-    @classmethod
-    def _from_dict(cls, data: Dict):
-        field_names = [f.name for f in fields(cls)]
-        filtered_data = {
-            k: cls._transform_sequence(v)
-            for k, v in data.items()
-            if k in field_names
-        }
-
-        return cls(**filtered_data)
+    alpha_ratio_lower_band: Tuple[NonNegativeFloat, NonNegativeFloat] = (
+        50.0,
+        1000.0,
+    )
+    alpha_ratio_upper_band: Tuple[NonNegativeFloat, NonNegativeFloat] = (
+        1000.0,
+        5000.0,
+    )
+    hammar_index_pivot_point_freq: PositiveFloat = 2000.0
+    hammar_index_upper_freq: PositiveFloat = 5000.0
+    spectral_slopes_bands: Tuple[
+        Tuple[NonNegativeFloat, NonNegativeFloat],
+        Tuple[NonNegativeFloat, NonNegativeFloat],
+    ] = ((0.0, 500.0), (500.0, 1500.0))
+    mel_spec_n_mels: PositiveInt = 26
+    mel_spec_lower_freq: NonNegativeFloat = 20.0
+    mel_spec_upper_freq: NonNegativeFloat = 8000.0
+    mfcc_n: PositiveInt = 4
+    mfcc_lifter: PositiveInt = 22
 
     @classmethod
     def from_yaml(cls, filename: str):
@@ -243,7 +350,7 @@ class VoiceFeaturesConfig:
         with open(filename, "r", encoding="utf-8") as file:
             config_dict = yaml.safe_load(file)
 
-        return cls._from_dict(config_dict)
+        return cls(**config_dict)
 
     def write_yaml(self, filename: str):
         """Write a voice configuration object to a YAML file.
@@ -257,11 +364,10 @@ class VoiceFeaturesConfig:
 
         """
         with open(filename, "w", encoding="utf-8") as file:
-            yaml.safe_dump(asdict(self), file)
+            yaml.safe_dump(self.model_dump(), file)
 
 
-@dataclass
-class VoiceFeatures:
+class VoiceFeatures(BaseModel):
     """Class for storing voice features.
 
     Features are stored as lists (like columns of a data frame).
@@ -276,44 +382,27 @@ class VoiceFeatures:
 
     """
 
-    frame: List[int]
-    time: List[float]
+    filename: FilePath
+    frame: List[NonNegativeInt]
+    time: List[NonNegativeFloat]
 
-    def add_attributes(self, attr_names: List[str]):
-        self.__class__ = make_dataclass(
-            "VoiceFeatures", fields=attr_names, bases=(self.__class__,)
+    model_config = ConfigDict(validate_assignment=True)
+
+    _check_sorted_frame = field_validator("frame", mode="after")(_check_sorted)
+    _check_sorted_time = field_validator("time", mode="after")(_check_sorted)
+
+    _common_length = model_validator(mode="after")(_check_common_length)
+
+    def add_feature(self, name: str, feature: List[float]):
+        self.__class__ = create_model(
+            "VoiceFeatures",
+            **{name: (List[float], Field(default_factory=list))},
+            __base__=(self.__class__,),
         )
-
-    def add_feature(self, name: str, feature: List):
-        if not isinstance(feature, list):
-            try:
-                feature = feature.tolist()
-            except Exception as exc:
-                raise Exception(
-                    f"Feature must be a list, not {type(feature)}"
-                ) from exc
-
-        feature_len = len(feature)
-        if feature_len != len(self.frame) and feature_len != 1:
-            raise Exception(
-                f"Feature must have same length as frame attribute or length 1 but has length {feature_len}"
-            )
-
         setattr(self, name, feature)
 
     @classmethod
-    def _from_dict(cls, data: Dict):
-        field_names = [f.name for f in fields(cls)]
-        filtered_data = {k: v for k, v in data.items() if k in field_names}
-        remaining_data = {k: v for k, v in data.items() if k not in field_names}
-        obj = cls(**filtered_data)
-        obj.add_attributes(remaining_data.keys())
-        for key in remaining_data:
-            obj.add_feature(key, remaining_data[key])
-        return obj
-
-    @classmethod
-    def from_json(cls, filename: str):
+    def from_json(cls, filename: str, extra_filename: Optional[str] = None):
         """Load voice features from a JSON file.
 
         Parameters
@@ -326,7 +415,10 @@ class VoiceFeatures:
         with open(filename, "r", encoding="utf-8") as file:
             data = json.load(file)
 
-        return cls._from_dict(data=data)
+        if extra_filename is not None:
+            data["filename"] = extra_filename
+
+        return cls(**data)
 
     def write_json(self, filename: str):
         """Store voice features in a JSON file.
@@ -338,7 +430,7 @@ class VoiceFeatures:
 
         """
         with open(filename, "w", encoding="utf-8") as file:
-            json.dump(asdict(self), file, allow_nan=True)
+            file.write(self.model_dump_json())
 
 
 def _get_rttm_header() -> List[str]:
@@ -355,39 +447,44 @@ def _get_rttm_header() -> List[str]:
     ]
 
 
-@dataclass
-class SegmentData:
+class SegmentData(BaseModel):
     """Class for storing speech segment data.
 
     Parameters
     ----------
-    filename : str
-        Name of the file from which the segment was obtained.
-    channel : int
-        Channel index.
-    name : str, optional, default=None
+    name : str
         Speaker label.
     conf : float, optional, default=None
         Confidence of speaker label.
 
     """
 
-    filename: str
-    channel: int
-    name: Optional[int] = None
-    conf: Optional[float] = None
+    name: str
+    conf: Optional[_ProbFloat] = None
 
 
-class SpeakerAnnotation(IntervalTree):
+class SpeakerAnnotation(BaseModel):
     """Class for storing speaker and speech segment annotations.
 
-    Stores speech segments as ``intervaltree.Interval`` in an ``intervaltree.IntervalTree``.
-    Speaker labels are stored in `SegmentData` objects in the `data` attribute of each interval.
+    Parameters
+    ----------
+    filename : str, optional
+        Name of the audio file which is annotated.
+    channel : int, optional
+        Channel index.
+    segments : intervaltree.IntervalTree, optional
+        Stores speech segments as :class:`intervaltree.Interval`.
+        Speaker labels are stored in :class:`SegmentData` objects in the :class:`data` attribute of each interval.
 
     """
 
-    def __init__(self, intervals: List[Interval] = None):
-        super().__init__(intervals)
+    filename: FilePath
+    channel: Optional[int] = None
+    segments: Optional[IntervalTree] = None
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )  # TODO: implement `__get_pydantic_core_schema__`
 
     def __str__(
         self, end: str = "\t", file: TextIO = sys.stdout, header: bool = True
@@ -398,11 +495,11 @@ class SpeakerAnnotation(IntervalTree):
 
             print("", file=file)
 
-        for seg in self.items():
+        for seg in self.segments.items():
             for col in (
                 "SPEAKER",
-                seg.data.filename,
-                seg.data.channel,
+                self.filename,
+                self.channel,
                 seg.begin,
                 seg.end - seg.begin,
                 None,
@@ -438,16 +535,16 @@ class SpeakerAnnotation(IntervalTree):
                 Interval(
                     begin=seg.start,
                     end=seg.end,
-                    data=SegmentData(
-                        filename=annotation.uri, channel=1, name=str(spk)
-                    ),
+                    data=SegmentData(name=str(spk)),
                 )
             )
 
-        return cls(intervals=segments)
+        return cls(
+            filename=annotation.uri, channel=1, segments=IntervalTree(segments)
+        )
 
     @classmethod
-    def from_rttm(cls, filename: str):
+    def from_rttm(cls, filename: str, extra_filename: Optional[str] = None):
         """Load a speaker annotation from an RTTM file.
 
         Parameters
@@ -466,14 +563,18 @@ class SpeakerAnnotation(IntervalTree):
                     begin=float(row_split[3]),
                     end=float(row_split[3]) + float(row_split[4]),
                     data=SegmentData(
-                        filename=row_split[1],
-                        channel=int(row_split[2]),
                         name=row_split[7],
                     ),
                 )
                 segments.append(segment)
 
-            return cls(segments)
+            return cls(
+                filename=row_split[1]
+                if extra_filename is None
+                else extra_filename,
+                channel=int(row_split[2]),
+                segments=IntervalTree(segments),
+            )
 
     # pylint: disable=unnecessary-dunder-call
     def write_rttm(self, filename: str):
@@ -489,8 +590,7 @@ class SpeakerAnnotation(IntervalTree):
             self.__str__(end=" ", file=file, header=False)
 
 
-@dataclass
-class TranscriptionData:
+class TranscriptionData(BaseModel):
     """Class for storing transcription data.
 
     Parameters
@@ -499,18 +599,20 @@ class TranscriptionData:
         Index of the transcribed sentence.
     text: str
         Transcribed text.
-    speaker: str, optional
+    speaker: str, optional, default=None
         Speaker of the transcribed text.
+    confidence : float, optional, default=None
+        Average word probability of transcribed text.
 
     """
 
     index: int
     text: str
     speaker: Optional[str] = None
-    confidence: Optional[float] = None  # probability of transcription accuracy
+    confidence: Optional[_ProbFloat] = None
 
 
-class AudioTranscription:
+class AudioTranscription(BaseModel):
     """Class for storing audio transcriptions.
 
     Parameters
@@ -523,15 +625,18 @@ class AudioTranscription:
 
     """
 
-    def __init__(self, filename: str, subtitles: Optional[IntervalTree] = None):
-        self.filename = filename
-        self.subtitles = subtitles
+    filename: FilePath
+    subtitles: Optional[IntervalTree] = None
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )  # TODO: implement `__get_pydantic_core_schema__`
 
     def __len__(self) -> int:
         return len(self.subtitles)
 
     @classmethod
-    def from_srt(cls, filename: str):
+    def from_srt(cls, filename: str, extra_filename: Optional[str] = None):
         """Load an audio transcription from an SRT file.
 
         Parameters
@@ -559,7 +664,10 @@ class AudioTranscription:
                     )
                 )
 
-            return cls(filename=filename, subtitles=IntervalTree(intervals))
+            return cls(
+                filename=filename if extra_filename is None else extra_filename,
+                subtitles=IntervalTree(intervals),
+            )
 
     def write_srt(self, filename: str):
         """Write an audio transcription to an SRT file
@@ -587,8 +695,7 @@ class AudioTranscription:
             file.write(srt.compose(subtitles))
 
 
-@dataclass
-class SentimentData:
+class SentimentData(BaseModel):
     """Class for storing sentiment data.
 
     Parameters
@@ -605,24 +712,27 @@ class SentimentData:
     """
 
     text: str
-    pos: float
-    neg: float
-    neu: float
+    pos: _ProbFloat
+    neg: _ProbFloat
+    neu: _ProbFloat
 
 
-@dataclass
-class SentimentAnnotation(IntervalTree):
+class SentimentAnnotation(BaseModel):
     """Class for storing sentiment scores of transcribed sentences.
 
     Stores sentiment scores as intervals in an interval tree. The scores are stored in the `data` attribute of each interval.
 
     """
 
-    def __init__(self, intervals: List[Interval] = None):
-        super().__init__(intervals)
+    filename: FilePath
+    segments: Optional[IntervalTree] = None
+
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True
+    )  # TODO: implement `__get_pydantic_core_schema__`
 
     @classmethod
-    def from_json(cls, filename: str):
+    def from_json(cls, filename: str, extra_filename: Optional[str] = None):
         """Load a sentiment annotation from a JSON file.
 
         Parameters
@@ -635,10 +745,10 @@ class SentimentAnnotation(IntervalTree):
         with open(filename, "r", encoding="utf-8") as file:
             sentiment = json.load(file)
 
-            intervals = []
+            segments = []
 
             for sen in sentiment:
-                intervals.append(
+                segments.append(
                     Interval(
                         begin=sen["begin"],
                         end=sen["end"],
@@ -651,7 +761,10 @@ class SentimentAnnotation(IntervalTree):
                     )
                 )
 
-            return cls(intervals=intervals)
+            return cls(
+                filename=filename if extra_filename is None else extra_filename,
+                segments=IntervalTree(segments),
+            )
 
     def write_json(self, filename: str):
         """Write a sentiment annotation to a JSON file.
@@ -665,8 +778,8 @@ class SentimentAnnotation(IntervalTree):
         with open(filename, "w", encoding="utf-8") as file:
             sentiment = []
 
-            for iv in self.all_intervals:
-                data_dict = asdict(iv.data)
+            for iv in self.segments.all_intervals:
+                data_dict = iv.data.model_dump()
                 data_dict["begin"] = iv.begin
                 data_dict["end"] = iv.end
                 sentiment.append(data_dict)
@@ -674,7 +787,7 @@ class SentimentAnnotation(IntervalTree):
             json.dump(sentiment, file, allow_nan=True)
 
 
-class Multimodal:
+class Multimodal(BaseModel):
     """Class for storing multimodal features.
 
     See the :ref:`Output` section for details.
@@ -705,56 +818,40 @@ class Multimodal:
 
     """
 
-    def __init__(
-        self,
-        filename: str,
-        duration: Optional[float] = None,
-        fps: Optional[int] = None,
-        fps_adjusted: Optional[int] = None,
-        video_annotation: Optional[VideoAnnotation] = None,
-        audio_annotation: Optional[SpeakerAnnotation] = None,
-        voice_features: Optional[VoiceFeatures] = None,
-        transcription: Optional[AudioTranscription] = None,
-        sentiment: Optional[SentimentAnnotation] = None,
-        features: Optional[pd.DataFrame] = None,
-    ):
-        self.filename = filename
-        self.duration = duration
-        self.fps = fps
-        self.fps_adjusted = fps if fps_adjusted is None else fps_adjusted
-        self.video_annotation = video_annotation
-        self.audio_annotation = audio_annotation
-        self.voice_features = voice_features
-        self.transcription = transcription
-        self.sentiment = sentiment
-        self.features = features
+    filename: FilePath
+    duration: Optional[NonNegativeFloat] = None
+    fps: Optional[PositiveFloat] = None
+    _fps_adjusted: Optional[PositiveFloat] = None
+    video_annotation: Optional[VideoAnnotation] = None
+    audio_annotation: Optional[SpeakerAnnotation] = None
+    voice_features: Optional[VoiceFeatures] = None
+    transcription: Optional[AudioTranscription] = None
+    sentiment: Optional[SentimentAnnotation] = None
+    features: Optional[pd.DataFrame] = None
 
-    def _merge_video_annotation(self, data_frames: List):
+    model_config = ConfigDict(
+        arbitrary_types_allowed=True, validate_assignment=True
+    )
+
+    @computed_field
+    def fps_adjusted(self) -> PositiveFloat:
+        return self.fps if self._fps_adjusted is None else self._fps_adjusted
+
+    @fps_adjusted.setter
+    def fps_adjusted(self, value: PositiveFloat):
+        self._fps_adjusted = value
+
+    def _merge_video_annotation(self, data_frames: List[pd.DataFrame]):
         # create a new VideoAnnotation instance and copy all fields to the new instance
         # (except for average face embeddings) because the face embeddings have a different
         # dimension to the other fields in the instance. if we include the face embeddings
         # then the conversion of the data to a dataframe would fail.
         if self.video_annotation:
-            video_annotation_dict = asdict(self.video_annotation)
+            video_annotation_dict = self.video_annotation.model_dump()
             del video_annotation_dict["face_average_embeddings"]
             data_frames.append(pd.DataFrame(video_annotation_dict))
 
-            # video_annotation_minus_avg_face_embeddings = VideoAnnotation()
-            # video_annotation_minus_avg_face_embeddings.frame = self.video_annotation.frame
-            # video_annotation_minus_avg_face_embeddings.time = self.video_annotation.time
-            # video_annotation_minus_avg_face_embeddings.face_box = self.video_annotation.face_box
-            # video_annotation_minus_avg_face_embeddings.face_prob = self.video_annotation.face_prob
-            # video_annotation_minus_avg_face_embeddings.face_landmarks = self.video_annotation.face_landmarks
-            # video_annotation_minus_avg_face_embeddings.face_aus = self.video_annotation.face_aus
-            # video_annotation_minus_avg_face_embeddings.face_label = self.video_annotation.face_label
-            # video_annotation_minus_avg_face_embeddings.face_confidence = self.video_annotation.face_confidence
-            # # ensure that the average face embeddings field is excluded from the instance
-            # video_annotation_minus_avg_face_embeddings.face_average_embeddings = None
-            # dict_version = asdict(video_annotation_minus_avg_face_embeddings)
-            # del dict_version['face_average_embeddings']
-            # data_frames.append(pd.DataFrame(dict_version))
-
-    def _merge_audio_text_features(self, data_frames: List):
+    def _merge_audio_text_features(self, data_frames: List[pd.DataFrame]):
         if self.audio_annotation:
             audio_annotation_dict = {
                 "frame": [],
@@ -793,7 +890,7 @@ class Multimodal:
                     }
 
             for i, t in zip(frame, time):
-                overlap_segments = self.audio_annotation[t]
+                overlap_segments = self.audio_annotation.segments[t]
 
                 if len(overlap_segments) > 0:
                     for seg in overlap_segments:
@@ -805,11 +902,9 @@ class Multimodal:
                         )
                 else:
                     audio_annotation_dict["frame"].append(i)
-                    audio_annotation_dict["segment_start"].append(np.NaN)
-                    audio_annotation_dict["segment_end"].append(np.NaN)
-                    audio_annotation_dict["segment_speaker_label"].append(
-                        np.NaN
-                    )
+                    audio_annotation_dict["segment_start"].append(None)
+                    audio_annotation_dict["segment_end"].append(None)
+                    audio_annotation_dict["segment_speaker_label"].append(None)
 
                 if self.transcription:
                     for span in self.transcription.subtitles[t]:
@@ -825,7 +920,7 @@ class Multimodal:
                         )  # store confidence of transcription accuracy
 
                     if self.sentiment:
-                        for sent in self.sentiment[t]:
+                        for sent in self.sentiment.segments[t]:
                             sentiment_dict["frame"].append(i)
                             sentiment_dict["span_text"].append(sent.data.text)
                             sentiment_dict["span_sent_pos"].append(
@@ -859,7 +954,7 @@ class Multimodal:
 
     def _merge_voice_features(self, data_frames: List):
         if self.voice_features:
-            data_frames.append(pd.DataFrame(asdict(self.voice_features)))
+            data_frames.append(pd.DataFrame(self.voice_features.model_dump()))
 
     @staticmethod
     def _delete_time_col(df: pd.DataFrame) -> pd.DataFrame:

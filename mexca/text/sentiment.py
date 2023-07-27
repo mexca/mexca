@@ -7,7 +7,7 @@ import os
 from typing import Optional
 
 import torch
-from intervaltree import Interval
+from intervaltree import Interval, IntervalTree
 from scipy.special import softmax
 from tqdm import tqdm
 from transformers import (
@@ -112,7 +112,9 @@ class SentimentExtractor:
 
         """
 
-        sentiment_annotation = SentimentAnnotation()
+        sentiment_annotation = SentimentAnnotation(
+            filename=transcription.filename, segments=IntervalTree()
+        )
 
         for i, sent in tqdm(
             enumerate(transcription.subtitles),
@@ -126,7 +128,7 @@ class SentimentExtractor:
             output = self.classifier(**tokens)
             logits = output.logits.detach().cpu().numpy()
             scores = softmax(logits)[0]
-            sentiment_annotation.add(
+            sentiment_annotation.segments.add(
                 Interval(
                     begin=sent.begin,
                     end=sent.end,

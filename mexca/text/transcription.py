@@ -141,8 +141,8 @@ class AudioTranscriber:
         )
 
         for i, seg in tqdm(
-            enumerate(audio_annotation),
-            total=len(audio_annotation),
+            enumerate(audio_annotation.segments),
+            total=len(audio_annotation.segments),
             disable=not show_progress,
         ):
             # Get segment length
