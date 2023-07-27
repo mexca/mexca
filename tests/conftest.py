@@ -49,7 +49,8 @@ def pytest_runtest_setup(item):
             )
 
     elif (
-        item.config.getoption("-E")
+        run_envnames
+        and item.config.getoption("-E")
         and item.config.getoption("-E") not in run_envnames
     ):
         pytest.skip(f"Test skipped because env NOT in {run_envnames}")
