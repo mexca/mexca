@@ -23,6 +23,7 @@ from mexca.data import (
 )
 
 
+@pytest.mark.skip_os("Darwin")
 class TestBaseContainer:
     def test_invalid_image_name(self):
         with pytest.raises(NotFound):
