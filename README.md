@@ -32,7 +32,7 @@ This allows users to compare emotion expressions across speakers, time, and cont
 Please cite mexca if you use it for scientific or commercial purposes.
 
 <div align="center">
-<img src="docs/mexca_flowchart.png">
+<img src="docs/mexca_flowchart.png" width="600">
 </div>
 
 ## Quick Installation
