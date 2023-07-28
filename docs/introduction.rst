@@ -5,8 +5,7 @@ The study of human affective behaviour requires capturing emotion expressions in
 Currently, there is a number of commercial and open-source tools which analyse human emotions in video, audio and text.
 However, none of these tools is currently capable of combining state-of-the-art, open-source, and free solutions into one single workflow. For this reason, we developed the Multimodal Emotion eXpression Capture Amsterdam (MEXCA) pipeline.
 
-.. image:: mexca_flowchart.svg
-   :width: 600
+.. image:: mexca_flowchart.png
 
 **mexca** is an easy-to-use, customizable Python package implementing the MEXCA pipeline. It is designed for extracting emotion expression features from faces, voices, and speech text in videos.
 
