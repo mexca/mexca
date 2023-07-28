@@ -24,7 +24,7 @@ class TestSpeakerIdentifier:
     def check_rttm_annotation(annotation):
         assert isinstance(annotation, SpeakerAnnotation)
 
-        for seg in annotation.items():
+        for seg in annotation.segments.items():
             assert isinstance(seg.data, SegmentData)
             assert isinstance(seg.begin, float)
             assert 5.0 >= seg.begin >= 0.0

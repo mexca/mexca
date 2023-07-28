@@ -122,6 +122,9 @@ class SpeakerIdentifier:
         self.logger.info("Detected %s speakers", len(annotation.labels()))
         self.logger.debug("Detected speaker chart: %s", annotation.chart())
 
+        # Update URI to point to a valid file (otherwise pydantic throws an error)
+        annotation.uri = filepath
+
         return SpeakerAnnotation.from_pyannote(
             annotation.rename_labels(generator="int")
         )

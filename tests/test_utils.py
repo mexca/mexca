@@ -60,7 +60,7 @@ def ref_dir():
 
 @pytest.fixture
 def filepath():
-    return "test_video_audio_5_seconds.mp4"
+    return os.path.join("tests", "test_files", "test_video_audio_5_seconds.mp4")
 
 
 @pytest.fixture
@@ -75,18 +75,21 @@ def video_annotation(ref_dir) -> VideoAnnotation:
 @pytest.fixture
 def audio_annotation(filepath) -> SpeakerAnnotation:
     return SpeakerAnnotation(
-        [
-            Interval(
-                begin=1.92,
-                end=2.92,
-                data=SegmentData(filename=filepath, channel=0, name=0),
-            ),
-            Interval(
-                begin=3.86,
-                end=4.87,
-                data=SegmentData(filename=filepath, channel=0, name=0),
-            ),
-        ]
+        filename=filepath,
+        segments=IntervalTree(
+            [
+                Interval(
+                    begin=1.92,
+                    end=2.92,
+                    data=SegmentData(name="0"),
+                ),
+                Interval(
+                    begin=3.86,
+                    end=4.87,
+                    data=SegmentData(name="0"),
+                ),
+            ]
+        ),
     )
 
 
@@ -123,24 +126,27 @@ def transcription(filepath) -> AudioTranscription:
 
 
 @pytest.fixture
-def sentiment() -> SentimentAnnotation:
+def sentiment(filepath) -> SentimentAnnotation:
     return SentimentAnnotation(
-        [
-            Interval(
-                begin=2.00,
-                end=2.41,
-                data=SentimentData(
-                    text="Thank you, honey.", pos=0.88, neg=0.02, neu=0.1
+        filename=filepath,
+        segments=IntervalTree(
+            [
+                Interval(
+                    begin=2.00,
+                    end=2.41,
+                    data=SentimentData(
+                        text="Thank you, honey.", pos=0.88, neg=0.02, neu=0.1
+                    ),
                 ),
-            ),
-            Interval(
-                begin=4.47,
-                end=4.67,
-                data=SentimentData(
-                    text="I, uh...", pos=0.1, neg=0.37, neu=0.53
+                Interval(
+                    begin=4.47,
+                    end=4.67,
+                    data=SentimentData(
+                        text="I, uh...", pos=0.1, neg=0.37, neu=0.53
+                    ),
                 ),
-            ),
-        ]
+            ]
+        ),
     )
 
 

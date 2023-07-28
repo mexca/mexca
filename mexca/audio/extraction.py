@@ -578,9 +578,11 @@ class VoiceExtractor:
             "f3_amplitude_rel_f0": FeatureFormantAmplitude(n_formant=2),
             "alpha_ratio_db": FeatureAlphaRatio(),
             "hammar_index_db": FeatureHammarIndex(),
-            "spectral_slope_0_500": FeatureSpectralSlope(lower=0, upper=500),
+            "spectral_slope_0_500": FeatureSpectralSlope(
+                lower=0.0, upper=500.0
+            ),
             "spectral_slope_500_1500": FeatureSpectralSlope(
-                lower=500, upper=1500
+                lower=500.0, upper=1500.0
             ),
             "h1_h2_diff_db": FeatureHarmonicDifference(),
             "h1_f3_diff_db": FeatureHarmonicDifference(y_idx=2, y_type="f"),
@@ -754,9 +756,9 @@ class VoiceExtractor:
         requirements_types = [type(r) for r in requirements]
 
         extracted_features = VoiceFeatures(
-            frame=frame.tolist(), time=time.tolist()
+            filename=filepath, frame=frame.tolist(), time=time.tolist()
         )
-        extracted_features.add_attributes(self.features.keys())
+        # extracted_features.add_attributes(self.features.keys())
 
         for key, feat in self.features.items():
             for attr, req in feat.requires.items():

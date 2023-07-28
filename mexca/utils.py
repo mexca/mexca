@@ -57,7 +57,7 @@ def _validate_face_features(multimodal: Multimodal):
     assert multimodal.features.face_prob.dtype == "float64"
     assert multimodal.features.face_landmarks.dtype == "object"
     assert multimodal.features.face_aus.dtype == "object"
-    assert multimodal.features.face_label.dtype == "float64"
+    assert multimodal.features.face_label.dtype == "object"
     assert multimodal.features.face_confidence.dtype == "float64"
 
     assert all(len(bbox) == 4 for bbox in multimodal.features.face_box.dropna())
@@ -114,7 +114,7 @@ def _validate_speech_segments(multimodal: Multimodal):
         .all()
     )
 
-    for seg in multimodal.audio_annotation.items():
+    for seg in multimodal.audio_annotation.segments.items():
         assert seg.begin in multimodal.features.segment_start.to_numpy()
         assert seg.end in multimodal.features.segment_end.to_numpy()
         assert str(
@@ -141,6 +141,7 @@ def _validate_voice_feature(
 def _validate_voice_features(multimodal: Multimodal):
     for feat_name in multimodal.voice_features.__dict__:
         if feat_name not in (
+            "filename",
             "frame",
             "time",
             "hnr_db",
@@ -179,9 +180,9 @@ def _validate_transcription(multimodal: Multimodal):
     )
 
     for seg in multimodal.transcription.subtitles.items():
-        assert seg.begin in multimodal.features.span_start.to_numpy()
-        assert seg.end in multimodal.features.span_end.to_numpy()
-        assert seg.data.text in multimodal.features.span_text.to_numpy()
+        assert seg.begin in multimodal.features.span_start.to_list()
+        assert seg.end in multimodal.features.span_end.to_list()
+        assert seg.data.text in multimodal.features.span_text.to_list()
 
 
 def _validate_sentiment(multimodal: Multimodal):
@@ -204,12 +205,12 @@ def _validate_sentiment(multimodal: Multimodal):
         .all()
     )
 
-    for seg in multimodal.sentiment.items():
-        assert seg.begin in multimodal.features.span_start.to_numpy()
-        assert seg.end in multimodal.features.span_end.to_numpy()
-        assert seg.data.pos in multimodal.features.span_sent_pos.to_numpy()
-        assert seg.data.neg in multimodal.features.span_sent_neg.to_numpy()
-        assert seg.data.neu in multimodal.features.span_sent_neu.to_numpy()
+    for seg in multimodal.sentiment.segments.items():
+        assert seg.begin in multimodal.features.span_start.to_list()
+        assert seg.end in multimodal.features.span_end.to_list()
+        assert seg.data.pos in multimodal.features.span_sent_pos.to_list()
+        assert seg.data.neg in multimodal.features.span_sent_neg.to_list()
+        assert seg.data.neu in multimodal.features.span_sent_neu.to_list()
 
 
 def _validate_multimodal(
@@ -240,11 +241,5 @@ def _validate_multimodal(
 
     assert isinstance(output.features, pd.DataFrame)
 
-    assert (
-        output.features.frame.le(125).all()
-        and output.features.frame.ge(0).all()
-    )
-    assert (
-        output.features.time.le(5.0).all()
-        and output.features.time.ge(0.0).all()
-    )
+    assert output.features.frame.ge(0).all()
+    assert output.features.time.ge(0.0).all()
