@@ -3,6 +3,7 @@
 
 import json
 import sys
+from abc import ABC, abstractmethod
 from datetime import timedelta
 from functools import reduce
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
@@ -17,6 +18,7 @@ from pydantic import (
     ConfigDict,
     Field,
     FilePath,
+    InstanceOf,
     NonNegativeFloat,
     NonNegativeInt,
     PositiveFloat,
@@ -71,13 +73,127 @@ def _check_common_length(obj: BaseModel) -> Any:
 _Window = Union[str, Tuple[Any, ...], float]
 
 
-class VideoAnnotation(BaseModel):
-    """Video annotation class for storing facial features.
+class BaseData(BaseModel, ABC):
+    """Base class for storing segment data."""
+
+
+class BaseFeatures(BaseModel, ABC):
+    """Base class for storing features.
 
     Parameters
     ----------
     filename: pydantic.FilePath
         Path to the video file. Must be a valid path.
+    """
+
+    filename: FilePath
+
+    @classmethod
+    def from_json(
+        cls,
+        filename: str,
+        extra_filename: Optional[str] = None,
+        encoding: str = "utf-8",
+    ):
+        """Load data from a JSON file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the JSON file from which the object should be loaded.
+            Must have a .json ending.
+
+        """
+        with open(filename, "r", encoding=encoding) as file:
+            data = json.load(file)
+
+        if extra_filename is not None:
+            data["filename"] = extra_filename
+
+        return cls(**data)
+
+    def write_json(self, filename: str, encoding: str = "utf-8"):
+        """Store data in a JSON file.
+
+        Arguments
+        ---------
+        filename: str
+            Name of the destination file. Must have a .json ending.
+
+        """
+        with open(filename, "w", encoding=encoding) as file:
+            file.write(self.model_dump_json())
+
+
+class BaseAnnotation(BaseModel, ABC):
+    """Base class for storing annotations."""
+
+    filename: FilePath
+    segments: Optional[InstanceOf[IntervalTree]] = None
+
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+
+    @staticmethod
+    @abstractmethod
+    def data_type() -> Any:
+        pass
+
+    @classmethod
+    def from_json(
+        cls,
+        filename: str,
+        extra_filename: Optional[str] = None,
+        encoding: str = "utf-8",
+    ):
+        """Load data from a JSON file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the JSON file from which the object should be loaded.
+            Must have a .json ending.
+
+        """
+        with open(filename, "r", encoding=encoding) as file:
+            data = json.load(file)
+
+            segments = [
+                Interval(
+                    begin=seg["begin"],
+                    end=seg["end"],
+                    data=cls.data_type().model_validate(seg["data"]),
+                )
+                for seg in data
+            ]
+
+            return cls(
+                filename=filename if extra_filename is None else extra_filename,
+                segments=IntervalTree(segments),
+            )
+
+    def write_json(self, filename: str, encoding: str = "utf-8"):
+        """Store data in a JSON file.
+
+        Arguments
+        ---------
+        filename: str
+            Name of the destination file. Must have a .json ending.
+
+        """
+        with open(filename, "w", encoding=encoding) as file:
+            data = [
+                {"begin": iv.begin, "end": iv.end, "data": iv.data.model_dump()}
+                for iv in self.segments.all_intervals
+            ]
+
+            json.dump(data, file)
+
+
+class VideoAnnotation(BaseFeatures):
+    """Video annotation class for storing facial features.
+
+    Parameters
+    ----------
     frame : list
         Index of each frame.
     time : list
@@ -99,7 +215,6 @@ class VideoAnnotation(BaseModel):
         Average embedding vector (list of 512 float elements) for each face in the input video.
     """
 
-    filename: FilePath
     frame: List[NonNegativeInt] = Field(default_factory=list)
     time: List[NonNegativeFloat] = Field(default_factory=list)
     face_box: Optional[List[Optional[List[NonNegativeFloat]]]] = Field(
@@ -173,37 +288,6 @@ class VideoAnnotation(BaseModel):
         raise ValueError(
             f"Keys in 'face_average_embeddings' {self.face_average_embeddings.keys()} must be the same as unique values in 'face_label' {unique_labels}"
         )
-
-    @classmethod
-    def from_json(cls, filename: str, extra_filename: Optional[str] = None):
-        """Load a video annotation from a JSON file.
-
-        Parameters
-        ----------
-        filename: str
-            Name of the JSON file from which the object should be loaded.
-            Must have a .json ending.
-
-        """
-        with open(filename, "r", encoding="utf-8") as file:
-            data = json.load(file)
-
-        if extra_filename is not None:
-            data["filename"] = extra_filename
-
-        return cls(**data)
-
-    def write_json(self, filename: str):
-        """Write the video annotation to a JSON file.
-
-        Arguments
-        ---------
-        filename: str
-            Name of the destination file. Must have a .json ending.
-
-        """
-        with open(filename, "w", encoding="utf-8") as file:
-            file.write(self.model_dump_json())
 
 
 class VoiceFeaturesConfig(BaseModel):
@@ -367,7 +451,7 @@ class VoiceFeaturesConfig(BaseModel):
             yaml.safe_dump(self.model_dump(), file)
 
 
-class VoiceFeatures(BaseModel):
+class VoiceFeatures(BaseFeatures):
     """Class for storing voice features.
 
     Features are stored as lists (like columns of a data frame).
@@ -382,7 +466,6 @@ class VoiceFeatures(BaseModel):
 
     """
 
-    filename: FilePath
     frame: List[NonNegativeInt]
     time: List[NonNegativeFloat]
 
@@ -401,37 +484,6 @@ class VoiceFeatures(BaseModel):
         )
         setattr(self, name, feature)
 
-    @classmethod
-    def from_json(cls, filename: str, extra_filename: Optional[str] = None):
-        """Load voice features from a JSON file.
-
-        Parameters
-        ----------
-        filename: str
-            Name of the JSON file from which the object should be loaded.
-            Must have a .json ending.
-
-        """
-        with open(filename, "r", encoding="utf-8") as file:
-            data = json.load(file)
-
-        if extra_filename is not None:
-            data["filename"] = extra_filename
-
-        return cls(**data)
-
-    def write_json(self, filename: str):
-        """Store voice features in a JSON file.
-
-        Arguments
-        ---------
-        filename: str
-            Name of the destination file. Must have a .json ending.
-
-        """
-        with open(filename, "w", encoding="utf-8") as file:
-            file.write(self.model_dump_json())
-
 
 def _get_rttm_header() -> List[str]:
     return [
@@ -447,7 +499,7 @@ def _get_rttm_header() -> List[str]:
     ]
 
 
-class SegmentData(BaseModel):
+class SegmentData(BaseData):
     """Class for storing speech segment data.
 
     Parameters
@@ -463,7 +515,7 @@ class SegmentData(BaseModel):
     conf: Optional[_ProbFloat] = None
 
 
-class SpeakerAnnotation(BaseModel):
+class SpeakerAnnotation(BaseAnnotation):
     """Class for storing speaker and speech segment annotations.
 
     Parameters
@@ -478,13 +530,11 @@ class SpeakerAnnotation(BaseModel):
 
     """
 
-    filename: FilePath
     channel: Optional[int] = None
-    segments: Optional[IntervalTree] = None
 
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True
-    )  # TODO: implement `__get_pydantic_core_schema__`
+    @staticmethod
+    def data_type() -> Any:
+        return SegmentData
 
     def __str__(
         self, end: str = "\t", file: TextIO = sys.stdout, header: bool = True
@@ -590,7 +640,7 @@ class SpeakerAnnotation(BaseModel):
             self.__str__(end=" ", file=file, header=False)
 
 
-class TranscriptionData(BaseModel):
+class TranscriptionData(BaseData):
     """Class for storing transcription data.
 
     Parameters
@@ -612,28 +662,30 @@ class TranscriptionData(BaseModel):
     confidence: Optional[_ProbFloat] = None
 
 
-class AudioTranscription(BaseModel):
+class AudioTranscription(BaseAnnotation):
     """Class for storing audio transcriptions.
 
     Parameters
     ----------
     filename: str
         Name of the transcribed audio file.
-    subtitles: intervaltree.IntervalTree, optional, default=None
+    segments: intervaltree.IntervalTree, optional, default=None
         Interval tree containing the transcribed speech segments split into sentences as intervals.
         The transcribed sentences are stored in the `data` attribute of each interval.
 
     """
 
-    filename: FilePath
-    subtitles: Optional[IntervalTree] = None
-
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True
-    )  # TODO: implement `__get_pydantic_core_schema__`
-
     def __len__(self) -> int:
-        return len(self.subtitles)
+        return len(self.segments)
+
+    @property
+    def subtitles(self):
+        """Deprecated alias for `segments`."""
+        return self.segments
+
+    @staticmethod
+    def data_type() -> Any:
+        return TranscriptionData
 
     @classmethod
     def from_srt(cls, filename: str, extra_filename: Optional[str] = None):
@@ -646,11 +698,11 @@ class AudioTranscription(BaseModel):
 
         """
         with open(filename, "r", encoding="utf-8") as file:
-            subtitles = srt.parse(file)
+            segments = srt.parse(file)
 
             intervals = []
 
-            for sub in subtitles:
+            for sub in segments:
                 content = sub.content.split(">")
                 intervals.append(
                     Interval(
@@ -666,7 +718,7 @@ class AudioTranscription(BaseModel):
 
             return cls(
                 filename=filename if extra_filename is None else extra_filename,
-                subtitles=IntervalTree(intervals),
+                segments=IntervalTree(intervals),
             )
 
     def write_srt(self, filename: str):
@@ -678,11 +730,11 @@ class AudioTranscription(BaseModel):
             Name of the file to write to. Must have an .srt ending.
 
         """
-        subtitles = []
+        segments = []
 
-        for iv in self.subtitles.all_intervals:
+        for iv in self.segments.all_intervals:
             content = f"<{iv.data.speaker}> {iv.data.text}"
-            subtitles.append(
+            segments.append(
                 srt.Subtitle(
                     index=iv.data.index,
                     start=timedelta(seconds=iv.begin),
@@ -692,10 +744,10 @@ class AudioTranscription(BaseModel):
             )
 
         with open(filename, "w", encoding="utf-8") as file:
-            file.write(srt.compose(subtitles))
+            file.write(srt.compose(segments))
 
 
-class SentimentData(BaseModel):
+class SentimentData(BaseData):
     """Class for storing sentiment data.
 
     Parameters
@@ -717,74 +769,16 @@ class SentimentData(BaseModel):
     neu: _ProbFloat
 
 
-class SentimentAnnotation(BaseModel):
+class SentimentAnnotation(BaseAnnotation):
     """Class for storing sentiment scores of transcribed sentences.
 
     Stores sentiment scores as intervals in an interval tree. The scores are stored in the `data` attribute of each interval.
 
     """
 
-    filename: FilePath
-    segments: Optional[IntervalTree] = None
-
-    model_config = ConfigDict(
-        arbitrary_types_allowed=True
-    )  # TODO: implement `__get_pydantic_core_schema__`
-
-    @classmethod
-    def from_json(cls, filename: str, extra_filename: Optional[str] = None):
-        """Load a sentiment annotation from a JSON file.
-
-        Parameters
-        ----------
-        filename: str
-            Name of the JSON file from which the object should be loaded.
-            Must have a .json ending.
-
-        """
-        with open(filename, "r", encoding="utf-8") as file:
-            sentiment = json.load(file)
-
-            segments = []
-
-            for sen in sentiment:
-                segments.append(
-                    Interval(
-                        begin=sen["begin"],
-                        end=sen["end"],
-                        data=SentimentData(
-                            text=sen["text"],
-                            pos=sen["pos"],
-                            neg=sen["neg"],
-                            neu=sen["neu"],
-                        ),
-                    )
-                )
-
-            return cls(
-                filename=filename if extra_filename is None else extra_filename,
-                segments=IntervalTree(segments),
-            )
-
-    def write_json(self, filename: str):
-        """Write a sentiment annotation to a JSON file.
-
-        Parameters
-        ----------
-        filename: str
-            Name of the destination file. Must have a .json ending.
-
-        """
-        with open(filename, "w", encoding="utf-8") as file:
-            sentiment = []
-
-            for iv in self.segments.all_intervals:
-                data_dict = iv.data.model_dump()
-                data_dict["begin"] = iv.begin
-                data_dict["end"] = iv.end
-                sentiment.append(data_dict)
-
-            json.dump(sentiment, file, allow_nan=True)
+    @staticmethod
+    def data_type() -> Any:
+        return SentimentData
 
 
 class Multimodal(BaseModel):
@@ -907,7 +901,7 @@ class Multimodal(BaseModel):
                     audio_annotation_dict["segment_speaker_label"].append(None)
 
                 if self.transcription:
-                    for span in self.transcription.subtitles[t]:
+                    for span in self.transcription.segments[t]:
                         text_features_dict["frame"].append(i)
                         text_features_dict["span_start"].append(span.begin)
                         text_features_dict["span_end"].append(span.end)

@@ -117,7 +117,7 @@ class SentimentExtractor:
         )
 
         for i, sent in tqdm(
-            enumerate(transcription.subtitles),
+            enumerate(transcription.segments),
             total=len(transcription),
             disable=not show_progress,
         ):

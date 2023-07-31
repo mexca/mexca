@@ -137,7 +137,7 @@ class AudioTranscriber:
         audio = torch.Tensor(whisper.load_audio(filepath))
 
         transcription = AudioTranscription(
-            filename=filepath, subtitles=IntervalTree()
+            filename=filepath, segments=IntervalTree()
         )
 
         for i, seg in tqdm(
@@ -225,7 +225,7 @@ class AudioTranscriber:
                             whole_word_timestamps, idx, sent_len
                         )
                         # Add transcription to output
-                        transcription.subtitles.add(
+                        transcription.segments.add(
                             Interval(
                                 begin=seg.begin + sent_start,
                                 end=seg.begin + sent_end,
