@@ -342,7 +342,7 @@ def cli():
         fp16=torch.cuda.is_available(),
     )
 
-    audio_annotation = SpeakerAnnotation.from_rttm(args["annotation_path"])
+    audio_annotation = SpeakerAnnotation.from_json(args["annotation_path"])
 
     output = transcriber.apply(
         args["filepath"],
@@ -351,11 +351,11 @@ def cli():
         show_progress=args["show_progress"],
     )
 
-    output.write_srt(
+    output.write_json(
         os.path.join(
             args["outdir"],
             os.path.splitext(os.path.basename(args["filepath"]))[0]
-            + "_transcription.srt",
+            + "_transcription.json",
         )
     )
 

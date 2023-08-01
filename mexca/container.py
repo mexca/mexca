@@ -77,8 +77,6 @@ class BaseContainer:
             for s in container.attach(stream=True):
                 print(s.decode("utf-8"))
 
-        container.wait()
-
     @staticmethod
     def _remove_output(filepath: str):
         os.remove(filepath)
@@ -236,10 +234,10 @@ class SpeakerIdentifierContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_audio_annotation.rttm"
+            + "_audio_annotation.json"
         )
 
-        result = SpeakerAnnotation.from_rttm(outpath, extra_filename=filepath)
+        result = SpeakerAnnotation.from_json(outpath, extra_filename=filepath)
 
         self._remove_output(outpath)
 
@@ -358,9 +356,9 @@ class AudioTranscriberContainer(BaseContainer):
 
         annotation_filename = (
             self._create_out_path_stem(filepath, outdir)
-            + "_audio_annotation.rttm"
+            + "_audio_annotation.json"
         )
-        audio_annotation.write_rttm(annotation_filename)
+        audio_annotation.write_json(annotation_filename)
 
         cmd_args = [
             "--show-progress",
@@ -376,10 +374,10 @@ class AudioTranscriberContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_transcription.srt"
+            + "_transcription.json"
         )
 
-        transcription = AudioTranscription.from_srt(
+        transcription = AudioTranscription.from_json(
             outpath, extra_filename=filepath
         )
 
@@ -420,22 +418,22 @@ class SentimentExtractorContainer(BaseContainer):
             os.path.basename(transcription.filename)
         )
 
-        if filepath_split[-1] == ".srt":
+        if filepath_split[-1] == ".json":
             transcription_filename = (
                 self._create_out_path_stem(transcription.filename, outdir)
-                + ".srt"
+                + ".json"
             )
         elif filepath_split[-1] in (".wav", ".mp3"):
             transcription_filename = (
                 self._create_out_path_stem(transcription.filename, outdir)
-                + "_transcription.srt"
+                + "_transcription.json"
             )
         else:
             raise ValueError(
-                "Object 'transcription' must have a 'filename' attribute pointing to a .srt or audio file"
+                "Object 'transcription' must have a 'filename' attribute pointing to a .json or audio file"
             )
 
-        transcription.write_srt(transcription_filename)
+        transcription.write_json(transcription_filename)
 
         cmd_args = [
             "--transcription-path",

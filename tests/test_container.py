@@ -110,9 +110,9 @@ class TestAudioTranscriberContainer:
     annotation_path = os.path.join(
         "tests",
         "reference_files",
-        "test_video_audio_5_seconds_audio_annotation.rttm",
+        "test_video_audio_5_seconds_audio_annotation.json",
     )
-    annotation = SpeakerAnnotation.from_rttm(annotation_path)
+    annotation = SpeakerAnnotation.from_json(annotation_path)
     num_speakers = 2
 
     @pytest.fixture
@@ -131,14 +131,14 @@ class TestSentimentExtractorContainer:
     transcription_path = os.path.join(
         "tests",
         "reference_files",
-        "test_video_audio_5_seconds_transcription.srt",
+        "test_video_audio_5_seconds_transcription.json",
     )
 
     @pytest.fixture
     def transcription(self):
         transcription = AudioTranscription(
             filename=self.transcription_path,
-            subtitles=IntervalTree(
+            segments=IntervalTree(
                 [
                     Interval(
                         begin=0,

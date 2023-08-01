@@ -18,13 +18,11 @@ from mexca.text import SentimentExtractor
 
 # Skip tests on GitHub actions runner for Windows and Linux but
 # allow local runs
-@pytest.mark.skip_env("runner")
-@pytest.mark.skip_os(["Windows", "Linux"])
 class TestSentimentExtractor:
     transcription_path = os.path.join(
         "tests",
         "reference_files",
-        "test_video_audio_5_seconds_transcription.srt",
+        "test_video_audio_5_seconds_transcription.json",
     )
     reference = {"pos": 0.9203513, "neg": 0.01545323, "neu": 0.06419527}
 
@@ -36,7 +34,7 @@ class TestSentimentExtractor:
     def transcription(self):
         transcription = AudioTranscription(
             filename=self.transcription_path,
-            subtitles=IntervalTree(
+            segments=IntervalTree(
                 [
                     Interval(
                         begin=0,
@@ -64,7 +62,7 @@ class TestSentimentExtractor:
         # Get first sentence object from first segment
         assert isinstance(sentiment, SentimentAnnotation)
 
-        for sent in sentiment.items():
+        for sent in sentiment.segments.items():
             assert isinstance(sent.data, SentimentData)
             assert pytest.approx(sent.data.pos) == self.reference["pos"]
             assert pytest.approx(sent.data.neg) == self.reference["neg"]

@@ -104,7 +104,7 @@ def voice_features(ref_dir) -> VoiceFeatures:
 def transcription(filepath) -> AudioTranscription:
     return AudioTranscription(
         filename=filepath,
-        subtitles=IntervalTree(
+        segments=IntervalTree(
             [
                 Interval(
                     begin=2.00,
