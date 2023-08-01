@@ -860,7 +860,7 @@ def cli():
         os.path.join(
             outdir,
             os.path.splitext(os.path.basename(filepath))[0]
-            + "_video_annotation.json",
+            + f"_{output.serialization_name()}.json",
         )
     )
 

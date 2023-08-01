@@ -88,7 +88,16 @@ class BaseData(BaseModel, ABC):
     """Base class for storing segment data."""
 
 
-class BaseFeatures(BaseModel, ABC):
+class _BaseOutput(BaseModel, ABC):
+    filename: FilePath
+
+    @staticmethod
+    @abstractmethod
+    def serialization_name() -> str:
+        return ""
+
+
+class BaseFeatures(_BaseOutput):
     """Base class for storing features.
 
     Attributes
@@ -96,8 +105,6 @@ class BaseFeatures(BaseModel, ABC):
     filename: pydantic.FilePath
         Path to the video file. Must be a valid path.
     """
-
-    filename: FilePath
 
     @classmethod
     def from_json(
@@ -136,7 +143,7 @@ class BaseFeatures(BaseModel, ABC):
             file.write(self.model_dump_json())
 
 
-class BaseAnnotation(BaseModel, ABC):
+class BaseAnnotation(_BaseOutput):
     """Base class for storing annotations.
 
     Attributes
@@ -149,7 +156,6 @@ class BaseAnnotation(BaseModel, ABC):
 
     """
 
-    filename: FilePath
     segments: Optional[InstanceOf[IntervalTree]] = None
 
     model_config = ConfigDict(arbitrary_types_allowed=True)
@@ -309,6 +315,10 @@ class VideoAnnotation(BaseFeatures):
         raise ValueError(
             f"Keys in 'face_average_embeddings' {self.face_average_embeddings.keys()} must be the same as unique values in 'face_label' {unique_labels}"
         )
+
+    @staticmethod
+    def serialization_name() -> str:
+        return "video_annotation"
 
 
 class VoiceFeaturesConfig(BaseModel):
@@ -497,6 +507,10 @@ class VoiceFeatures(BaseFeatures):
 
     _common_length = model_validator(mode="after")(_check_common_length)
 
+    @staticmethod
+    def serialization_name() -> str:
+        return "voice_features"
+
     def add_feature(self, name: str, feature: List[float]):
         self.__class__ = create_model(
             "VoiceFeatures",
@@ -552,6 +566,10 @@ class SpeakerAnnotation(BaseAnnotation):
     """
 
     channel: Optional[int] = None
+
+    @staticmethod
+    def serialization_name() -> str:
+        return "audio_annotation"
 
     @staticmethod
     def data_type() -> Any:
@@ -702,6 +720,10 @@ class AudioTranscription(BaseAnnotation):
         return self.segments
 
     @staticmethod
+    def serialization_name() -> str:
+        return "transcription"
+
+    @staticmethod
     def data_type() -> Any:
         return TranscriptionData
 
@@ -798,6 +820,10 @@ class SentimentAnnotation(BaseAnnotation):
         Name of the file from which sentiment was extracted. Must be a valid path.
 
     """
+
+    @staticmethod
+    def serialization_name() -> str:
+        return "sentiment"
 
     @staticmethod
     def data_type() -> Any:

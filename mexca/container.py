@@ -195,7 +195,7 @@ class FaceExtractorContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_video_annotation.json"
+            + f"_{VideoAnnotation.serialization_name()}.json"
         )
 
         result = VideoAnnotation.from_json(outpath, extra_filename=filepath)
@@ -247,7 +247,7 @@ class SpeakerIdentifierContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_audio_annotation.json"
+            + f"_{SpeakerAnnotation.serialization_name()}.json"
         )
 
         result = SpeakerAnnotation.from_json(outpath, extra_filename=filepath)
@@ -317,7 +317,7 @@ class VoiceExtractorContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_voice_features.json"
+            + f"_{VoiceFeatures.serialization_name()}.json"
         )
 
         result = VoiceFeatures.from_json(
@@ -369,7 +369,7 @@ class AudioTranscriberContainer(BaseContainer):
 
         annotation_filename = (
             self._create_out_path_stem(filepath, outdir)
-            + "_audio_annotation.json"
+            + f"_{SpeakerAnnotation.serialization_name()}.json"
         )
         audio_annotation.write_json(annotation_filename)
 
@@ -387,7 +387,7 @@ class AudioTranscriberContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_transcription.json"
+            + f"_{AudioTranscription.serialization_name()}.json"
         )
 
         transcription = AudioTranscription.from_json(
@@ -439,7 +439,7 @@ class SentimentExtractorContainer(BaseContainer):
         elif filepath_split[-1] in (".wav", ".mp3"):
             transcription_filename = (
                 self._create_out_path_stem(transcription.filename, outdir)
-                + "_transcription.json"
+                + f"_{AudioTranscription.serialization_name()}.json"
             )
         else:
             raise ValueError(
@@ -465,7 +465,7 @@ class SentimentExtractorContainer(BaseContainer):
                     filepath=transcription_filename, outdir=outdir
                 ).split("_")[:-1]
             )
-            + "_sentiment.json"
+            + f"_{SentimentAnnotation.serialization_name()}.json"
         )
 
         sentiment = SentimentAnnotation.from_json(

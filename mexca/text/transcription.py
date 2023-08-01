@@ -355,7 +355,7 @@ def cli():
         os.path.join(
             args["outdir"],
             os.path.splitext(os.path.basename(args["filepath"]))[0]
-            + "_transcription.json",
+            + f"_{output.serialization_name()}.json",
         )
     )
 

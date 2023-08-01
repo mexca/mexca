@@ -181,7 +181,9 @@ def cli():
     )
 
     output.write_json(
-        os.path.join(args["outdir"], base_name + "_sentiment.json")
+        os.path.join(
+            args["outdir"], base_name + f"_{output.serialization_name()}.json"
+        )
     )
 
 
