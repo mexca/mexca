@@ -35,7 +35,12 @@ EMPTY_VALUE = None
 """Value that is returned if a feature is not present.
 """
 
-_ProbFloat = Annotated[Optional[NonNegativeFloat], Field(le=1.0)]
+ProbFloat = Annotated[Optional[NonNegativeFloat], Field(le=1.0)]
+"""Probability float type.
+
+Restricts the range to [0, 1].
+
+"""
 
 
 def _float2str(x: Union[Optional[float], Optional[str]]) -> Optional[str]:
@@ -46,10 +51,16 @@ def _float2str(x: Union[Optional[float], Optional[str]]) -> Optional[str]:
     return None
 
 
-_Float2Str = Annotated[
+Float2Str = Annotated[
     Optional[str],
     BeforeValidator(_float2str),
 ]
+"""Convert float or integers to strings.
+
+Type that converts a float or integer to a string.
+Returns `None` for other types than :class:`float`, :class:`int`, :class:`str`.
+
+"""
 
 
 def _check_sorted(x: List):
@@ -80,7 +91,7 @@ class BaseData(BaseModel, ABC):
 class BaseFeatures(BaseModel, ABC):
     """Base class for storing features.
 
-    Parameters
+    Attributes
     ----------
     filename: pydantic.FilePath
         Path to the video file. Must be a valid path.
@@ -126,7 +137,17 @@ class BaseFeatures(BaseModel, ABC):
 
 
 class BaseAnnotation(BaseModel, ABC):
-    """Base class for storing annotations."""
+    """Base class for storing annotations.
+
+    Attributes
+    ----------
+    filename: pydantic.FilePath
+        Name of annotated file. Must be a valid path.
+    segments: intervaltree.IntervalTree, optional, default=None
+         Interval tree containing :class:`intervaltree.Interval` annotation segments.
+         Annotation data is stored in the :attr:`data` attribute of each :class:`intervaltree.Interval`.
+
+    """
 
     filename: FilePath
     segments: Optional[InstanceOf[IntervalTree]] = None
@@ -192,26 +213,26 @@ class BaseAnnotation(BaseModel, ABC):
 class VideoAnnotation(BaseFeatures):
     """Video annotation class for storing facial features.
 
-    Parameters
+    Attributes
     ----------
-    frame : list
-        Index of each frame.
-    time : list
-        Timestamp of each frame in seconds.
-    face_box : list, optional
+    frame : typing.List[pydantic.NonNegativeInt], default=list()
+        Index of each frame. Must be non-negative and in ascending order.
+    time : typing.List[pydantic.NonNegativeFloat], default=list()
+        Timestamp of each frame in seconds. Must be non-negative and in ascending order.
+    face_box : typing.List[typing.Optional[typing.List[pydantic.NonNegativeFloat]]], optional, default=list()
         Bounding box of a detected face. Is `None` if no face was detected.
-    face_prob : list, optional
+    face_prob : typing.List[ProbFloat], optional, default=list()
         Probability of a detected face. Is `None` if no face was detected.
-    face_landmarks : list, optional
+    face_landmarks : typing.List[typing.Optional[typing.List[typing.List[pydantic.NonNegativeFloat]]], optional, default=list()
         Facial landmarks of a detected face. Is `None` if no face was detected.
-    face_aus : list, optional
+    face_aus : typing.List[typing.Optional[typing.List[ProbFloat]]], optional, default=list()
         Facial action unit activations of a detected face. Is `None` if no face was detected.
-    face_label : list, optional
+    face_label : typing.List[Float2Str], optional, default=list()
         Label of a detected face. Is `None` if no face was detected.
-    face_confidence : list, optional
+    face_confidence : typing.List[ProbFloat], optional, default=list()
         Confidence of the `face_label` assignment. Is `None` if no face was detected or
         only one face label was assigned.
-    face_average_embeddings : dict, optional
+    face_average_embeddings : typing.Dict[Float2Str, typing.List[float]], optional, default=dict()
         Average embedding vector (list of 512 float elements) for each face in the input video.
     """
 
@@ -220,16 +241,16 @@ class VideoAnnotation(BaseFeatures):
     face_box: Optional[List[Optional[List[NonNegativeFloat]]]] = Field(
         default_factory=list
     )
-    face_prob: Optional[List[_ProbFloat]] = Field(default_factory=list)
+    face_prob: Optional[List[ProbFloat]] = Field(default_factory=list)
     face_landmarks: Optional[
         List[Optional[List[List[NonNegativeFloat]]]]
     ] = Field(default_factory=list)
-    face_aus: Optional[List[Optional[List[_ProbFloat]]]] = Field(
+    face_aus: Optional[List[Optional[List[ProbFloat]]]] = Field(
         default_factory=list
     )
-    face_label: Optional[List[_Float2Str]] = Field(default_factory=list)
-    face_confidence: Optional[List[_ProbFloat]] = Field(default_factory=list)
-    face_average_embeddings: Optional[Dict[_Float2Str, List[float]]] = Field(
+    face_label: Optional[List[Float2Str]] = Field(default_factory=list)
+    face_confidence: Optional[List[ProbFloat]] = Field(default_factory=list)
+    face_average_embeddings: Optional[Dict[Float2Str, List[float]]] = Field(
         default_factory=dict
     )
 
@@ -297,56 +318,56 @@ class VoiceFeaturesConfig(BaseModel):
     :class:`VoiceExtractor` class and forwarded as arguments to signal property objects defined
     in :mod:`mexca.audio.features`. Details can be found in the feature class documentation.
 
-    Parameters
+    Attributes
     ----------
-    frame_len: int
+    frame_len: pydantic.PositiveInt, default=1024
         Number of samples per frame.
-    hop_len: int
+    hop_len: pydantic.PositiveInt, default=256
         Number of samples between frame starting points.
     center: bool, default=True
         Whether the signal has been centered and padded before framing.
     pad_mode: str, default='constant'
         How the signal has been padded before framing. See :func:`numpy.pad`.
         Uses the default value 0 for `'constant'` padding.
-    spec_window: str or float or tuple, default="hann"
+    spec_window: _Window, default="hann"
         The window that is applied before the STFT to obtain spectra.
-    pitch_lower_freq: float, default=75.0
+    pitch_lower_freq: pydantic.NonNegativeFloat, default=75.0
         Lower limit used for pitch estimation (in Hz).
-    pitch_upper_freq: float, default=600.0
+    pitch_upper_freq: pydantic.NonNegativeFloat, default=600.0
         Upper limit used for pitch estimation (in Hz).
     pitch_method: str, default="pyin"
         Method used for estimating voice pitch.
-    ptich_n_harmonics: int, default=100
+    ptich_n_harmonics: pydantic.PositiveInt, default=100
         Number of estimated pitch harmonics.
-    pitch_pulse_lower_period: float, optional, default=0.0001
+    pitch_pulse_lower_period: pydantic.PositiveFloat, default=0.0001
         Lower limit for periods between glottal pulses for jitter and shimmer extraction.
-    pitch_pulse_upper_period: float, optional, default=0.02
+    pitch_pulse_upper_period: pydantic.PositiveFloat, default=0.02
         Upper limit for periods between glottal pulses for jitter and shimmer extraction.
-    pitch_pulse_max_period_ratio: float, optional, default=1.3
+    pitch_pulse_max_period_ratio: pydantic.PositiveFloat, default=1.3
         Maximum ratio between consecutive glottal periods for jitter and shimmer extraction.
-    pitch_pulse_max_amp_factor: float, default=1.6
+    pitch_pulse_max_amp_factor: pydantic.PositiveFloat, default=1.6
         Maximum ratio between consecutive amplitudes used for shimmer extraction.
     jitter_rel: bool, default=True
         Divide jitter by the average pitch period.
     shimmer_rel: bool, default=True
         Divide shimmer by the average pulse amplitude.
-    hnr_lower_freq: float, default = 75.0
+    hnr_lower_freq: pydantic.PositiveFloat, default = 75.0
         Lower fundamental frequency limit for choosing pitch candidates when computing the harmonics-to-noise ratio (HNR).
-    hnr_rel_silence_threshold: float, default = 0.1
+    hnr_rel_silence_threshold: pydantic.PositiveFloat, default = 0.1
         Relative threshold for treating signal frames as silent when computing the HNR.
-    formants_max: int, default=5
+    formants_max: pydantic.PositiveInt, default=5
         The maximum number of formants that are extracted.
-    formants_lower_freq: float, default=50.0
+    formants_lower_freq: pydantic.NonNegativeFloat, default=50.0
         Lower limit for formant frequencies (in Hz).
-    formants_upper_freq: float, default=5450.0
+    formants_upper_freq: pydantic.NonNegativeFloat, default=5450.0
         Upper limit for formant frequencies (in Hz).
-    formants_signal_preemphasis_from: float, default=50.0
+    formants_signal_preemphasis_from: pydantic.NonNegativeFloat, optional, default=50.0
         Starting value for the applied preemphasis function (in Hz).
-    formants_window: str or float or tuple, default="praat_gaussian"
+    formants_window: _Window, default="praat_gaussian"
         Window function that is applied before formant estimation.
-    formants_amp_lower: float, optional, default=0.8
+    formants_amp_lower: pydantic.PositiveFloat, optional, default=0.8
         Lower boundary for formant peak amplitude search interval.
-    formants_amp_upper: float, optional, default=1.2
+    formants_amp_upper: pydantic.PositiveFloat, optional, default=1.2
         Upper boundary for formant peak amplitude search interval.
     formants_amp_rel_f0: bool, optional, default=True
         Whether the formant amplitude is divided by the fundamental frequency amplitude.
@@ -354,21 +375,21 @@ class VoiceFeaturesConfig(BaseModel):
         Boundaries of the alpha ratio lower frequency band (start, end) in Hz.
     alpha_ratio_upper_band: tuple, default=(1000.0, 5000.0)
         Boundaries of the alpha ratio upper frequency band (start, end) in Hz.
-    hammar_index_pivot_point_freq: float, default=2000.0
+    hammar_index_pivot_point_freq: pydantic.PositiveFloat, default=2000.0
         Point separating the Hammarberg index lower and upper frequency regions in Hz.
-    hammar_index_upper_freq: float, default=5000.0
+    hammar_index_upper_freq: pydantic.PositiveFloat, default=5000.0
         Upper limit for the Hammarberg index upper frequency region in Hz.
     spectral_slopes_bands: tuple, default=((0.0, 500.0), (500.0, 1500.0))
         Frequency bands in Hz for which spectral slopes are estimated.
-    mel_spec_n_mels: int, default=26
+    mel_spec_n_mels: pydantic.PositiveInt, default=26
         Number of Mel filters.
-    mel_spec_lower_freq: float, default=20.0
+    mel_spec_lower_freq: pydantic.NonNegativeFloat, default=20.0
         Lower frequency boundary for Mel spectogram transformation in Hz.
-    mel_spec_upper_freq: float, default=8000.0
+    mel_spec_upper_freq: pydantic.NonNegativeFloat, default=8000.0
         Upper frequency boundary for Mel spectogram transformation in Hz.
-    mfcc_n: int, default=4
+    mfcc_n: pydantic.PositiveInt, default=4
         Number of Mel frequency cepstral coefficients (MFCCs) that are estimated per frame.
-    mfcc_lifter: float, default=22.0
+    mfcc_lifter: pydantic.NonNegativeFloat, default=22.0
         Cepstral liftering coefficient for MFCC estimation. Must be >= 0. If zero, no liftering is applied.
 
     """
@@ -416,7 +437,7 @@ class VoiceFeaturesConfig(BaseModel):
     mel_spec_lower_freq: NonNegativeFloat = 20.0
     mel_spec_upper_freq: NonNegativeFloat = 8000.0
     mfcc_n: PositiveInt = 4
-    mfcc_lifter: PositiveInt = 22
+    mfcc_lifter: NonNegativeFloat = 22.0
 
     @classmethod
     def from_yaml(cls, filename: str):
@@ -457,12 +478,12 @@ class VoiceFeatures(BaseFeatures):
     Features are stored as lists (like columns of a data frame).
     Optional features are initialized as empty lists.
 
-    Parameters
+    Attributes
     ----------
-    frame: list
-        The frame index for which features were extracted.
-    time: list
-        The time stamp at which features were extracted.
+    frame: typing.List[pydantic.NonNegativeInt]
+        The frame index for which features were extracted. Must be non-negative and in ascending order.
+    time: typing.List[pydantic.NonNegativeFloat]
+        The time stamp at which features were extracted. Must be non-negative and in ascending order.
 
     """
 
@@ -502,26 +523,26 @@ def _get_rttm_header() -> List[str]:
 class SegmentData(BaseData):
     """Class for storing speech segment data.
 
-    Parameters
+    Attributes
     ----------
     name : str
         Speaker label.
-    conf : float, optional, default=None
+    conf : ProbFloat, optional, default=None
         Confidence of speaker label.
 
     """
 
     name: str
-    conf: Optional[_ProbFloat] = None
+    conf: Optional[ProbFloat] = None
 
 
 class SpeakerAnnotation(BaseAnnotation):
     """Class for storing speaker and speech segment annotations.
 
-    Parameters
+    Attributes
     ----------
-    filename : str, optional
-        Name of the audio file which is annotated.
+    filename : pydantic.FilePath
+        Name of the annotated audio file. Must be a valid path.
     channel : int, optional
         Channel index.
     segments : intervaltree.IntervalTree, optional
@@ -569,8 +590,8 @@ class SpeakerAnnotation(BaseAnnotation):
         return ""
 
     @classmethod
-    def from_pyannote(cls, annotation: Any):
-        """Create a `SpeakerAnnotation` object from a ``pyannote.core.Annotation`` object.
+    def from_pyannote(cls, annotation: "pyannote.core.Annotation"):
+        """Create a :class:`SpeakerAnnotation` object from a :class:`pyannote.core.Annotation` object.
 
         Parameters
         ----------
@@ -643,7 +664,7 @@ class SpeakerAnnotation(BaseAnnotation):
 class TranscriptionData(BaseData):
     """Class for storing transcription data.
 
-    Parameters
+    Attributes
     ----------
     index: int
         Index of the transcribed sentence.
@@ -651,7 +672,7 @@ class TranscriptionData(BaseData):
         Transcribed text.
     speaker: str, optional, default=None
         Speaker of the transcribed text.
-    confidence : float, optional, default=None
+    confidence : ProbFloat, optional, default=None
         Average word probability of transcribed text.
 
     """
@@ -659,24 +680,21 @@ class TranscriptionData(BaseData):
     index: int
     text: str
     speaker: Optional[str] = None
-    confidence: Optional[_ProbFloat] = None
+    confidence: Optional[ProbFloat] = None
 
 
 class AudioTranscription(BaseAnnotation):
     """Class for storing audio transcriptions.
 
-    Parameters
+    Attributes
     ----------
-    filename: str
-        Name of the transcribed audio file.
+    filename : pydantic.FilePath
+        Name of the transcribed audio file. Must be a valid path.
     segments: intervaltree.IntervalTree, optional, default=None
         Interval tree containing the transcribed speech segments split into sentences as intervals.
         The transcribed sentences are stored in the `data` attribute of each interval.
 
     """
-
-    def __len__(self) -> int:
-        return len(self.segments)
 
     @property
     def subtitles(self):
@@ -750,29 +768,34 @@ class AudioTranscription(BaseAnnotation):
 class SentimentData(BaseData):
     """Class for storing sentiment data.
 
-    Parameters
+    Attributes
     ----------
     text: str
         Text of the sentence for which sentiment scores were predicted.
-    pos: float
+    pos: ProbFloat
         Positive sentiment score.
-    neg: float
+    neg: ProbFloat
         Negative sentiment score.
-    neu: float
+    neu: ProbFloat
         Neutral sentiment score.
 
     """
 
     text: str
-    pos: _ProbFloat
-    neg: _ProbFloat
-    neu: _ProbFloat
+    pos: ProbFloat
+    neg: ProbFloat
+    neu: ProbFloat
 
 
 class SentimentAnnotation(BaseAnnotation):
     """Class for storing sentiment scores of transcribed sentences.
 
     Stores sentiment scores as intervals in an interval tree. The scores are stored in the `data` attribute of each interval.
+
+    Attributes
+    ----------
+    filename : pydantic.FilePath
+        Name of the file from which sentiment was extracted. Must be a valid path.
 
     """
 
@@ -786,15 +809,15 @@ class Multimodal(BaseModel):
 
     See the :ref:`Output` section for details.
 
-    Parameters
+    Attributes
     ----------
-    filename : str
-        Name of the file from which features were extracted.
-    duration : float, optional, default=None
+    filename : pydantic.FilePath
+        Name of the video file. Must be a valid path.
+    duration : pydantic.NonNegativeFloat, optional, default=None
         Video duration in seconds.
-    fps: : float
+    fps : pydantic.PositiveFloat
         Frames per second.
-    fps_adjusted : float
+    fps_adjusted : pydantic.PositiveFloat
         Frames per seconds adjusted for skipped frames.
         Mostly needed for internal computations.
     video_annotation : VideoAnnotation
@@ -846,7 +869,7 @@ class Multimodal(BaseModel):
             data_frames.append(pd.DataFrame(video_annotation_dict))
 
     def _merge_audio_text_features(self, data_frames: List[pd.DataFrame]):
-        if self.audio_annotation:
+        if self.audio_annotation and self.audio_annotation.segments:
             audio_annotation_dict = {
                 "frame": [],
                 "segment_start": [],
@@ -864,7 +887,7 @@ class Multimodal(BaseModel):
                 dtype=np.int32,
             )
 
-            if self.transcription:
+            if self.transcription and self.transcription.segments:
                 text_features_dict = {
                     "frame": [],
                     "span_start": [],
@@ -874,7 +897,7 @@ class Multimodal(BaseModel):
                     "confidence": [],  # store confidence of transcription accuracy
                 }
 
-                if self.sentiment:
+                if self.sentiment and self.sentiment.segments:
                     sentiment_dict = {
                         "frame": [],
                         "span_text": [],
@@ -900,7 +923,7 @@ class Multimodal(BaseModel):
                     audio_annotation_dict["segment_end"].append(None)
                     audio_annotation_dict["segment_speaker_label"].append(None)
 
-                if self.transcription:
+                if self.transcription and self.transcription.segments:
                     for span in self.transcription.segments[t]:
                         text_features_dict["frame"].append(i)
                         text_features_dict["span_start"].append(span.begin)
@@ -913,7 +936,7 @@ class Multimodal(BaseModel):
                             span.data.confidence
                         )  # store confidence of transcription accuracy
 
-                    if self.sentiment:
+                    if self.sentiment and self.sentiment.segments:
                         for sent in self.sentiment.segments[t]:
                             sentiment_dict["frame"].append(i)
                             sentiment_dict["span_text"].append(sent.data.text)
@@ -929,9 +952,9 @@ class Multimodal(BaseModel):
 
             audio_text_features_df = pd.DataFrame(audio_annotation_dict)
 
-            if self.transcription:
+            if self.transcription and self.transcription.segments:
                 text_features_df = pd.DataFrame(text_features_dict)
-                if self.sentiment:
+                if self.sentiment and self.sentiment.segments:
                     text_features_df = text_features_df.merge(
                         pd.DataFrame(sentiment_dict),
                         on=["frame", "span_text"],
