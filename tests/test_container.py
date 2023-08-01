@@ -1,7 +1,7 @@
 import os
 
 import pytest
-from docker.errors import NotFound
+from docker.errors import DockerException, NotFound
 from intervaltree import Interval, IntervalTree
 
 from mexca.container import (
@@ -49,6 +49,10 @@ class TestFaceExtractorContainer:
         )
         assert isinstance(result, VideoAnnotation)
 
+    def test_apply_docker_exception(self, face_extractor):
+        with pytest.raises(DockerException):
+            face_extractor.apply("non/existent/filepath")
+
 
 @pytest.mark.run_env("speaker-identifier")
 class TestSpeakerIdentifierContainer:
@@ -68,6 +72,10 @@ class TestSpeakerIdentifierContainer:
     def test_apply(self, speaker_identifier):
         result = speaker_identifier.apply(self.filepath)
         assert isinstance(result, SpeakerAnnotation)
+
+    def test_apply_docker_exception(self, speaker_identifier):
+        with pytest.raises(DockerException):
+            speaker_identifier.apply("non/existent/filepath")
 
 
 @pytest.mark.run_env("voice-extractor")
@@ -100,6 +108,12 @@ class TestVoiceExtractorContainer:
             self.filepath, time_step=0.2, skip_frames=1
         )
         assert isinstance(result, VoiceFeatures)
+
+    def test_apply_docker_exception(self, voice_extractor):
+        with pytest.raises(DockerException):
+            voice_extractor.apply(
+                "non/existent/filepath", time_step=0.2, skip_frames=1
+            )
 
 
 @pytest.mark.run_env("audio-transcriber")

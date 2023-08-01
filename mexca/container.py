@@ -24,6 +24,8 @@ class BaseContainer:
 
     Parameters
     ----------
+    image_name: str
+        Name of docker image. A tag is automatically added from the package version.
     get_latest_tag : bool, default=False
         Whether to pull the latest version of the container instead of the version matching the package version.
         This is mainly useful for debugging.
@@ -70,12 +72,23 @@ class BaseContainer:
 
     def _run_container(self, args: List[str], show_progress: bool = True):
         container = self.client.containers.run(
-            self.image_name, args, remove=True, detach=True, mounts=self.mounts
+            self.image_name, args, detach=True, mounts=self.mounts
         )
 
         if show_progress:
             for s in container.attach(stream=True):
                 print(s.decode("utf-8"))
+
+        exit_code = container.wait()
+
+        if exit_code["StatusCode"] != 0:
+            err_msg = container.attach(logs=True)
+            raise DockerException(
+                "Container returned exit status code - error occurred during component run: "
+                + err_msg.decode("utf-8")
+            )
+
+        container.remove()
 
     @staticmethod
     def _remove_output(filepath: str):
