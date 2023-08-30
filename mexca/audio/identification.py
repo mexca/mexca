@@ -159,11 +159,11 @@ def cli():
 
     output = identifier.apply(args["filepath"])
 
-    output.write_rttm(
+    output.write_json(
         os.path.join(
             args["outdir"],
             os.path.splitext(os.path.basename(args["filepath"]))[0]
-            + "_audio_annotation.rttm",
+            + f"_{output.serialization_name()}.json",
         )
     )
 

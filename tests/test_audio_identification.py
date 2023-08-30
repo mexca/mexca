@@ -82,7 +82,7 @@ class TestSpeakerIdentifier:
     def test_cli(self):
         out_filename = (
             os.path.splitext(os.path.basename(self.filepath))[0]
-            + "_audio_annotation.rttm"
+            + "_audio_annotation.json"
         )
         subprocess.run(
             [

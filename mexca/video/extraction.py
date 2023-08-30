@@ -378,7 +378,7 @@ class FaceExtractor:
         self.logger.debug("Detecting faces and facial landmarks")
         boxes, probs, landmarks = self.detector.detect(frame, landmarks=True)
 
-        self.logger.debug("Extracting facial action unit activations")
+        self.logger.debug("Extracting faces")
         faces = self.detector.extract(frame, boxes, save_path=None)
 
         return faces, boxes, probs, landmarks
@@ -457,7 +457,7 @@ class FaceExtractor:
             Is `None` if a frame contains no faces.
 
         """
-        self.logger.info("Extracting facial action unit activations")
+        self.logger.debug("Extracting facial action unit activations")
 
         aus_list = []
 
@@ -860,7 +860,7 @@ def cli():
         os.path.join(
             outdir,
             os.path.splitext(os.path.basename(filepath))[0]
-            + "_video_annotation.json",
+            + f"_{output.serialization_name()}.json",
         )
     )
 

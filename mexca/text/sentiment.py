@@ -117,8 +117,8 @@ class SentimentExtractor:
         )
 
         for i, sent in tqdm(
-            enumerate(transcription.subtitles),
-            total=len(transcription),
+            enumerate(transcription.segments),
+            total=len(transcription.segments),
             disable=not show_progress,
         ):
             self.logger.debug("Extracting sentiment for sentence %s", i)
@@ -170,7 +170,7 @@ def cli():
 
     extractor = SentimentExtractor()
 
-    transcription = AudioTranscription.from_srt(args["transcription_path"])
+    transcription = AudioTranscription.from_json(args["transcription_path"])
 
     output = extractor.apply(transcription, show_progress=args["show_progress"])
 
@@ -181,7 +181,9 @@ def cli():
     )
 
     output.write_json(
-        os.path.join(args["outdir"], base_name + "_sentiment.json")
+        os.path.join(
+            args["outdir"], base_name + f"_{output.serialization_name()}.json"
+        )
     )
 
 

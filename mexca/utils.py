@@ -179,7 +179,7 @@ def _validate_transcription(multimodal: Multimodal):
         .all()
     )
 
-    for seg in multimodal.transcription.subtitles.items():
+    for seg in multimodal.transcription.segments.items():
         assert seg.begin in multimodal.features.span_start.to_list()
         assert seg.end in multimodal.features.span_end.to_list()
         assert seg.data.text in multimodal.features.span_text.to_list()

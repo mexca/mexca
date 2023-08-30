@@ -18,10 +18,10 @@ class TestAudioTranscription:
     annotation_path = os.path.join(
         "tests",
         "reference_files",
-        "test_video_audio_5_seconds_audio_annotation.rttm",
+        "test_video_audio_5_seconds_audio_annotation.json",
     )
 
-    annotation = SpeakerAnnotation.from_rttm(annotation_path)
+    annotation = SpeakerAnnotation.from_json(annotation_path)
 
     @pytest.fixture
     def audio_transcriber(self):
@@ -70,7 +70,7 @@ class TestAudioTranscription:
     def test_cli(self):
         out_filename = (
             os.path.splitext(os.path.basename(self.filepath))[0]
-            + "_transcription.srt"
+            + "_transcription.json"
         )
         subprocess.run(
             [

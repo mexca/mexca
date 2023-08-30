@@ -24,6 +24,8 @@ class BaseContainer:
 
     Parameters
     ----------
+    image_name: str
+        Name of docker image. A tag is automatically added from the package version.
     get_latest_tag : bool, default=False
         Whether to pull the latest version of the container instead of the version matching the package version.
         This is mainly useful for debugging.
@@ -70,14 +72,23 @@ class BaseContainer:
 
     def _run_container(self, args: List[str], show_progress: bool = True):
         container = self.client.containers.run(
-            self.image_name, args, remove=True, detach=True, mounts=self.mounts
+            self.image_name, args, detach=True, mounts=self.mounts
         )
 
         if show_progress:
             for s in container.attach(stream=True):
                 print(s.decode("utf-8"))
 
-        container.wait()
+        exit_code = container.wait()
+
+        if exit_code["StatusCode"] != 0:
+            err_msg = container.attach(logs=True)
+            raise DockerException(
+                "Container returned exit status code - error occurred during component run: "
+                + err_msg.decode("utf-8")
+            )
+
+        container.remove()
 
     @staticmethod
     def _remove_output(filepath: str):
@@ -184,7 +195,7 @@ class FaceExtractorContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_video_annotation.json"
+            + f"_{VideoAnnotation.serialization_name()}.json"
         )
 
         result = VideoAnnotation.from_json(outpath, extra_filename=filepath)
@@ -236,10 +247,10 @@ class SpeakerIdentifierContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_audio_annotation.rttm"
+            + f"_{SpeakerAnnotation.serialization_name()}.json"
         )
 
-        result = SpeakerAnnotation.from_rttm(outpath, extra_filename=filepath)
+        result = SpeakerAnnotation.from_json(outpath, extra_filename=filepath)
 
         self._remove_output(outpath)
 
@@ -306,7 +317,7 @@ class VoiceExtractorContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_voice_features.json"
+            + f"_{VoiceFeatures.serialization_name()}.json"
         )
 
         result = VoiceFeatures.from_json(
@@ -358,9 +369,9 @@ class AudioTranscriberContainer(BaseContainer):
 
         annotation_filename = (
             self._create_out_path_stem(filepath, outdir)
-            + "_audio_annotation.rttm"
+            + f"_{SpeakerAnnotation.serialization_name()}.json"
         )
-        audio_annotation.write_rttm(annotation_filename)
+        audio_annotation.write_json(annotation_filename)
 
         cmd_args = [
             "--show-progress",
@@ -376,10 +387,10 @@ class AudioTranscriberContainer(BaseContainer):
 
         outpath = (
             self._create_out_path_stem(filepath=filepath, outdir=outdir)
-            + "_transcription.srt"
+            + f"_{AudioTranscription.serialization_name()}.json"
         )
 
-        transcription = AudioTranscription.from_srt(
+        transcription = AudioTranscription.from_json(
             outpath, extra_filename=filepath
         )
 
@@ -420,22 +431,22 @@ class SentimentExtractorContainer(BaseContainer):
             os.path.basename(transcription.filename)
         )
 
-        if filepath_split[-1] == ".srt":
+        if filepath_split[-1] == ".json":
             transcription_filename = (
                 self._create_out_path_stem(transcription.filename, outdir)
-                + ".srt"
+                + ".json"
             )
         elif filepath_split[-1] in (".wav", ".mp3"):
             transcription_filename = (
                 self._create_out_path_stem(transcription.filename, outdir)
-                + "_transcription.srt"
+                + f"_{AudioTranscription.serialization_name()}.json"
             )
         else:
             raise ValueError(
-                "Object 'transcription' must have a 'filename' attribute pointing to a .srt or audio file"
+                "Object 'transcription' must have a 'filename' attribute pointing to a .json or audio file"
             )
 
-        transcription.write_srt(transcription_filename)
+        transcription.write_json(transcription_filename)
 
         cmd_args = [
             "--transcription-path",
@@ -454,7 +465,7 @@ class SentimentExtractorContainer(BaseContainer):
                     filepath=transcription_filename, outdir=outdir
                 ).split("_")[:-1]
             )
-            + "_sentiment.json"
+            + f"_{SentimentAnnotation.serialization_name()}.json"
         )
 
         sentiment = SentimentAnnotation.from_json(

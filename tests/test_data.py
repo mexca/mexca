@@ -7,12 +7,15 @@ from typing import List
 
 import numpy as np
 import pytest
-from intervaltree import Interval, IntervalTree
+
+# from intervaltree import Interval, IntervalTree
 from pyannote.core import Annotation, Segment
 from pydantic import create_model
 
 from mexca.data import (
     AudioTranscription,
+    Interval,
+    IntervalTree,
     Multimodal,
     SegmentData,
     SentimentAnnotation,
@@ -57,6 +60,84 @@ def test_check_common_length():
     obj.b = [0, 1]
     with pytest.raises(ValueError):
         _check_common_length(obj)
+
+
+class BaseTest:
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_audio_5_seconds.mp4"
+    )
+
+    @pytest.fixture
+    def speaker_annotation(self) -> SpeakerAnnotation:
+        return SpeakerAnnotation(
+            filename=self.filepath,
+            channel=1,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        begin=1.92,
+                        end=2.92,
+                        data=SegmentData(name="1"),
+                    ),
+                    Interval(
+                        begin=3.86,
+                        end=4.87,
+                        data=SegmentData(name="1"),
+                    ),
+                ]
+            ),
+        )
+
+    @pytest.fixture
+    def transcription(self) -> AudioTranscription:
+        return AudioTranscription(
+            filename=self.filepath,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        begin=2.00,
+                        end=2.41,
+                        data=TranscriptionData(
+                            index=0, text="Thank you, honey.", speaker="1"
+                        ),
+                    ),
+                    Interval(
+                        begin=4.47,
+                        end=4.67,
+                        data=TranscriptionData(
+                            index=1, text="I, uh...", speaker="1"
+                        ),
+                    ),
+                ]
+            ),
+        )
+
+    @pytest.fixture
+    def sentiment(self) -> SentimentAnnotation:
+        return SentimentAnnotation(
+            filename=self.filepath,
+            segments=IntervalTree(
+                [
+                    Interval(
+                        begin=2.00,
+                        end=2.41,
+                        data=SentimentData(
+                            text="Thank you, honey.",
+                            pos=0.88,
+                            neg=0.02,
+                            neu=0.1,
+                        ),
+                    ),
+                    Interval(
+                        begin=4.47,
+                        end=4.67,
+                        data=SentimentData(
+                            text="I, uh...", pos=0.1, neg=0.37, neu=0.53
+                        ),
+                    ),
+                ]
+            ),
+        )
 
 
 class TestVideoAnnotation:
@@ -197,10 +278,7 @@ def test_get_rttm_header():
     assert len(header) == 9
 
 
-class TestSpeakerAnnotation:
-    filepath = os.path.join(
-        "tests", "test_files", "test_video_audio_5_seconds.mp4"
-    )
+class TestSpeakerAnnotation(BaseTest):
     destpath = os.path.join(
         "tests",
         "test_files",
@@ -210,12 +288,13 @@ class TestSpeakerAnnotation:
     @staticmethod
     def check_object(obj):
         assert isinstance(obj, SpeakerAnnotation)
-        assert len(obj.segments) == 1
+        assert len(obj.segments) == 2
         assert isinstance(list(obj.segments.items())[0].data, SegmentData)
 
     def test_from_pyannote(self):
         annotation = Annotation(uri=self.filepath)
         annotation[Segment(0, 1), "A"] = "1"
+        annotation[Segment(1, 2), "B"] = "2"
 
         speaker_annotation = SpeakerAnnotation.from_pyannote(
             annotation=annotation
@@ -223,21 +302,14 @@ class TestSpeakerAnnotation:
 
         self.check_object(speaker_annotation)
 
-    def test_write_from_rttm(self):
-        speaker_annotation = SpeakerAnnotation(
-            filename=self.filepath,
-            channel=1,
-            segments=IntervalTree(
-                [
-                    Interval(
-                        0.0,
-                        1.0,
-                        data=SegmentData(name="1"),
-                    )
-                ]
-            ),
-        )
+    def test_write_from_json(self, speaker_annotation):
+        speaker_annotation.write_json(self.destpath)
+        assert os.path.exists(self.destpath)
+        speaker_annotation = SpeakerAnnotation.from_json(filename=self.destpath)
+        assert isinstance(speaker_annotation, SpeakerAnnotation)
+        os.remove(self.destpath)
 
+    def test_write_from_rttm(self, speaker_annotation):
         speaker_annotation.write_rttm(filename=self.destpath)
         assert os.path.exists(self.destpath)
 
@@ -246,54 +318,41 @@ class TestSpeakerAnnotation:
         os.remove(self.destpath)
 
 
-class TestAudioTranscription:
-    def test_write_from_srt(self):
-        filepath = os.path.join(
-            "tests", "test_files", "test_video_audio_5_seconds.mp4"
-        )
-        destpath = os.path.join(
-            "tests",
-            "test_files",
-            "test_video_audio_5_seconds_transcription.srt",
-        )
-        transcription = AudioTranscription(
-            filename=filepath,
-            subtitles=IntervalTree(
-                [
-                    Interval(
-                        begin=0,
-                        end=1,
-                        data=TranscriptionData(
-                            index=0, text="Test", speaker="1"
-                        ),
-                    )
-                ]
-            ),
-        )
+class TestAudioTranscription(BaseTest):
+    destpath = os.path.join(
+        "tests",
+        "test_files",
+        "test_video_audio_5_seconds_transcription.srt",
+    )
 
-        transcription.write_srt(filename=destpath)
-        assert os.path.exists(destpath)
-
-        transcription = AudioTranscription.from_srt(filename=destpath)
+    def test_write_from_json(self, transcription):
+        transcription.write_json(self.destpath)
+        assert os.path.exists(self.destpath)
+        transcription = AudioTranscription.from_json(filename=self.destpath)
         assert isinstance(transcription, AudioTranscription)
-        for seg in transcription.subtitles.items():
+        os.remove(self.destpath)
+
+    def test_write_from_srt(self, transcription):
+        transcription.write_srt(filename=self.destpath)
+        assert os.path.exists(self.destpath)
+        transcription = AudioTranscription.from_srt(filename=self.destpath)
+        assert isinstance(transcription, AudioTranscription)
+        for seg in transcription.segments.items():
             assert isinstance(seg.data, TranscriptionData)
 
-        os.remove(destpath)
+        os.remove(self.destpath)
 
 
-class TestSentimentAnnotation:
-    def test_write_from_json(self):
-        filepath = os.path.join(
-            "tests", "test_files", "test_video_audio_5_seconds.mp4"
-        )
-        destpath = os.path.join(
-            "tests",
-            "test_files",
-            "test_video_audio_5_seconds_transcription.json",
-        )
+class TestSentimentAnnotation(BaseTest):
+    destpath = os.path.join(
+        "tests",
+        "test_files",
+        "test_video_audio_5_seconds_transcription.json",
+    )
+
+    def test_write_from_json(self, sentiment):
         sentiment = SentimentAnnotation(
-            filename=filepath,
+            filename=self.filepath,
             segments=IntervalTree(
                 [
                     Interval(
@@ -306,20 +365,17 @@ class TestSentimentAnnotation:
                 ]
             ),
         )
-        sentiment.write_json(destpath)
-        assert os.path.exists(destpath)
-        sentiment = SentimentAnnotation.from_json(filename=destpath)
+        sentiment.write_json(self.destpath)
+        assert os.path.exists(self.destpath)
+        sentiment = SentimentAnnotation.from_json(filename=self.destpath)
         assert isinstance(sentiment, SentimentAnnotation)
         for sent in sentiment.segments.items():
             assert isinstance(sent.data, SentimentData)
-        os.remove(destpath)
+        os.remove(self.destpath)
 
 
-class TestMultimodal:
+class TestMultimodal(BaseTest):
     ref_dir = os.path.join("tests", "reference_files")
-    filepath = os.path.join(
-        "tests", "test_files", "test_video_audio_5_seconds.mp4"
-    )
 
     @pytest.fixture
     def video_annotation(self) -> VideoAnnotation:
@@ -327,27 +383,6 @@ class TestMultimodal:
             os.path.join(
                 self.ref_dir, "test_video_audio_5_seconds_video_annotation.json"
             )
-        )
-
-    @pytest.fixture
-    def audio_annotation(self) -> SpeakerAnnotation:
-        return SpeakerAnnotation(
-            filename=self.filepath,
-            channel=1,
-            segments=IntervalTree(
-                [
-                    Interval(
-                        begin=1.92,
-                        end=2.92,
-                        data=SegmentData(name="1"),
-                    ),
-                    Interval(
-                        begin=3.86,
-                        end=4.87,
-                        data=SegmentData(name="1"),
-                    ),
-                ]
-            ),
         )
 
     @pytest.fixture
@@ -359,61 +394,10 @@ class TestMultimodal:
         )
 
     @pytest.fixture
-    def transcription(self) -> AudioTranscription:
-        return AudioTranscription(
-            filename=self.filepath,
-            subtitles=IntervalTree(
-                [
-                    Interval(
-                        begin=2.00,
-                        end=2.41,
-                        data=TranscriptionData(
-                            index=0, text="Thank you, honey.", speaker="1"
-                        ),
-                    ),
-                    Interval(
-                        begin=4.47,
-                        end=4.67,
-                        data=TranscriptionData(
-                            index=1, text="I, uh...", speaker="1"
-                        ),
-                    ),
-                ]
-            ),
-        )
-
-    @pytest.fixture
-    def sentiment(self) -> SentimentAnnotation:
-        return SentimentAnnotation(
-            filename=self.filepath,
-            segments=IntervalTree(
-                [
-                    Interval(
-                        begin=2.00,
-                        end=2.41,
-                        data=SentimentData(
-                            text="Thank you, honey.",
-                            pos=0.88,
-                            neg=0.02,
-                            neu=0.1,
-                        ),
-                    ),
-                    Interval(
-                        begin=4.47,
-                        end=4.67,
-                        data=SentimentData(
-                            text="I, uh...", pos=0.1, neg=0.37, neu=0.53
-                        ),
-                    ),
-                ]
-            ),
-        )
-
-    @pytest.fixture
     def multimodal(
         self,
         video_annotation,
-        audio_annotation,
+        speaker_annotation,
         voice_features,
         transcription,
         sentiment,
@@ -424,7 +408,7 @@ class TestMultimodal:
             fps=25,
             fps_adjusted=5,
             video_annotation=video_annotation,
-            audio_annotation=audio_annotation,
+            audio_annotation=speaker_annotation,
             voice_features=voice_features,
             transcription=transcription,
             sentiment=sentiment,
@@ -452,13 +436,13 @@ class TestMultimodal:
             check_sentiment=False,
         )
 
-    def test_merge_features_audio_annotation(self, audio_annotation):
+    def test_merge_features_audio_annotation(self, speaker_annotation):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            audio_annotation=audio_annotation,
+            audio_annotation=speaker_annotation,
         )
 
         output.merge_features()
@@ -489,14 +473,14 @@ class TestMultimodal:
         )
 
     def test_merge_features_transcription(
-        self, audio_annotation, transcription
+        self, speaker_annotation, transcription
     ):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            audio_annotation=audio_annotation,
+            audio_annotation=speaker_annotation,
             transcription=transcription,
         )
 
@@ -509,14 +493,14 @@ class TestMultimodal:
         )
 
     def test_merge_features_sentiment(
-        self, audio_annotation, transcription, sentiment
+        self, speaker_annotation, transcription, sentiment
     ):
         output = Multimodal(
             filename=self.filepath,
             duration=5.0,
             fps=25,
             fps_adjusted=5,
-            audio_annotation=audio_annotation,
+            audio_annotation=speaker_annotation,
             transcription=transcription,
             sentiment=sentiment,
         )
