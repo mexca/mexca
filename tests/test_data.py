@@ -27,18 +27,28 @@ from mexca.data import (
     VoiceFeaturesConfig,
     _check_common_length,
     _check_sorted,
-    _float2str,
+    _float_to_str,
     _get_rttm_header,
+    _nan_to_none,
 )
 from mexca.utils import _validate_multimodal
 
 
-def test_float2str():
-    assert _float2str(3.0) == "3"
-    assert _float2str("3") == "3"
-    assert _float2str(3) == "3"
-    assert _float2str(0.1) == "0"
-    assert _float2str(None) is None
+def test_float_to_str():
+    assert _float_to_str(3.0) == "3"
+    assert _float_to_str("3") == "3"
+    assert _float_to_str(3) == "3"
+    assert _float_to_str(0.1) == "0"
+    assert _float_to_str(None) is None
+
+
+def test_nan2None():
+    assert _nan_to_none(np.nan) is None
+    assert _nan_to_none(3.0) == 3.0
+    assert _nan_to_none(None) is None
+
+    with pytest.raises(TypeError):
+        _nan_to_none("3")
 
 
 def test_check_sorted():
@@ -192,8 +202,8 @@ class TestVideoAnnotation:
     def test_write_from_json(self, annotation):
         annotation.write_json(self.destpath)
         assert os.path.exists(self.destpath)
-        annotation = VideoAnnotation.from_json(filename=self.destpath)
-        assert isinstance(annotation, VideoAnnotation)
+        annotation_loaded = VideoAnnotation.from_json(filename=self.destpath)
+        assert annotation == annotation_loaded
         os.remove(self.destpath)
 
     def test_json_schema(self):
@@ -264,11 +274,16 @@ class TestVoiceFeatures:
         voice_features.add_feature("test", [0, 1, 2])
         assert "test" in voice_features.model_fields_set
 
+    def test_add_feature_nan(self, voice_features):
+        voice_features.add_feature("test", [0, 1, np.nan])
+        assert voice_features.test == [0, 1, None]
+
     def test_write_from_json(self, voice_features):
+        voice_features.add_feature("pitch_f0_hz", [320.0, 330.0, np.nan])
         voice_features.write_json(self.destpath)
         assert os.path.exists(self.destpath)
-        voice_features = VoiceFeatures.from_json(filename=self.destpath)
-        assert isinstance(voice_features, VoiceFeatures)
+        voice_features_loaded = VoiceFeatures.from_json(filename=self.destpath)
+        assert voice_features == voice_features_loaded
         os.remove(self.destpath)
 
 
@@ -279,7 +294,12 @@ def test_get_rttm_header():
 
 
 class TestSpeakerAnnotation(BaseTest):
-    destpath = os.path.join(
+    destpath_json = os.path.join(
+        "tests",
+        "test_files",
+        "test_video_audio_5_seconds_audio_annotation.json",
+    )
+    destpath_rttm = os.path.join(
         "tests",
         "test_files",
         "test_video_audio_5_seconds_audio_annotation.rttm",
@@ -303,44 +323,53 @@ class TestSpeakerAnnotation(BaseTest):
         self.check_object(speaker_annotation)
 
     def test_write_from_json(self, speaker_annotation):
-        speaker_annotation.write_json(self.destpath)
-        assert os.path.exists(self.destpath)
-        speaker_annotation = SpeakerAnnotation.from_json(filename=self.destpath)
-        assert isinstance(speaker_annotation, SpeakerAnnotation)
-        os.remove(self.destpath)
+        speaker_annotation.write_json(self.destpath_json)
+        assert os.path.exists(self.destpath_json)
+        speaker_annotation_loaded = SpeakerAnnotation.from_json(
+            filename=self.destpath_json
+        )
+        assert speaker_annotation == speaker_annotation_loaded
+        os.remove(self.destpath_json)
 
     def test_write_from_rttm(self, speaker_annotation):
-        speaker_annotation.write_rttm(filename=self.destpath)
-        assert os.path.exists(self.destpath)
+        speaker_annotation.write_rttm(filename=self.destpath_rttm)
+        assert os.path.exists(self.destpath_rttm)
 
-        speaker_annotation = SpeakerAnnotation.from_rttm(self.destpath)
+        speaker_annotation = SpeakerAnnotation.from_rttm(self.destpath_rttm)
         self.check_object(speaker_annotation)
-        os.remove(self.destpath)
+        os.remove(self.destpath_rttm)
 
 
 class TestAudioTranscription(BaseTest):
-    destpath = os.path.join(
+    destpath_json = os.path.join(
+        "tests",
+        "test_files",
+        "test_video_audio_5_seconds_transcription.json",
+    )
+    destpath_srt = os.path.join(
         "tests",
         "test_files",
         "test_video_audio_5_seconds_transcription.srt",
     )
 
     def test_write_from_json(self, transcription):
-        transcription.write_json(self.destpath)
-        assert os.path.exists(self.destpath)
-        transcription = AudioTranscription.from_json(filename=self.destpath)
-        assert isinstance(transcription, AudioTranscription)
-        os.remove(self.destpath)
+        transcription.write_json(self.destpath_json)
+        assert os.path.exists(self.destpath_json)
+        transcription_loaded = AudioTranscription.from_json(
+            filename=self.destpath_json
+        )
+        assert transcription == transcription_loaded
+        os.remove(self.destpath_json)
 
     def test_write_from_srt(self, transcription):
-        transcription.write_srt(filename=self.destpath)
-        assert os.path.exists(self.destpath)
-        transcription = AudioTranscription.from_srt(filename=self.destpath)
+        transcription.write_srt(filename=self.destpath_srt)
+        assert os.path.exists(self.destpath_srt)
+        transcription = AudioTranscription.from_srt(filename=self.destpath_srt)
         assert isinstance(transcription, AudioTranscription)
         for seg in transcription.segments.items():
             assert isinstance(seg.data, TranscriptionData)
 
-        os.remove(self.destpath)
+        os.remove(self.destpath_srt)
 
 
 class TestSentimentAnnotation(BaseTest):
@@ -367,8 +396,8 @@ class TestSentimentAnnotation(BaseTest):
         )
         sentiment.write_json(self.destpath)
         assert os.path.exists(self.destpath)
-        sentiment = SentimentAnnotation.from_json(filename=self.destpath)
-        assert isinstance(sentiment, SentimentAnnotation)
+        sentiment_loaded = SentimentAnnotation.from_json(filename=self.destpath)
+        assert sentiment == sentiment_loaded
         for sent in sentiment.segments.items():
             assert isinstance(sent.data, SentimentData)
         os.remove(self.destpath)
