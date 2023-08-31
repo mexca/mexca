@@ -170,7 +170,12 @@ def cli():
 
     extractor = SentimentExtractor()
 
-    transcription = AudioTranscription.from_json(args["transcription_path"])
+    transcription = AudioTranscription.from_json(
+        args["transcription_path"],
+        extra_filename=args[
+            "transcription_path"
+        ],  # Needs to point to a valid filepath
+    )
 
     output = extractor.apply(transcription, show_progress=args["show_progress"])
 
