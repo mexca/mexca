@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [0.6.0-beta] - 2023-08-30
+## [0.6.0-beta] - 2023-08-31
 
 Adds support for Python 3.10. Refactors data handling and storage using pydantic data structures and validation. Replaces the `audio.features` module with the emvoice package.
 
