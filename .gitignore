@@ -33,3 +33,6 @@ include
 Lib
 Scripts
 share
+lib
+lib64
+bin
