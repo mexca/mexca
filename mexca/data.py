@@ -6,6 +6,7 @@ import sys
 from abc import ABC, abstractmethod
 from datetime import timedelta
 from functools import reduce
+from math import isnan
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
@@ -24,6 +25,7 @@ from pydantic import (
     PositiveFloat,
     PositiveInt,
     computed_field,
+    confloat,
     create_model,
     field_validator,
     model_validator,
@@ -43,7 +45,7 @@ Restricts the range to [0, 1].
 """
 
 
-def _float2str(x: Union[Optional[float], Optional[str]]) -> Optional[str]:
+def _float_to_str(x: Union[Optional[float], Optional[str]]) -> Optional[str]:
     if isinstance(x, str):
         return x
     if isinstance(x, (float, int)):
@@ -51,14 +53,31 @@ def _float2str(x: Union[Optional[float], Optional[str]]) -> Optional[str]:
     return None
 
 
-Float2Str = Annotated[
+FloatToStr = Annotated[
     Optional[str],
-    BeforeValidator(_float2str),
+    BeforeValidator(_float_to_str),
 ]
-"""Convert float or integers to strings.
+"""Convert floats or integers to strings.
 
 Type that converts a float or integer to a string.
 Returns `None` for other types than :class:`float`, :class:`int`, :class:`str`.
+
+"""
+
+
+def _nan_to_none(x: Optional[float]) -> Optional[confloat(allow_inf_nan=False)]:
+    if x is not None and isnan(x):
+        return None
+    return x
+
+
+FloatOrNone = Annotated[
+    Optional[confloat(allow_inf_nan=False)], BeforeValidator(_nan_to_none)
+]
+"""Convert nan float types to None types.
+
+Type that converts a float that is nan into a None type.
+Returns also None for None types.
 
 """
 
@@ -105,6 +124,18 @@ class BaseFeatures(_BaseOutput):
     filename: pydantic.FilePath
         Path to the video file. Must be a valid path.
     """
+
+    def __eq__(self, other: "BaseFeatures") -> bool:
+        if self.__class__.__name__ is not other.__class__.__name__:
+            return NotImplemented
+
+        for field in self.model_fields:
+            if field not in other.model_fields or getattr(
+                self, field
+            ) != getattr(other, field):
+                return False
+
+        return True
 
     @classmethod
     def from_json(
@@ -184,19 +215,21 @@ class BaseAnnotation(_BaseOutput):
         with open(filename, "r", encoding=encoding) as file:
             data = json.load(file)
 
-            segments = [
-                Interval(
-                    begin=seg["begin"],
-                    end=seg["end"],
-                    data=cls.data_type().model_validate(seg["data"]),
-                )
-                for seg in data
-            ]
-
-            return cls(
-                filename=filename if extra_filename is None else extra_filename,
-                segments=IntervalTree(segments),
+            data["segments"] = IntervalTree(
+                [
+                    Interval(
+                        begin=seg["begin"],
+                        end=seg["end"],
+                        data=cls.data_type().model_validate(seg["data"]),
+                    )
+                    for seg in data["segments"]
+                ]
             )
+
+            if extra_filename is not None:
+                data["filename"] = extra_filename
+
+            return cls(**data)
 
     def write_json(self, filename: str, encoding: str = "utf-8"):
         """Store data in a JSON file.
@@ -208,7 +241,8 @@ class BaseAnnotation(_BaseOutput):
 
         """
         with open(filename, "w", encoding=encoding) as file:
-            data = [
+            data = self.model_dump(mode="json", exclude=["segments"])
+            data["segments"] = [
                 {"begin": iv.begin, "end": iv.end, "data": iv.data.model_dump()}
                 for iv in self.segments.all_intervals
             ]
@@ -254,9 +288,9 @@ class VideoAnnotation(BaseFeatures):
     face_aus: Optional[List[Optional[List[ProbFloat]]]] = Field(
         default_factory=list
     )
-    face_label: Optional[List[Float2Str]] = Field(default_factory=list)
+    face_label: Optional[List[FloatToStr]] = Field(default_factory=list)
     face_confidence: Optional[List[ProbFloat]] = Field(default_factory=list)
-    face_average_embeddings: Optional[Dict[Float2Str, List[float]]] = Field(
+    face_average_embeddings: Optional[Dict[FloatToStr, List[float]]] = Field(
         default_factory=dict
     )
 
@@ -514,10 +548,45 @@ class VoiceFeatures(BaseFeatures):
     def add_feature(self, name: str, feature: List[float]):
         self.__class__ = create_model(
             "VoiceFeatures",
-            **{name: (List[float], Field(default_factory=list))},
+            **{name: (List[FloatOrNone], Field(default_factory=list))},
             __base__=(self.__class__,),
         )
         setattr(self, name, feature)
+
+    @classmethod
+    def from_json(
+        cls,
+        filename: str,
+        extra_filename: Optional[str] = None,
+        encoding: str = "utf-8",
+    ):
+        """Load data from a JSON file.
+
+        Parameters
+        ----------
+        filename: str
+            Name of the JSON file from which the object should be loaded.
+            Must have a .json ending.
+
+        """
+        with open(filename, "r", encoding=encoding) as file:
+            data = json.load(file)
+
+        if extra_filename is not None:
+            data["filename"] = extra_filename
+
+        # Initialize class object
+        obj = cls(
+            filename=data.pop("filename"),
+            frame=data.pop("frame"),
+            time=data.pop("time"),
+        )
+
+        # Add custom features and validate them
+        for key, val in data.items():
+            obj.add_feature(key, val)
+
+        return obj
 
 
 def _get_rttm_header() -> List[str]:

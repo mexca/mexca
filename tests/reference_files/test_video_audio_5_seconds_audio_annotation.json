@@ -1,1 +1,1 @@
-[{"begin": 3.8728125, "end": 4.9528125, "data": {"name": "0", "conf": null}}, {"begin": 1.9153124999999998, "end": 2.8940625000000004, "data": {"name": "0", "conf": null}}]
+{"filename": "tests/test_files/test_video_audio_5_seconds.wav", "channel": 1, "segments": [{"begin": 3.8728125, "end": 4.9528125, "data": {"name": "0", "conf": null}}, {"begin": 1.9153124999999998, "end": 2.8940625000000004, "data": {"name": "0", "conf": null}}]}
