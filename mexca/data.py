@@ -989,7 +989,7 @@ class Multimodal(BaseModel):
                     "span_end": [],
                     "span_text": [],
                     "segment_speaker_label": [],
-                    "confidence": [],  # store confidence of transcription accuracy
+                    "span_confidence": [],  # store confidence of transcription accuracy
                 }
 
                 if self.sentiment and self.sentiment.segments:
@@ -1027,7 +1027,7 @@ class Multimodal(BaseModel):
                         text_features_dict["segment_speaker_label"].append(
                             span.data.speaker
                         )
-                        text_features_dict["confidence"].append(
+                        text_features_dict["span_confidence"].append(
                             span.data.confidence
                         )  # store confidence of transcription accuracy
 

@@ -95,7 +95,7 @@ class BaseTest:
             "span_start",
             "span_end",
             "span_text",
-            "confidence",
+            "span_confidence",
             "span_sent_pos",
             "span_sent_neg",
             "span_sent_neu",

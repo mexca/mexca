@@ -74,9 +74,10 @@ Text
 Output extracted from the transcribed text has the prefix `span_`. By default, the text is split into sentences (i.e, *spans*),
 and sentiment scores are predicted for each sentence.
 
-- `span_start`: The time stamp where the token starts (in seconds).
-- `span_end`: The time stamp where the token ends (in seconds).
+- `span_start`: The time stamp where the sentence (span) starts (in seconds).
+- `span_end`: The time stamp where the sentence (span) ends (in seconds).
 - `span_text`: The text of the sentence (span).
+- `span_confidence`: The average word probability of the sentence (span).
 - `span_sent_pos`: The positive sentiment score of the sentence (span).
 - `span_sent_neg`: The negative sentiment score of the sentence (span).
 - `span_sent_neu`: The neutral sentiment score of the sentence (span).
