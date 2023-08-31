@@ -78,6 +78,55 @@ class BaseTest:
     )
 
     @pytest.fixture
+    def default_feature_columns(self) -> List[str]:
+        return [
+            "filename",
+            "time",
+            "frame",
+            "face_box",
+            "face_prob",
+            "face_landmarks",
+            "face_aus",
+            "face_label",
+            "face_confidence",
+            "segment_start",
+            "segment_end",
+            "segment_speaker_label",
+            "span_start",
+            "span_end",
+            "span_text",
+            "span_confidence",
+            "span_sent_pos",
+            "span_sent_neg",
+            "span_sent_neu",
+            "pitch_f0_hz",
+            "jitter_local_rel_f0",
+            "shimmer_local_rel_f0",
+            "hnr_db",
+            "f1_freq_hz",
+            "f1_bandwidth_hz",
+            "f1_amplitude_rel_f0",
+            "f2_freq_hz",
+            "f2_bandwidth_hz",
+            "f2_amplitude_rel_f0",
+            "f3_freq_hz",
+            "f3_bandwidth_hz",
+            "f3_amplitude_rel_f0",
+            "alpha_ratio_db",
+            "hammar_index_db",
+            "spectral_slope_0_500",
+            "spectral_slope_500_1500",
+            "h1_h2_diff_db",
+            "h1_f3_diff_db",
+            "mfcc_1",
+            "mfcc_2",
+            "mfcc_3",
+            "mfcc_4",
+            "spectral_flux",
+            "rms_db",
+        ]
+
+    @pytest.fixture
     def speaker_annotation(self) -> SpeakerAnnotation:
         return SpeakerAnnotation(
             filename=self.filepath,
@@ -443,9 +492,10 @@ class TestMultimodal(BaseTest):
             sentiment=sentiment,
         )
 
-    def test_merge_features(self, multimodal):
+    def test_merge_features(self, multimodal, default_feature_columns):
         multimodal.merge_features()
         _validate_multimodal(multimodal)
+        assert all(multimodal.features.columns == default_feature_columns)
 
     def test_merge_features_video_annotation(self, video_annotation):
         output = Multimodal(
