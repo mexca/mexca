@@ -1069,9 +1069,11 @@ class Multimodal(BaseModel):
             data_frames.append(pd.DataFrame(self.voice_features.model_dump()))
 
     @staticmethod
-    def _delete_time_col(df: pd.DataFrame) -> pd.DataFrame:
+    def _delete_filename_time_col(df: pd.DataFrame) -> pd.DataFrame:
         if "time" in df.columns:
             del df["time"]
+        if "filename" in df.columns:
+            del df["filename"]
         return df
 
     def merge_features(self) -> pd.DataFrame:
@@ -1097,7 +1099,7 @@ class Multimodal(BaseModel):
         self._merge_voice_features(data_frames=dfs)
 
         if len(dfs) > 0:
-            dfs = map(self._delete_time_col, dfs)
+            dfs = map(self._delete_filename_time_col, dfs)
             self.features = reduce(
                 lambda left, right: pd.merge(
                     left, right, on=["frame"], how="left"
@@ -1107,6 +1109,7 @@ class Multimodal(BaseModel):
 
             time = self.features.frame * (1 / self.fps)
 
+            self.features.insert(0, "filename", self.filename)
             self.features.insert(1, "time", time)
 
         return self.features
