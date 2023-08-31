@@ -4,6 +4,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0-beta] - 2023-08-31
+
+Adds support for Python 3.10. Refactors data handling and storage using pydantic data structures and validation. Replaces the `audio.features` module with the emvoice package.
+
+### Added
+
+- The emvoice package a requirement for the VoiceExtractor component
+- Support for Python 3.10
+- A `post_min_face_size` argument in the `FaceExtractor` class which allows to filter out faces after detection and before clustering
+
+### Changed
+
+- The `BaseFeature` class in the `audio.extraction` module is now an abstract base class and its `requires` method an abstract property
+- The `Pipeline.apply()` method can now also take an iterable of filepaths as the `filepath` argument, processing them sequentially
+- The container test workflow is refactored and a `pytest.mark.run_env()` decorator added to allow running tests for only one component container in one job; the jobs for different components are completely decoupled
+- The flowchart is updated
+- Classes in the `data` module are refactored using base classes and pydantic data models
+- Classes in the `data` module have methods for JSON (de-) serialization
+- The CLIs for all components write output to JSON files with standardized names
+- Custom attributes in the `VoiceFeatures` class store `nan` values as `None` for consistency with the facial features
+- The `confidence` feature is renamed to `span_confidence` for consistency with the other text features
+
+### Removed
+
+- The `audio.features` submodule is removed and its functionality replaced by the emvoice package
+- Support for Python 3.7 due to dependency conflicts with the whisper package
+
+### Fixed
+
+- A bug in the lazy initialization of the Whisper model
+- A bug in loading the a voice feature configuration YAML file from the CLI
+- A bug in the calculation of transcription confidence scores for zero length speech segments
+- An exception is thrown if a container component fails, propagating the error message to the console
+
 ## [0.5.0-beta] - 2023-07-17
 
 Replaces the methods for predicting facial landmarks and action unit activations. Landmarks are now predicted by facenet-pytorch and action units by the MEFARG model instead of py-feat.

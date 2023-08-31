@@ -14,7 +14,7 @@ mexca can be installed on Windows, macOS and Linux. We recommend Windows 10, mac
 Requirements
 ------------
 
-mexca requires Python version >= 3.7 and <= 3.9. It further depends on `FFmpeg <https://ffmpeg.org/>`_ (for video and audio processing),
+mexca requires Python version >= 3.8 and <= 3.10. It further depends on `FFmpeg <https://ffmpeg.org/>`_ (for video and audio processing),
 which is usually automatically installed through the MoviePy package (i.e., its imageio dependency). In case the automatic install fails,
 it must be installed manually.
 
