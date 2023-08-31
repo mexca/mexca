@@ -342,7 +342,9 @@ def cli():
         fp16=torch.cuda.is_available(),
     )
 
-    audio_annotation = SpeakerAnnotation.from_json(args["annotation_path"])
+    audio_annotation = SpeakerAnnotation.from_json(
+        args["annotation_path"], extra_filename=args["filepath"]
+    )
 
     output = transcriber.apply(
         args["filepath"],
