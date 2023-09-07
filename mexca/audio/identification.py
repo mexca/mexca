@@ -6,8 +6,7 @@ import logging
 import os
 from typing import Optional, Union
 
-from pyannote.audio import Pipeline
-
+from mexca.audio.pyannote_audio import CustomPipeline
 from mexca.data import SpeakerAnnotation
 from mexca.utils import ClassInitMessage, bool_or_str, optional_int
 
@@ -65,13 +64,14 @@ class SpeakerIdentifier:
 
     # Initialize pretrained models only when needed
     @property
-    def pipeline(self) -> Pipeline:
+    def pipeline(self) -> CustomPipeline:
         """The pretrained speaker diarization pipeline.
         See `pyannote.audio.SpeakerDiarization <https://github.com/pyannote/pyannote-audio/blob/develop/pyannote/audio/pipelines/speaker_diarization.py#L56>`_ for details.
         """
         if not self._pipeline:
             try:
-                self._pipeline = Pipeline.from_pretrained(
+                # Switch to pyannote.audio.Pipeline once new version of pyannote.audio is released
+                self._pipeline = CustomPipeline.from_pretrained(
                     "pyannote/speaker-diarization",
                     use_auth_token=self.use_auth_token,
                 )
@@ -115,7 +115,9 @@ class SpeakerIdentifier:
 
         """
 
-        annotation = self.pipeline(filepath, num_speakers=self.num_speakers)
+        annotation, embeddings = self.pipeline(
+            filepath, num_speakers=self.num_speakers, return_embeddings=True
+        )
 
         del self.pipeline
 
@@ -124,9 +126,14 @@ class SpeakerIdentifier:
 
         # Update URI to point to a valid file (otherwise pydantic throws an error)
         annotation.uri = filepath
+        annotation = annotation.rename_labels(generator="int")
+
+        speaker_average_embeddings = {
+            lbl: embeddings[i] for i, lbl in enumerate(annotation.labels())
+        }
 
         return SpeakerAnnotation.from_pyannote(
-            annotation.rename_labels(generator="int")
+            annotation, speaker_average_embeddings
         )
 
 
