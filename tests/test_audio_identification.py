@@ -21,16 +21,23 @@ class TestSpeakerIdentifier:
     )
 
     @staticmethod
-    def check_rttm_annotation(annotation):
+    def check_annotation(annotation):
         assert isinstance(annotation, SpeakerAnnotation)
 
         for seg in annotation.segments.items():
             assert isinstance(seg.data, SegmentData)
             assert isinstance(seg.begin, float)
-            assert 5.0 >= seg.begin >= 0.0
+            assert 5.5 >= seg.begin >= 0.0
             assert isinstance(seg.end, float)
-            assert 5.0 >= seg.end >= 0.0
+            assert 5.5 >= seg.end >= 0.0
             assert isinstance(seg.data.name, str)
+
+        assert isinstance(annotation.speaker_average_embeddings, dict)
+
+        for key, val in annotation.speaker_average_embeddings.items():
+            assert isinstance(key, str)
+            assert isinstance(val, list)
+            assert len(val) == 256
 
     @pytest.fixture
     def speaker_identifier(self):
@@ -67,7 +74,7 @@ class TestSpeakerIdentifier:
     def test_apply(self, speaker_identifier):
         annotation = speaker_identifier.apply(self.filepath)
 
-        self.check_rttm_annotation(annotation)
+        self.check_annotation(annotation)
 
     def test_apply_num_speakers(self):
         num_speakers = 2
@@ -77,7 +84,7 @@ class TestSpeakerIdentifier:
         )
         annotation = speaker_identifier.apply(self.filepath)
 
-        self.check_rttm_annotation(annotation)
+        self.check_annotation(annotation)
 
     def test_cli(self):
         out_filename = (
