@@ -105,6 +105,16 @@ class TestFaceExtractor:
         assert probs.shape == (1, 1)
         assert lmks.shape == (1, 1, 5, 2)
 
+    def test_detect_face_batch(self, extractor):
+        _, boxes, probs, lmks = extractor.detect(self.dataset[5:6]["Image"])
+        assert boxes.shape == (1, 1, 4)
+        assert probs.shape == (1, 1)
+        assert lmks.shape == (1, 1, 5, 2)
+
+    def test_detect_face_wrong_dim(self, extractor):
+        with pytest.raises(ValueError):
+            extractor.detect(self.dataset[5]["Image"][1, :, :])
+
     def test_detect_no_face(self, extractor):
         _, boxes, probs, lmks = extractor.detect(self.dataset[0]["Image"])
         assert boxes == np.array([None])

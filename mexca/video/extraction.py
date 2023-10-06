@@ -10,7 +10,6 @@ from typing import Dict, List, Optional, Tuple, Union
 import numpy as np
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
-from feat.utils.image_operations import convert_image_to_tensor
 from sklearn.metrics.pairwise import cosine_distances
 from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader, Dataset
@@ -339,6 +338,23 @@ class FaceExtractor:
         """Alias for `apply`."""
         return self.apply(**callargs)
 
+    @staticmethod
+    def _prepare_frame(frame: Union[np.ndarray, torch.Tensor]) -> torch.Tensor:
+        """Extend 3 dim video frames to 4 dim."""
+        if frame.ndim == 3:
+            if isinstance(frame, np.ndarray):
+                return np.expand_dims(frame, 0)
+
+            if isinstance(frame, torch.Tensor):
+                return frame.unsqueeze(0)
+
+        if frame.ndim == 4:
+            return frame
+
+        raise ValueError(
+            f"Argument 'frame' must have dim 3 or 4 but has dim {frame.ndim}"
+        )
+
     def detect(
         self, frame: Union[np.ndarray, torch.Tensor]
     ) -> Tuple[
@@ -372,8 +388,11 @@ class FaceExtractor:
             Is `None` if a frame contains no faces.
 
         """
-
-        frame = convert_image_to_tensor(frame)
+        try:
+            frame = self._prepare_frame(frame)
+        except ValueError as exc:
+            self.logger.exception("ValueError: %s", exc)
+            raise exc
 
         self.logger.debug("Detecting faces and facial landmarks")
         boxes, probs, landmarks = self.detector.detect(frame, landmarks=True)
