@@ -6,6 +6,7 @@ import logging
 import os
 from typing import Optional, Union
 
+import torch
 from pyannote.audio import Pipeline
 
 from mexca.data import SpeakerAnnotation
@@ -52,12 +53,14 @@ class SpeakerIdentifier:
     def __init__(
         self,
         num_speakers: Optional[int] = None,
+        device: torch.device = torch.device(type="cpu"),
         use_auth_token: Union[bool, str] = True,
     ):
         self.logger = logging.getLogger(
             "mexca.audio.identification.SpeakerIdentifier"
         )
         self.num_speakers = num_speakers
+        self.device = device
         self.use_auth_token = use_auth_token
         # Lazy initialization
         self._pipeline = None
@@ -72,7 +75,7 @@ class SpeakerIdentifier:
         if not self._pipeline:
             try:
                 self._pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization",
+                    "pyannote/speaker-diarization-3.0",
                     use_auth_token=self.use_auth_token,
                 )
 
@@ -83,12 +86,14 @@ class SpeakerIdentifier:
             try:
                 if self._pipeline is None:
                     raise AuthenticationError(
-                        'Could not download pretrained "pyannote/speaker-diarization" pipeline; please provide a valid authentication token'
+                        'Could not download pretrained "pyannote/speaker-diarization-3.0" pipeline; please provide a valid authentication token'
                     )
 
             except AuthenticationError as exc:
                 self.logger.exception("Error: %s", exc)
                 raise exc
+
+            self._pipeline.to(self.device)
 
             self.logger.debug("Initialized speaker diarization pipeline")
 
@@ -115,7 +120,9 @@ class SpeakerIdentifier:
 
         """
 
-        annotation = self.pipeline(filepath, num_speakers=self.num_speakers)
+        annotation, embeddings = self.pipeline(
+            filepath, num_speakers=self.num_speakers, return_embeddings=True
+        )
 
         del self.pipeline
 
@@ -124,9 +131,14 @@ class SpeakerIdentifier:
 
         # Update URI to point to a valid file (otherwise pydantic throws an error)
         annotation.uri = filepath
+        annotation = annotation.rename_labels(generator="int")
+
+        speaker_average_embeddings = {
+            lbl: embeddings[i] for i, lbl in enumerate(annotation.labels())
+        }
 
         return SpeakerAnnotation.from_pyannote(
-            annotation.rename_labels(generator="int")
+            annotation, speaker_average_embeddings
         )
 
 

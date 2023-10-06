@@ -19,7 +19,7 @@ class TestPipeline:
     )
     filepath_list = [
         filepath,
-        os.path.join("tests", "test_files", "test_video_audio_5_seconds_2.mp4"),
+        filepath,
     ]
 
     @pytest.fixture

@@ -628,6 +628,8 @@ class SpeakerAnnotation(BaseAnnotation):
         Name of the annotated audio file. Must be a valid path.
     channel : int, optional
         Channel index.
+    speaker_average_embeddings : typing.Dict[FloatToStr, List[float]], optional
+        Average embedding vector for each speaker label.
     segments : intervaltree.IntervalTree, optional
         Stores speech segments as :class:`intervaltree.Interval`.
         Speaker labels are stored in :class:`SegmentData` objects in the :class:`data` attribute of each interval.
@@ -635,6 +637,9 @@ class SpeakerAnnotation(BaseAnnotation):
     """
 
     channel: Optional[int] = None
+    speaker_average_embeddings: Optional[Dict[FloatToStr, List[float]]] = Field(
+        default_factory=dict
+    )
 
     @staticmethod
     def serialization_name() -> str:
@@ -677,7 +682,11 @@ class SpeakerAnnotation(BaseAnnotation):
         return ""
 
     @classmethod
-    def from_pyannote(cls, annotation: "pyannote.core.Annotation"):
+    def from_pyannote(
+        cls,
+        annotation: "pyannote.core.Annotation",
+        embeddings: Optional[Dict[str, List[float]]] = None,
+    ):
         """Create a :class:`SpeakerAnnotation` object from a :class:`pyannote.core.Annotation` object.
 
         Parameters
@@ -698,7 +707,10 @@ class SpeakerAnnotation(BaseAnnotation):
             )
 
         return cls(
-            filename=annotation.uri, channel=1, segments=IntervalTree(segments)
+            filename=annotation.uri,
+            channel=1,
+            segments=IntervalTree(segments),
+            speaker_average_embeddings=embeddings,
         )
 
     @classmethod
