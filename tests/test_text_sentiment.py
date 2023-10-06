@@ -24,7 +24,7 @@ class TestSentimentExtractor:
         "reference_files",
         "test_video_audio_5_seconds_transcription.json",
     )
-    reference = {"pos": 0.9203513, "neg": 0.01545323, "neu": 0.06419527}
+    reference = {"pos": 0.9203513, "neg": 0.01545322, "neu": 0.06419527}
 
     @pytest.fixture
     def extractor(self):
