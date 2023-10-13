@@ -8,6 +8,7 @@ from typing import Optional, Union
 
 import torch
 from pyannote.audio import Pipeline
+from tqdm import tqdm
 
 from mexca.data import SpeakerAnnotation
 from mexca.utils import ClassInitMessage, bool_or_str, optional_int
@@ -105,13 +106,17 @@ class SpeakerIdentifier:
         self._pipeline = None
         self.logger.debug("Removed speaker diarization pipeline")
 
-    def apply(self, filepath: str) -> SpeakerAnnotation:
+    def apply(
+        self, filepath: str, show_progress: bool = True
+    ) -> SpeakerAnnotation:
         """Identify speech segments and speakers.
 
         Parameters
         ----------
         filepath : str
             Path to the audio file.
+        show_progress: bool, default=True
+            Enables the display of a progress bar.
 
         Returns
         -------
@@ -119,10 +124,45 @@ class SpeakerIdentifier:
             A data class object that contains detected speech segments and speakers.
 
         """
+        # Init progress bars
+        progress_bar_embeddings = tqdm(delay=1, disable=not show_progress)
+        progress_bar_segments = tqdm(disable=True)
+
+        # Custom hook for speaker diarization pipeline to update progress bars
+        # Requires named parameter `file` which is not used
+        # pylint: disable=unused-argument
+        def hook(
+            name: str,
+            _,
+            file: Optional[str] = None,
+            total: Optional[int] = None,
+            completed: Optional[int] = None,
+        ):
+            if not completed or not total:
+                return
+
+            if not progress_bar_embeddings.total and name == "embeddings":
+                self.logger.info("Calculating speaker embeddings")
+                progress_bar_embeddings.reset(total=total)
+
+                self.logger.debug("Processing batch %s", completed)
+
+            elif not progress_bar_segments.total and name == "segmentation":
+                self.logger.info("Detecting speech segments")
+
+            if name == "embeddings":
+                progress_bar_embeddings.update(1)
+                self.logger.debug("Processing batch %s", completed + 1)
 
         annotation, embeddings = self.pipeline(
-            filepath, num_speakers=self.num_speakers, return_embeddings=True
+            filepath,
+            num_speakers=self.num_speakers,
+            return_embeddings=True,
+            hook=hook,
         )
+
+        progress_bar_embeddings.close()
+        progress_bar_segments.close()
 
         del self.pipeline
 
