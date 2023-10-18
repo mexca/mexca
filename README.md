@@ -136,8 +136,8 @@ result = pipeline.apply(
     skip_frames=5
 )
 
-# Print merged features
-print(result.features)
+# Trigger merging and print merged features
+print(result.features.collect())
 ```
 
 The result should be a pandas data frame printed to the console or notebook output. Details on the output and extracted features can be found [here](https://mexca.readthedocs.io/en/latest/output.html).

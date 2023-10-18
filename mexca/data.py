@@ -10,7 +10,7 @@ from math import isnan
 from typing import Any, Dict, List, Optional, TextIO, Tuple, Union
 
 import numpy as np
-import pandas as pd
+import polars as pl
 import srt
 import yaml
 from intervaltree import Interval, IntervalTree
@@ -937,8 +937,9 @@ class Multimodal(BaseModel):
         Object containing transcribed speech segments split into sentences.
     sentiment : SentimentAnnotation
         Object containing sentiment scores for transcribed sentences.
-    features : pandas.DataFrame
-        Merged features.
+    features : polars.LazyFrame
+        Merged features stored in a :class:`polars.LazyFrame` object that uses lazy evaluation. To trigger evaluation
+        the :func:`collect` method can be called.
 
     """
 
@@ -951,7 +952,7 @@ class Multimodal(BaseModel):
     voice_features: Optional[VoiceFeatures] = None
     transcription: Optional[AudioTranscription] = None
     sentiment: Optional[SentimentAnnotation] = None
-    features: Optional[pd.DataFrame] = None
+    features: Optional[pl.LazyFrame] = None
 
     model_config = ConfigDict(
         arbitrary_types_allowed=True, validate_assignment=True
@@ -965,7 +966,7 @@ class Multimodal(BaseModel):
     def fps_adjusted(self, value: PositiveFloat):
         self._fps_adjusted = value
 
-    def _merge_video_annotation(self, data_frames: List[pd.DataFrame]):
+    def _merge_video_annotation(self, data_frames: List[pl.DataFrame]):
         # create a new VideoAnnotation instance and copy all fields to the new instance
         # (except for average face embeddings) because the face embeddings have a different
         # dimension to the other fields in the instance. if we include the face embeddings
@@ -973,9 +974,9 @@ class Multimodal(BaseModel):
         if self.video_annotation:
             video_annotation_dict = self.video_annotation.model_dump()
             del video_annotation_dict["face_average_embeddings"]
-            data_frames.append(pd.DataFrame(video_annotation_dict))
+            data_frames.append(pl.LazyFrame(video_annotation_dict))
 
-    def _merge_audio_text_features(self, data_frames: List[pd.DataFrame]):
+    def _merge_audio_text_features(self, data_frames: List[pl.DataFrame]):
         if self.audio_annotation and self.audio_annotation.segments:
             audio_annotation_dict = {
                 "frame": [],
@@ -1057,18 +1058,18 @@ class Multimodal(BaseModel):
                                 sent.data.neu
                             )
 
-            audio_text_features_df = pd.DataFrame(audio_annotation_dict)
+            audio_text_features_df = pl.LazyFrame(audio_annotation_dict)
 
             if self.transcription and self.transcription.segments:
-                text_features_df = pd.DataFrame(text_features_dict)
+                text_features_df = pl.LazyFrame(text_features_dict)
                 if self.sentiment and self.sentiment.segments:
-                    text_features_df = text_features_df.merge(
-                        pd.DataFrame(sentiment_dict),
+                    text_features_df = text_features_df.join(
+                        pl.LazyFrame(sentiment_dict),
                         on=["frame", "span_text"],
                         how="left",
                     )
 
-                audio_text_features_df = audio_text_features_df.merge(
+                audio_text_features_df = audio_text_features_df.join(
                     text_features_df,
                     on=["frame", "segment_speaker_label"],
                     how="left",
@@ -1078,17 +1079,17 @@ class Multimodal(BaseModel):
 
     def _merge_voice_features(self, data_frames: List):
         if self.voice_features:
-            data_frames.append(pd.DataFrame(self.voice_features.model_dump()))
+            data_frames.append(pl.LazyFrame(self.voice_features.model_dump()))
 
     @staticmethod
-    def _delete_filename_time_col(df: pd.DataFrame) -> pd.DataFrame:
+    def _delete_filename_time_col(df: pl.LazyFrame) -> pl.LazyFrame:
         if "time" in df.columns:
-            del df["time"]
+            df = df.drop("time")
         if "filename" in df.columns:
-            del df["filename"]
+            df = df.drop("filename")
         return df
 
-    def merge_features(self) -> pd.DataFrame:
+    def merge_features(self) -> pl.LazyFrame:
         """Merge multimodal features from pipeline components into a common data frame.
 
         Transforms and merges the available output stored in the `Multimodal` object
@@ -1113,15 +1114,14 @@ class Multimodal(BaseModel):
         if len(dfs) > 0:
             dfs = map(self._delete_filename_time_col, dfs)
             self.features = reduce(
-                lambda left, right: pd.merge(
-                    left, right, on=["frame"], how="left"
-                ),
+                lambda left, right: left.join(right, on=["frame"], how="left"),
                 dfs,
             )
 
-            time = self.features.frame * (1 / self.fps)
-
-            self.features.insert(0, "filename", self.filename)
-            self.features.insert(1, "time", time)
+            self.features = self.features.select(
+                pl.lit(self.filename.as_posix()).alias("filename"),
+                pl.col("frame").mul(1.0 / self.fps).alias("time"),
+                pl.all(),
+            )
 
         return self.features

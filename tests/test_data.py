@@ -157,14 +157,20 @@ class BaseTest:
                         begin=2.00,
                         end=2.41,
                         data=TranscriptionData(
-                            index=0, text="Thank you, honey.", speaker="1"
+                            index=0,
+                            text="Thank you, honey.",
+                            speaker="1",
+                            confidence=0.89898,
                         ),
                     ),
                     Interval(
                         begin=4.47,
                         end=4.67,
                         data=TranscriptionData(
-                            index=1, text="I, uh...", speaker="1"
+                            index=1,
+                            text="I, uh...",
+                            speaker="1",
+                            confidence=0.89898,
                         ),
                     ),
                 ]
@@ -495,7 +501,7 @@ class TestMultimodal(BaseTest):
     def test_merge_features(self, multimodal, default_feature_columns):
         multimodal.merge_features()
         _validate_multimodal(multimodal)
-        assert all(multimodal.features.columns == default_feature_columns)
+        assert multimodal.features.collect().columns == default_feature_columns
 
     def test_merge_features_video_annotation(self, video_annotation):
         output = Multimodal(

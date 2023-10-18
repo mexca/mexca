@@ -2,7 +2,7 @@
 """
 
 import numpy as np
-import pandas as pd
+import polars as pl
 
 from mexca.data import (
     AudioTranscription,
@@ -53,89 +53,146 @@ class ClassInitMessage:
 
 
 def _validate_face_features(multimodal: Multimodal):
-    assert multimodal.features.face_box.dtype == "object"
-    assert multimodal.features.face_prob.dtype == "float64"
-    assert multimodal.features.face_landmarks.dtype == "object"
-    assert multimodal.features.face_aus.dtype == "object"
-    assert multimodal.features.face_label.dtype == "object"
-    assert multimodal.features.face_confidence.dtype == "float64"
+    assert multimodal.features.collect().select(
+        [
+            "filename",
+            "frame",
+            "time",
+            "face_box",
+            "face_prob",
+            "face_landmarks",
+            "face_aus",
+            "face_label",
+            "face_confidence",
+        ]
+    ).dtypes == [
+        pl.Utf8,
+        pl.Int64,
+        pl.Float64,
+        pl.List(pl.Float64),
+        pl.Float64,
+        pl.List(pl.List(pl.Float64)),
+        pl.List(pl.Float64),
+        pl.Utf8,
+        pl.Float64,
+    ]
 
-    assert all(len(bbox) == 4 for bbox in multimodal.features.face_box.dropna())
-    assert all(
-        len(lmks) == 5 for lmks in multimodal.features.face_landmarks.dropna()
+    assert (
+        multimodal.features.select(
+            (pl.col("face_box").drop_nulls().list.len() == 4).all(),
+            (pl.col("face_landmarks").drop_nulls().list.len() == 5).all(),
+            (pl.col("face_aus").drop_nulls().list.len() == 41).all(),
+        )
+        .collect()
+        .to_series()
+        .all()
     )
-    assert all(len(aus) == 41 for aus in multimodal.features.face_aus.dropna())
 
     assert (
-        multimodal.features.face_box.isna()
-        .eq(multimodal.features.face_prob.isna())
+        multimodal.features.select(
+            (
+                pl.col("face_box").is_null() == pl.col("face_prob").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.face_box.isna()
-        .eq(multimodal.features.face_landmarks.isna())
+        multimodal.features.select(
+            (
+                pl.col("face_box").is_null()
+                == pl.col("face_landmarks").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.face_box.isna()
-        .eq(multimodal.features.face_aus.isna())
+        multimodal.features.select(
+            (pl.col("face_box").is_null() == pl.col("face_aus").is_null()).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.face_box.isna()
-        .eq(multimodal.features.face_label.isna())
+        multimodal.features.select(
+            (
+                pl.col("face_box").is_null() == pl.col("face_label").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
 
 
 def _validate_speech_segments(multimodal: Multimodal):
-    assert multimodal.features.segment_start.dtype == "float64"
-    assert multimodal.features.segment_end.dtype == "float64"
-    assert multimodal.features.segment_speaker_label.dtype == "object"
-    assert multimodal.features.segment_start.le(
-        multimodal.features.time, fill_value=0
-    ).all()
-    assert multimodal.features.segment_end.ge(
-        multimodal.features.time, fill_value=multimodal.features.time.max()
-    ).all()
+    assert multimodal.features.collect().select(
+        [
+            "filename",
+            "frame",
+            "time",
+            "segment_start",
+            "segment_end",
+            "segment_speaker_label",
+        ]
+    ).dtypes == [pl.Utf8, pl.Int64, pl.Float64, pl.Float64, pl.Float64, pl.Utf8]
     assert (
-        multimodal.features.segment_start.dropna()
-        .lt(multimodal.features.segment_end.dropna())
+        multimodal.features.select(
+            (pl.col("segment_start") <= pl.col("time")).drop_nulls().all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.segment_start.isna()
-        .eq(multimodal.features.segment_end.isna())
+        multimodal.features.select(
+            (pl.col("segment_end") >= pl.col("time")).drop_nulls().all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.segment_start.isna()
-        .eq(multimodal.features.segment_speaker_label.isna())
+        multimodal.features.select(
+            (
+                pl.col("segment_start").is_null()
+                == pl.col("segment_end").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
 
     for seg in multimodal.audio_annotation.segments.items():
-        assert seg.begin in multimodal.features.segment_start.to_numpy()
-        assert seg.end in multimodal.features.segment_end.to_numpy()
-        assert str(
-            seg.data.name
-        ) in multimodal.features.segment_speaker_label.to_numpy().astype(str)
+        assert (
+            seg.begin
+            in multimodal.features.select("segment_start").collect().to_series()
+        )
+        assert (
+            seg.end
+            in multimodal.features.select("segment_end").collect().to_series()
+        )
+        assert (
+            str(seg.data.name)
+            in multimodal.features.select("segment_speaker_label")
+            .collect()
+            .to_series()
+        )
 
 
 def _validate_voice_feature(
-    feat: pd.Series,
+    feat: pl.Series,
     ref_feat: np.ndarray,
-    d_type: str = "float64",
-    is_pos: bool = False,
 ):
-    assert feat.dtype == d_type
-    assert len(feat.dropna()) > 0
-    if is_pos:
-        assert feat[np.isfinite(feat)] > 0
+    assert feat.dtype in (pl.Float32, pl.Float64)
+    assert len(feat) > 0
 
-    for f in feat[:-1]:
-        if np.isfinite(f):
-            assert f in ref_feat
+    assert feat.drop_nulls().is_in(ref_feat).all()
 
 
 def _validate_voice_features(multimodal: Multimodal):
@@ -151,66 +208,132 @@ def _validate_voice_features(multimodal: Multimodal):
             "h1_f3_diff_db",
         ):
             _validate_voice_feature(
-                multimodal.features[feat_name],
+                multimodal.features.select(feat_name).collect().to_series(),
                 getattr(multimodal.voice_features, feat_name),
             )
 
 
 def _validate_transcription(multimodal: Multimodal):
-    assert multimodal.features.span_start.dtype == "float64"
-    assert multimodal.features.span_end.dtype == "float64"
-    assert multimodal.features.span_text.dtype == "object"
-    assert multimodal.features.span_start.le(
-        multimodal.features.time, fill_value=0
-    ).all()
-    assert multimodal.features.span_end.ge(
-        multimodal.features.time, fill_value=multimodal.features.time.max()
-    ).all()
-    # assert multimodal.features.span_start.le(multimodal.features.segment_end, fill_value=0).all()
-    # assert multimodal.features.span_end.le(multimodal.features.segment_end, fill_value=0).all()
+    assert multimodal.features.collect().select(
+        [
+            "filename",
+            "frame",
+            "time",
+            "span_start",
+            "span_end",
+            "span_text",
+            "span_confidence",
+        ]
+    ).dtypes == [
+        pl.Utf8,
+        pl.Int64,
+        pl.Float64,
+        pl.Float64,
+        pl.Float64,
+        pl.Utf8,
+        pl.Float64,
+    ]
     assert (
-        multimodal.features.span_start.isna()
-        .eq(multimodal.features.span_end.isna())
+        multimodal.features.select(
+            (pl.col("span_start") <= pl.col("time")).drop_nulls().all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.span_start.isna()
-        .eq(multimodal.features.span_text.isna())
+        multimodal.features.select(
+            (pl.col("span_end") >= pl.col("time")).drop_nulls().all()
+        )
+        .collect()
+        .to_series()
+        .all()
+    )
+    assert (
+        multimodal.features.select(
+            (
+                pl.col("span_start").is_null() == pl.col("span_end").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
 
     for seg in multimodal.transcription.segments.items():
-        assert seg.begin in multimodal.features.span_start.to_list()
-        assert seg.end in multimodal.features.span_end.to_list()
-        assert seg.data.text in multimodal.features.span_text.to_list()
+        assert (
+            seg.begin
+            in multimodal.features.select("span_start").collect().to_series()
+        )
+        assert (
+            seg.end
+            in multimodal.features.select("span_end").collect().to_series()
+        )
+        assert (
+            str(seg.data.text)
+            in multimodal.features.select("span_text").collect().to_series()
+        )
 
 
 def _validate_sentiment(multimodal: Multimodal):
-    assert multimodal.features.span_sent_pos.dtype == "float64"
-    assert multimodal.features.span_sent_neg.dtype == "float64"
-    assert multimodal.features.span_sent_neu.dtype == "float64"
+    assert multimodal.features.collect().select(
+        ["span_sent_pos", "span_sent_neg", "span_sent_neu"]
+    ).dtypes == [pl.Float64, pl.Float64, pl.Float64]
     assert (
-        multimodal.features.span_start.isna()
-        .eq(multimodal.features.span_sent_pos.isna())
+        multimodal.features.select(
+            (
+                pl.col("span_start").is_null()
+                == pl.col("span_sent_pos").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.span_start.isna()
-        .eq(multimodal.features.span_sent_neg.isna())
+        multimodal.features.select(
+            (
+                pl.col("span_start").is_null()
+                == pl.col("span_sent_neg").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
     assert (
-        multimodal.features.span_start.isna()
-        .eq(multimodal.features.span_sent_neu.isna())
+        multimodal.features.select(
+            (
+                pl.col("span_start").is_null()
+                == pl.col("span_sent_neu").is_null()
+            ).all()
+        )
+        .collect()
+        .to_series()
         .all()
     )
 
     for seg in multimodal.sentiment.segments.items():
-        assert seg.begin in multimodal.features.span_start.to_list()
-        assert seg.end in multimodal.features.span_end.to_list()
-        assert seg.data.pos in multimodal.features.span_sent_pos.to_list()
-        assert seg.data.neg in multimodal.features.span_sent_neg.to_list()
-        assert seg.data.neu in multimodal.features.span_sent_neu.to_list()
+        assert (
+            seg.begin
+            in multimodal.features.select("span_start").collect().to_series()
+        )
+        assert (
+            seg.end
+            in multimodal.features.select("span_end").collect().to_series()
+        )
+        assert (
+            seg.data.pos
+            in multimodal.features.select("span_sent_pos").collect().to_series()
+        )
+        assert (
+            seg.data.neg
+            in multimodal.features.select("span_sent_neg").collect().to_series()
+        )
+        assert (
+            seg.data.neu
+            in multimodal.features.select("span_sent_neu").collect().to_series()
+        )
 
 
 def _validate_multimodal(
@@ -222,6 +345,15 @@ def _validate_multimodal(
     check_sentiment: bool = True,
 ):
     assert isinstance(output, Multimodal)
+
+    assert (
+        output.features.select(
+            (pl.col("frame") >= 0).all() & (pl.col("time") >= 0).all()
+        )
+        .collect()
+        .to_series()
+        .all()
+    )
 
     if check_video_annotation:
         assert isinstance(output.video_annotation, VideoAnnotation)
@@ -239,7 +371,13 @@ def _validate_multimodal(
         assert isinstance(output.sentiment, SentimentAnnotation)
         _validate_sentiment(output)
 
-    assert isinstance(output.features, pd.DataFrame)
+    assert isinstance(output.features, pl.LazyFrame)
 
-    assert output.features.frame.ge(0).all()
-    assert output.features.time.ge(0.0).all()
+    assert (
+        output.features.select(
+            (pl.col("frame") >= 0).all(), (pl.col("time") >= 0).all()
+        )
+        .collect()
+        .to_series()
+        .all()
+    )
