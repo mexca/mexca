@@ -164,14 +164,14 @@ class Pipeline:
 
         Examples
         --------
-        >>> import pandas as pd
+        >>> import polars as pl
         >>> from mexca.data import Multimodal
         >>> # Single video file
         >>> filepath = 'path/to/video'
         >>> output = pipeline.apply(filepath)
         >>> assert isinstance(output, Multimodal)
         True
-        >>> assert isinstance(output.features, pd.DataFrame)
+        >>> assert isinstance(output.features, pl.LazyFrame)
         True
         >>> # List of video files
         >>> filepaths = ['path/to/video', 'path/to/another/video']

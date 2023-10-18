@@ -110,14 +110,20 @@ def transcription(filepath) -> AudioTranscription:
                     begin=2.00,
                     end=2.41,
                     data=TranscriptionData(
-                        index=0, text="Thank you, honey.", speaker="0"
+                        index=0,
+                        text="Thank you, honey.",
+                        speaker="0",
+                        confidence=0.89898,
                     ),
                 ),
                 Interval(
                     begin=4.47,
                     end=4.67,
                     data=TranscriptionData(
-                        index=1, text="I, uh...", speaker="0"
+                        index=1,
+                        text="I, uh...",
+                        speaker="0",
+                        confidence=0.89898,
                     ),
                 ),
             ]
