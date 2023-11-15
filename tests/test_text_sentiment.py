@@ -64,9 +64,16 @@ class TestSentimentExtractor:
 
         for sent in sentiment.segments.items():
             assert isinstance(sent.data, SentimentData)
-            assert pytest.approx(sent.data.pos) == self.reference["pos"]
-            assert pytest.approx(sent.data.neg) == self.reference["neg"]
-            assert pytest.approx(sent.data.neu) == self.reference["neu"]
+            # Need to use rel=1e-2 due to fluctuation across different runs on platforms
+            assert (
+                pytest.approx(sent.data.pos, rel=1e-2) == self.reference["pos"]
+            )
+            assert (
+                pytest.approx(sent.data.neg, rel=1e-2) == self.reference["neg"]
+            )
+            assert (
+                pytest.approx(sent.data.neu, rel=1e-2) == self.reference["neu"]
+            )
 
     def test_cli(self):
         out_filename = "test_video_audio_5_seconds_sentiment.json"
