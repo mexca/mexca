@@ -98,6 +98,17 @@ class TestPipeline:
             check_sentiment=check_darwin,
         )  # Currently fails only on macOS for unknown reason
 
+    def test_full_pipeline_no_merge(self, full_pipeline):
+        result = full_pipeline.apply(
+            self.filepath,
+            frame_batch_size=5,
+            skip_frames=5,
+            keep_audiofile=True,  # Otherwise test audio file is removed
+            merge=False,
+        )
+
+        assert not result.features
+
     def test_full_pipeline_filepath_list(self, full_pipeline):
         result = full_pipeline.apply(
             self.filepath_list,

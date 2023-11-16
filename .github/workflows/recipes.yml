@@ -1,0 +1,58 @@
+name: Recipes
+
+on:
+  workflow_dispatch: # For manual triggering
+  push:
+    branches:
+    - main
+  pull_request:
+    branches:
+    - main
+  schedule:
+    - cron: '0 0 * * 0'
+
+jobs:
+  recipes: # Check code quality and if installation works first
+    name: Standard recipes
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v3
+      - name: Download libsndfile
+        run: |
+          sudo apt-get update
+          sudo apt-get install --fix-missing libsndfile-dev ffmpeg
+      - name: Set up Python 3.9
+        uses: actions/setup-python@v3
+        with:
+          python-version: 3.9
+          cache: 'pip'
+          cache-dependency-path: setup.cfg
+      - name: Python info
+        shell: bash -l {0}
+        run: |
+          which python3
+          python3 --version
+      - name: Upgrade pip and install dependencies
+        run: |
+          python3 -m pip install --upgrade pip setuptools wheel
+          python3 -m pip install .[all,dev]
+      - name: Copy test file in recipe data dir
+        shell: bash -l {0}
+        run: |
+          cp tests/test_files/test_video_audio_5_seconds.mp4 recipes/data/
+      - name: Run standard pipeline recipe
+        shell: bash -l {0}
+        working-directory: ./recipes
+        run: python3 recipe_standard_pipeline.py
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }} # Needed for Hugging Face authentication to download pyannote.audio models
+      - name: Run postprocessing recipe
+        shell: bash -l {0}
+        working-directory: ./recipes
+        run: python3 recipe_postprocess_features.py
+      - name: Check if output is in correct dir
+        shell: bash -l {0}
+        working-directory: ./recipes
+        run: echo results/mexca_test_video_audio_5_seconds_features_post.csv

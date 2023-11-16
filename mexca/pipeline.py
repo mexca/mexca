@@ -123,6 +123,7 @@ class Pipeline:
         process_subclip: Tuple[Optional[float]] = (0, None),
         language: Optional[str] = None,
         keep_audiofile: bool = False,
+        merge: bool = True,
         show_progress: bool = True,
     ) -> Union["Multimodal", Iterable]:
         """
@@ -146,6 +147,11 @@ class Pipeline:
             If `None`, the language is detected for each speech segment.
         keep_audiofile: bool, default=False
             Keeps the audio file after processing. If False, the audio file is only stored temporarily.
+        merge: bool, default=True
+            Whether to merge the output from the different components into a single :class:`polars.LazyFrame`.
+            If `True` (default), the method :func:`merge_features` is called after all components finished processing
+            and a :class:`polars.LazyFrame` is stored at the `features` attribute.
+            If `False`, the method is not called and the `features` attribute is `None`.
         show_progress: bool, default=True
             Enables progress bars and printing info logging messages to the console.
             The logging is overriden when a custom logger is explicitly created.
@@ -191,6 +197,7 @@ class Pipeline:
                 process_subclip,
                 language,
                 keep_audiofile,
+                merge,
                 show_progress,
             )
         if isinstance(filepath, Iterable):
@@ -203,6 +210,7 @@ class Pipeline:
                         process_subclip,
                         language,
                         keep_audiofile,
+                        merge,
                         show_progress,
                     )
                     for f in filepath
@@ -220,6 +228,7 @@ class Pipeline:
         process_subclip: Tuple[Optional[float]] = (0, None),
         language: Optional[str] = None,
         keep_audiofile: bool = False,
+        merge: bool = True,
         show_progress: bool = True,
     ) -> "Multimodal":
         if show_progress:
@@ -295,7 +304,8 @@ class Pipeline:
 
             output.voice_features = voice_features
 
-        output.merge_features()
+        if merge:
+            output.merge_features()
 
         if not keep_audiofile and os.path.exists(audio_path):
             self.logger.info("Removing audio file at %s", audio_path)
