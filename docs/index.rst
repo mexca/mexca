@@ -6,6 +6,10 @@
 Welcome to mexca's Documentation!
 =================================
 
+.. image:: ../mexca_logo.png
+  :width: 400
+  :align: center
+
 mexca is an open-source Python package which aims to capture human emotion expressions from videos in a single pipeline.
 
 Check out our :ref:`Components` page to get information on how mexca extracts emotion expressions and our :ref:`Output` page on which features are captured.
