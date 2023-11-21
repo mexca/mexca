@@ -48,8 +48,7 @@ To create and apply the MEXCA pipeline with container components to a video file
     )
 
     # Print merged features
-    print(result.features)
-
+    print(result.features.collect())
 
 To use the pipeline without containers, run (requires **all** additional component requirements):
 
@@ -84,7 +83,7 @@ To use the pipeline without containers, run (requires **all** additional compone
     )
 
     # Print merged features
-    print(result.features)
+    print(result.features.collect())
 
 If you are running the pipeline without containers for the first time, it will automatically download the
 pretrained models which can take some time (a few minutes).
@@ -92,5 +91,3 @@ pretrained models which can take some time (a few minutes).
 .. note::
     On Windows, downloading the pretrained model for computing speaker embeddings requires Admin privileges.
     Make sure to run the notebook, Python IDE, or terminal with Admin privileges when running the pipeline for the first time.
-
-The result should be a pandas data frame printed to the console or notebook output.

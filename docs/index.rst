@@ -23,6 +23,7 @@ Content:
   introduction
   quick_installation
   getting_started
+  gpu
   installation_details
   docker
   components
