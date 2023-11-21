@@ -16,7 +16,7 @@
 [![black code style badge](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 <div align="center">
-<img src="mexca_logo.png">
+<img src="mexca_logo.png" width="400">
 </div>
 
 mexca is an open-source Python package which aims to capture human emotion expressions from videos in a single pipeline.
