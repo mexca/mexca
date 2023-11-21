@@ -4,6 +4,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0-beta] - 2023-11-21
+
+Adds average speaker embeddings and improved speaker diarization. Also increases the performance of data processing. Provides an advanced example notebook for extending the standard MEXCA pipeline.
+
+### Added
+
+- The `SpeakerAnnoation` class has a new attribute `speaker_average_embeddings` containing the average embeddings for each detected speaker
+- The `SpeakerIdentifier` has a new argument to explicitly set the device its run on (by default CPU)
+- The `SpeakerIdentifier.apply()` method has a new `show_progress` argument to enable progress bars for detected speech segments and embeddings
+- A new notebook on customizing and extending the MEXCA pipeline (`examples/example_custom_pipeline_components.ipynb`)
+- Two new recipes for applying the standard MEXCA pipeline and postprocessing the extracted features (`recipes/`)
+- The `Pipeline.apply()` method has a new `merge` argument to disable merging features from different modalities; this is useful when customizing a pipeline
+- A new logo (thanks to [Ji Qi](https://github.com/jiqicn))
+- Documentation on how to use mexca with GPU and CUDA support
+- notebook has been added as a dependency for the demo installation
+- scikit-learn has been added as an explicit dependency (previously dependency of py-feat)
+
+### Changed
+
+- pyannote.audio has been upgraded to version 3.0.0; this required adding the following dependencies:
+    - torch >= 2.0.0
+    - onnxruntime-gpu on Windows and Linux
+    - onnxruntime on MacOS
+    - torchaudio on MacOS
+- torch has been upgraded to version 2.0.0 for all components requiring it
+- The `SpeakerIdentifier` component uses the `pyannote/speaker-diarization-3.0` model by default
+- pandas has been replaced by polars; the `Multimodal.features` attribute now stores a `polars.LazyFrame` instead of a `pandas.DataFrame`; this speeds up postprocessing and merging for large data sets
+
+### Removed
+
+- py-feat has been removed as a dependency
+
 ## [0.6.0-beta] - 2023-08-31
 
 Adds support for Python 3.10. Refactors data handling and storage using pydantic data structures and validation. Replaces the `audio.features` module with the emvoice package.

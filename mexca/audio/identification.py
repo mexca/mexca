@@ -38,6 +38,8 @@ class SpeakerIdentifier:
     num_speakers : int, optional
         Number of speakers to which speech segments will be assigned during the clustering
         (oracle speakers). If `None`, the number of speakers is estimated from the audio signal.
+    device : torch.device, default=torch.device("cpu")
+        The device on which the speaker diarization model is run.
     use_auth_token : bool or str, default=True
         Whether to use the HuggingFace authentication token stored on the machine (if bool) or
         a HuggingFace authentication token with access to the models ``pyannote/speaker-diarization``

@@ -31,6 +31,7 @@ The :class:`SpeakerIdentifier` component automatically detects whether a GPU is 
         face_extractor=FaceExtractor(num_faces=2, device=device),
         speaker_identifier=SpeakerIdentifier(
             num_speakers=2,
+            device=device,
             use_auth_token=True # login with token required
         ),
         voice_extractor=VoiceExtractor(),
