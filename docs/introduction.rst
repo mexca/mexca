@@ -27,6 +27,9 @@ The modularity of mexca allows users to customize their pipeline and easily add 
 Intended Use
 ------------
 
+To get started and for prototyping, we recommend using the container components in mexca (see :ref:`getting started` and :ref:`docker`).
+For longer real-world applications, we recommend the full installation of mexca (``pip install mexca[all]``) and running the pipeline with GPU support to accelerate processing (see :ref:`running mexca on a gpu`).
+
 We strongly suggest to apply mexca only to videos of public persons or persons that have given explicit consent to analysis of their emotion expressions.
 We strongly discourage the use of mexca on private videos or for surveillance purposes.
 The main intended use case for mexca is (open) research.

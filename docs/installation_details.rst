@@ -24,7 +24,7 @@ Opening a Terminal Window
 On Windows, press the Windows key and search for "PowerShell". On macOS, press Cmd + Space and search for "Terminal".
 
 
-Creating a Virtual environment
+Creating a Virtual Environment
 ------------------------------
 
 If Python was installed via Anaconda, a virtual environment can be created via the Terminal with `conda`:
@@ -138,18 +138,18 @@ To start Jupyter, run:
 
 Select an example notebook in the ``examples/`` folder.
 
-Installation on M1 Devices
---------------------------
+Installation with CUDA
+----------------------
 
-PyTorch offers beta support for M1 devices since version 1.13. mexca, however, specifies PyTorch version 1.12 as a requirement for its components.
-To run mexca on M1 devices, upgrading PyTorch to 1.13 is a potential solution, but currently not tested regularly. This can be done via:
+To run mexca on a GPU, PyTorch needs to be installed with CUDA. Note that this does not work with containerized components.
+If not already installed, download and install the appropriate `CUDA toolkit <https://developer.nvidia.com/cuda-11-8-0-download-archive>`_ for your operating system. Then, install PyTorch with CUDA support:
 
 .. code-block:: console
 
-    pip install torch==1.13
+    pip install torch==2.0.1 torchvision==0.15.2 torchaudio==2.0.2 --index-url https://download.pytorch.org/whl/cu118
 
-.. note::
-    Currently, components **cannot** be run as containers on M1 devices.
+It is important that the installed version of the CUDA toolkit matches supported version by PyTorch.
+In this example, both versions point to CUDA 11.8. If a different CUDA version is installed on your system, you need to install the matches PyTorch version. See `this <https://pytorch.org/get-started/previous-versions/>`_ link to find the correct version.
 
 Troubleshooting
 ---------------
