@@ -17,7 +17,7 @@ authors:
   - family-names: Schumacher
     given-names: Gijs
     orcid: "https://orcid.org/0000-0002-6503-4514"
-date-released: 2023-08-31
+date-released: 2023-11-21
 doi: 10.5281/zenodo.6976414
 version: "0.7.0"
 repository-code: "https://github.com/mexca/mexca"
