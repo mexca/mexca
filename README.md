@@ -35,36 +35,9 @@ Please cite mexca if you use it for scientific or commercial purposes.
 <img src="docs/mexca_flowchart.png" width="600">
 </div>
 
-## Quick Installation
+## Installation
 
-Here, we explain briefly how to install mexca on your system. Detailed instructions can be found in the [Installation Details](https://mexca.readthedocs.io/en/latest/installation_details.html) section.
-mexca can be installed on Windows, macOS and Linux. We recommend Windows 10, macOS 12.6.x, or Ubuntu.
-
-The package contains five components that must be explicitly installed [^1]. By default, only the base package is installed
-(which requires only a few dependencies). The components can still be used through Docker containers which must be downloaded
-from Docker Hub. We recommend this setup for users with little experience with installing Python packages or who simply want to
-quickly try out the package. Using the containers also adds stability to your program.
-
-### Requirements
-
-mexca requires Python version >= 3.8 and <= 3.10. It further depends on [FFmpeg](https://ffmpeg.org/) (for video and audio processing),
-which is usually automatically installed through the MoviePy package (i.e., its imageio dependency). In case the automatic install fails,
-it must be installed manually.
-
-To download and run the components as Docker containers, Docker must be installed on your system. Instructions on how to install
-Docker Desktop can be found [here](https://www.docker.com/get-started/).
-
-All components but the VoiceExtractor depend on PyTorch (version 1.12). Usually, it should be automatically installed when specifying any
-of these components. In case the installation fails, see the installation instructions on the PyTorch [web page](https://pytorch.org/get-started/locally/).
-
-For the SpeakerIdentifier component, the library [libsndfile](https://libsndfile.github.io/libsndfile/) must also be installed on Linux systems.
-
-The SentimentExtractor component depends on the [sentencepiece](https://github.com/google/sentencepiece) library,
-which is automatically installed if [Git](https://git-scm.com/) is installed on the system.
-
-### Installation
-
-We recommend installing mexca in a new virtual environment to avoid dependency conflicts. The base package can be installed from PyPI via `pip`:
+mexca can be installed on Windows, macOS and Linux. We recommend Windows 10, macOS 12.6.x, or Ubuntu. The base package can be installed from PyPI via `pip`:
 
 ```console
 pip install mexca
@@ -90,57 +63,23 @@ The abbreviations indicate:
 * `tra`: AudioTranscriber
 * `sen`: SentimentExtractor
 
-To run the demo and example notebooks, install the Jupyter requirements via:
-
-```console
-pip install mexca[demo]
-```
+For details on the requirements and installation procedure, see the [Quick Installation](https://mexca.readthedocs.io/en/latest/quick_installation.html) and [Installation Details](https://mexca.readthedocs.io/en/latest/installation_details.html) sections of our documentation.
 
 ## Getting Started
 
-If you would like to learn how to use mexca, take a look at our [example](https://github.com/mexca/mexca/tree/main/examples) notebook.
+If you would like to learn how to use mexca, take a look at our [demo](https://github.com/mexca/mexca/tree/main/examples) notebook and the [Getting Started](https://mexca.readthedocs.io/en/latest/getting_started.html) section of our documentation.
 
-*Note*: mexca builds on pretrained models from the pyannote.audio package. Since release 2.1.1, downloading the pretrained models requires the user to accept two user agreements on Hugging Face hub and generate an authentication token. Therefore, to run the mexca pipeline, please accept the user agreements on [here](https://huggingface.co/pyannote/speaker-diarization) and [here](https://huggingface.co/pyannote/segmentation). Then, generate an authentication token [here](https://huggingface.co/settings/tokens). Use this token to login to Hugging Face hub by running `notebook_login()` (from a jupyter notebook) or `huggingface-cli login` (from the command line). You only need to login when running mexca for the first time. See this [link](https://huggingface.co/docs/hub/models-adding-libraries) for details. When running container components, you need to supply the token excplicitly as value for the `use_auth_token` argument. We recommend storing the token on your system and accessing it from Python.
+## Examples and Recipes
 
-To create and apply the MEXCA pipeline with container components to a video file run the following code in a Jupyter notebook or a Python script (requires the base package and Docker):
+In the `examples/` folder, we currently provide two Jupyter notebooks (and a short demo):
 
-```python
-from mexca.container import (
-    AudioTranscriberContainer,
-    FaceExtractorContainer,
-    SentimentExtractorContainer,
-    SpeakerIdentifierContainer,
-    VoiceExtractorContainer,
-)
-from mexca.pipeline import Pipeline
+- [example_custom_pipeline_components](https://github.com/mexca/mexca/blob/main/examples/example_custom_pipeline_components.ipynb) shows how the standard MEXCA pipeline can be customized and extended
+- [example_emotion_feature_extraction](https://github.com/mexca/mexca/blob/main/examples/example_emotion_feature_extraction.ipynb) shows how to apply the MEXCA pipeline to a video and conduct a basic analysis of the extracted features
 
-# Set path to video file
-filepath = 'path/to/video'
+The `recipes/` folder contains two Python scripts that can easily be reused in a new project:
 
-# Create standard pipeline with two faces and speakers
-pipeline = Pipeline(
-    face_extractor=FaceExtractorContainer(num_faces=2),
-    speaker_identifier=SpeakerIdentifierContainer(
-        num_speakers=2,
-        use_auth_token="HF_TOKEN" # Replace this string with your token
-    ),
-    voice_extractor=VoiceExtractorContainer(),
-    audio_transcriber=AudioTranscriberContainer(),
-    sentiment_extractor=SentimentExtractorContainer()
-)
-
-# Apply pipeline to video file at `filepath`
-result = pipeline.apply(
-    filepath,
-    frame_batch_size=5,
-    skip_frames=5
-)
-
-# Trigger merging and print merged features
-print(result.features.collect())
-```
-
-The result should be a pandas data frame printed to the console or notebook output. Details on the output and extracted features can be found [here](https://mexca.readthedocs.io/en/latest/output.html).
+- [recipe_postprocess_features](https://github.com/mexca/mexca/blob/main/recipes/recipe_postprocess_features.py) applies a standard postprocessing routine to extracted features
+- [recipe_standard_pipeline](https://github.com/mexca/mexca/blob/main/recipes/recipe_standard_pipeline.py) applies the standard MEXCA pipeline to a list of videos
 
 ## Components
 
