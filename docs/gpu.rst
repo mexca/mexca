@@ -1,7 +1,7 @@
 Running mexca on a GPU
 ======================
 
-For real-world applications, it is recommend to run mexca with GPU support as this substantially accelerates the computation performance.
+For real-world applications, it is recommended to run mexca with GPU support as this substantially accelerates the computation performance.
 Running mexca on a GPU requires the CUDA toolkit and PyTorch with CUDA to be installed (see :ref:`installation with cuda`).
 The ``device`` argument of the :class:`FaceExtractor`, :class:`AudioTranscriber`, and :class:`SentimentExtractor` components enables GPU support.
 The :class:`SpeakerIdentifier` component automatically detects whether a GPU is available for use.

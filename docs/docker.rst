@@ -5,7 +5,7 @@ Rationale for Containerized Components
 --------------------------------------
 
 The pipeline implemented in mexca is complex and requires many large dependencies. It also uses pretrained models to perform many tasks. The weights of
-these models must be downloaded before they can used. In our experience, these two factors make the package quite vulnerable to instabilities. For example,
+these models must be downloaded before they can be used. In our experience, these two factors make the package quite vulnerable to instabilities. For example,
 dependencies can easily get in conflict with each other or the files for the pretrained models might be temporarily unavailable or stored in a different location.
 To address these issues, we created Docker containers of the pipeline components.
 
@@ -53,7 +53,7 @@ Each container has an entrypoint which is a Python CLI and explained in the :ref
 Building an Image
 -----------------
 
-The images of the containers can be build from Dockerfiles in the GitHub repository:
+The images of the containers can be built from Dockerfiles in the GitHub repository:
 
 .. code-block:: console
 
