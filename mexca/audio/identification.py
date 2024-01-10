@@ -32,6 +32,7 @@ class SpeakerIdentifier:
     """Identify speech segments and cluster speakers using speaker diarization.
 
     Wrapper class for ``pyannote.audio.SpeakerDiarization``.
+    Uses pretrained speaker diarization model `pyannote/speaker-diarization-3.1` from HuggingFace.
 
     Parameters
     ----------
@@ -78,7 +79,7 @@ class SpeakerIdentifier:
         if not self._pipeline:
             try:
                 self._pipeline = Pipeline.from_pretrained(
-                    "pyannote/speaker-diarization-3.0",
+                    "pyannote/speaker-diarization-3.1",
                     use_auth_token=self.use_auth_token,
                 )
 
@@ -89,7 +90,7 @@ class SpeakerIdentifier:
             try:
                 if self._pipeline is None:
                     raise AuthenticationError(
-                        'Could not download pretrained "pyannote/speaker-diarization-3.0" pipeline; please provide a valid authentication token'
+                        'Could not download pretrained "pyannote/speaker-diarization-3.1" pipeline; please provide a valid authentication token'
                     )
 
             except AuthenticationError as exc:
@@ -168,7 +169,6 @@ class SpeakerIdentifier:
 
         del self.pipeline
 
-        self.logger.info("Detected %s speakers", len(annotation.labels()))
         self.logger.debug("Detected speaker chart: %s", annotation.chart())
 
         # Update URI to point to a valid file (otherwise pydantic throws an error)
