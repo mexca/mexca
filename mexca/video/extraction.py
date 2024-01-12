@@ -546,7 +546,7 @@ class FaceExtractor:
             Dictionary with keys representing face labels and values representing
             the average embedding vector for each face label.
         """
-        self.logger.info("Computing average embeddings")
+        self.logger.debug("Computing average embeddings")
 
         # collect face embeddings and map them to face labels
         face_embedding_dict = {}
@@ -585,7 +585,7 @@ class FaceExtractor:
             Confidence scores between 0 and 1. Returns `numpy.nan` if no label was assigned to a face.
 
         """
-        self.logger.info("Computing face clustering confidence")
+        self.logger.debug("Computing face clustering confidence")
         centroids, cluster_label_mapping = self._compute_centroids(
             embeddings, labels
         )
