@@ -3,14 +3,15 @@
 cff-version: "1.0.0"
 title: "mexca: Capture emotion expressions from multiple modalities in videos"
 authors:
-  -
-    family-names: Lüken
+  - family-names: Lüken
     given-names: Malte
     orcid: "https://orcid.org/0000-0001-7095-203X"
-  -
-    family-names: Viviani
+  - family-names: Viviani
     given-names: Eva
     orcid: "https://orcid.org/0000-0002-1330-0585"
+  - family-names: Moodley
+    given-names: Kody
+    orcid: "https://orcid.org/0000-0001-5666-1658"
   - family-names: Pipal
     given-names: Christian
     orcid: "https://orcid.org/0000-0002-5395-2035"
@@ -19,7 +20,7 @@ authors:
     orcid: "https://orcid.org/0000-0002-6503-4514"
 date-released: 2023-11-21
 doi: 10.5281/zenodo.6976414
-version: "0.7.0"
+version: "1.0.0"
 repository-code: "https://github.com/mexca/mexca"
 keywords:
   - emotion
