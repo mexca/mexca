@@ -11,6 +11,7 @@ Contains some final fixes and adjustments for the first complete release.
 ### Changed
 
 - Upgrades pyannote.audio to version 3.1.1
+- Downgrades gdown to version 4.6.0
 - Only essential steps are logged on INFO level (i.e., cluster confidence, average embeddings, and removing audio files is now on DEBUG level)
 - The error message when the connection to the Docker daemon fails is now more informative
 
@@ -21,7 +22,7 @@ Contains some final fixes and adjustments for the first complete release.
 ### Fixed
 
 - A bug caused by pyannote.audio version 3.0.0 for short audio clips when frame-wise detected speakers exceeded maximum number of speakers (see #106)
-
+- An issue by gdown when model files hosted on Google Drive could not be accessed anymore (https://github.com/wkentaro/gdown/issues/43)
 
 ## [0.7.0-beta] - 2023-11-21
 
