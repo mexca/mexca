@@ -1,7 +1,8 @@
 import os
 
+import docker
 import pytest
-from docker.errors import DockerException, NotFound
+from docker.errors import APIError, DockerException, NotFound
 from intervaltree import Interval, IntervalTree
 
 from mexca.container import (
@@ -28,6 +29,19 @@ class TestBaseContainer:
     def test_invalid_image_name(self):
         with pytest.raises(NotFound):
             BaseContainer(image_name="sdfsdf")
+
+    def test_client_error(self, monkeypatch):
+        """Check if docker daemon cannot be found by monkeypatching the daemon API."""
+
+        def mock_version(self, api_version):
+            raise DockerException("sdfsdf")
+
+        monkeypatch.setattr(
+            docker.api.daemon.DaemonApiMixin, "version", mock_version
+        )
+
+        with pytest.raises(DockerException):
+            BaseContainer(image_name="sdfsd")
 
 
 @pytest.mark.run_env("face-extractor")

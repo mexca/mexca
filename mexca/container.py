@@ -43,7 +43,7 @@ class BaseContainer:
             self.client = docker.from_env()
         except DockerException as exc:
             raise DockerException(
-                "pypiwin32 package not correctly installed; running 'python pywin32_postinstall.py -install' might fix this issue"
+                "Unable to find Docker daemon - is Docker installed and accessible from Python?"
             ) from exc
 
         self.mount_dir = "/mnt/vol"
