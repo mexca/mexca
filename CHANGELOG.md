@@ -4,6 +4,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - DATE
+
+Contains some final fixes and adjustments for the first complete release.
+
+### Changed
+
+- Upgrades pyannote.audio to version 3.1.1
+- Downgrades gdown to version 4.6.0
+- Only essential steps are logged on INFO level (i.e., cluster confidence, average embeddings, and removing audio files is now on DEBUG level)
+- The error message when the connection to the Docker daemon fails is now more informative
+
+### Removed
+
+- onnx-runtime, ruamel.yaml, and torchaudio as requirements for the speaker identifier component due to pyannote.audio upgrade
+
+### Fixed
+
+- A bug caused by pyannote.audio version 3.0.0 for short audio clips when frame-wise detected speakers exceeded maximum number of speakers (see #106)
+- An issue by gdown when model files hosted on Google Drive could not be accessed anymore (https://github.com/wkentaro/gdown/issues/43)
+
 ## [0.7.0-beta] - 2023-11-21
 
 Adds average speaker embeddings and improved speaker diarization. Also increases the performance of data processing. Provides an advanced example notebook for extending the standard MEXCA pipeline.
