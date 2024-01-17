@@ -240,23 +240,26 @@ class Pipeline:
         with VideoFileClip(filepath) as clip:
             audio_path = os.path.splitext(filepath)[0] + ".wav"
             subclip = clip.subclip(process_subclip[0], process_subclip[1])
-            self.logger.debug(
-                "Reading video file from %s to %s", subclip.start, subclip.end
-            )
+            if process_subclip != (0, None):
+                self.logger.info(
+                    "Reading video file %s from %s to %s",
+                    filepath,
+                    process_subclip[0],
+                    process_subclip[1],
+                )
             output.duration = subclip.duration
             output.fps = subclip.fps
             output.fps_adjusted = subclip.fps / skip_frames
             time_step = 1 / (subclip.fps / skip_frames)
 
             if self.speaker_identifier or self.voice_extractor:
-                self.logger.debug("Writing audio file")
+                self.logger.debug("Writing audio file to %s", audio_path)
                 subclip.audio.write_audiofile(
                     audio_path,
                     logger=None,
                     fps=16000,
                     ffmpeg_params=["-ac", "1"],
                 )
-                self.logger.info("Wrote audio file to %s", audio_path)
 
         if self.face_extractor:
             self.logger.info("Processing video frames")
@@ -308,7 +311,7 @@ class Pipeline:
             output.merge_features()
 
         if not keep_audiofile and os.path.exists(audio_path):
-            self.logger.info("Removing audio file at %s", audio_path)
+            self.logger.debug("Removing audio file at %s", audio_path)
             os.remove(audio_path)
 
         self.logger.info("MEXCA pipeline finished")
