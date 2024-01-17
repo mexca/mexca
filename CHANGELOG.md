@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.1] - 2023-01-17
+
+Fixes the PyPI publication. PyPI could not publish the previous version due to a name duplication error.
+
 ## [1.0.0] - 2023-01-17
 
 Contains some final fixes and adjustments for the first complete release.

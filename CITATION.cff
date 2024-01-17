@@ -1,6 +1,6 @@
 # YAML 1.2
 ---
-cff-version: "1.0.0"
+cff-version: "1.0.1"
 title: "mexca: Capture emotion expressions from multiple modalities in videos"
 authors:
   - family-names: Lüken
@@ -18,9 +18,9 @@ authors:
   - family-names: Schumacher
     given-names: Gijs
     orcid: "https://orcid.org/0000-0002-6503-4514"
-date-released: 2023-11-21
+date-released: 2024-01-17
 doi: 10.5281/zenodo.6976414
-version: "1.0.0"
+version: "1.0.1"
 repository-code: "https://github.com/mexca/mexca"
 keywords:
   - emotion
