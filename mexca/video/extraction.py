@@ -210,6 +210,9 @@ class FaceExtractor:
         Minimal width and height (in pixels) for filtering out faces after detection.
         This can be useful to exclude small faces before clustering their embeddings
         and can improve clustering performance.
+    au_model : str, optional, default=None
+        Pretrained MEFARG model on Hugging Face Hub for extraction facial action unit activations. If `None`, uses the default model
+        `mexca/mefarg-open-graph-au-resnet50-stage-2`.
 
 
     """
@@ -228,6 +231,7 @@ class FaceExtractor:
         max_cluster_frames: Optional[int] = None,
         embeddings_model: str = "vggface2",
         post_min_face_size: Tuple[float, float] = (45.0, 45.0),
+        au_model: Optional[str] = None,
     ):
         self.logger = logging.getLogger("mexca.video.FaceExtractor")
         self.min_face_size = min_face_size
@@ -243,6 +247,11 @@ class FaceExtractor:
         self.num_faces = num_faces
         self.max_cluster_frames = max_cluster_frames
         self.post_min_face_size = post_min_face_size
+
+        if au_model is None:
+            au_model = "mexca/mefarg-open-graph-au-resnet50-stage-2"
+
+        self.au_model = au_model
 
         # Lazy initialization: See getter functions
         self._detector = None
@@ -322,7 +331,9 @@ class FaceExtractor:
         `paper <https://arxiv.org/abs/2205.01782>`_ for details.
         """
         if not self._extractor:
-            self._extractor = MEFARG.from_pretrained(device=self.device)
+            self._extractor = MEFARG.from_pretrained(self.au_model).to(
+                self.device
+            )
             self._extractor.eval()
             self.logger.debug(
                 "Initialized MEFARG action unit feature extractor"
