@@ -56,14 +56,13 @@ jobs:
         python-version: ['3.8', '3.9', '3.10']
     steps:
       - uses: actions/checkout@v3
-      - name: Download libsndfile and ffmpeg
+      - name: Download libsndfile
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install --fix-missing libsndfile-dev ffmpeg
-      - name: Download ffmpeg
-        if: matrix.os == 'macos-latest'
-        run: brew install ffmpeg
+          sudo apt-get install --fix-missing libsndfile-dev
+      - name: Setup FFmpeg
+        uses: federicocarboni/setup-ffmpeg@v3.1
       - name: Set up Python ${{ matrix.python-version }}
         uses: actions/setup-python@v3
         with:
