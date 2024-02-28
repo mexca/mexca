@@ -9,15 +9,19 @@ import warnings
 from dataclasses import asdict
 from typing import Dict, List, Optional, Union
 
+import faster_whisper
 import numpy as np
 import torch
-import whisper
+from faster_whisper import WhisperModel, decode_audio
+from faster_whisper.transcribe import TranscriptionOptions, Word
 from intervaltree import Interval, IntervalTree
 from tqdm import tqdm
-from whisper.audio import SAMPLE_RATE
 
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.utils import ClassInitMessage, optional_str, str2bool
+
+SAMPLE_RATE = 16_000
+
 
 # To filter out shift warnings which do not apply here
 warnings.simplefilter("ignore", category=UserWarning)
@@ -31,9 +35,12 @@ class AudioTranscriber:
     whisper_model: str, optional, default='small'
         The name of the whisper model that is used for transcription. Available models are
         `['tiny.en', 'tiny', 'base.en', 'base', 'small.en', 'small', 'medium.en', 'medium', 'large']`.
-    device: str or torch.device, optional, default='cpu'
+    device: str or torch.device, default='cpu'
         The name of the device onto which the whisper model should be loaded and run. If CUDA support is
         available, this can be `'cuda'`, otherwise use `'cpu'` (the default).
+    compute_type: str, default='default'
+        The quantization type used for computation. Infers the type from the pretrained model for `'default'`. See this
+        `link <https://opennmt.net/CTranslate2/quantization.html>`_ for details.
     sentence_rule: str, optional
         A regular expression used to split segment transcripts into sentences. If `None` (default), it splits
         the text at all '.', '?', '!', and ':' characters that are followed by whitespace characters. It
@@ -44,7 +51,8 @@ class AudioTranscriber:
     def __init__(
         self,
         whisper_model: Optional[str] = "small",
-        device: Optional[Union[str, torch.device]] = "cpu",
+        device: Union[str, torch.device] = "cpu",
+        compute_type: str = "default",
         sentence_rule: Optional[str] = None,
     ):
         self.logger = logging.getLogger(
@@ -52,6 +60,7 @@ class AudioTranscriber:
         )
         self.whisper_model = whisper_model
         self.device = device
+        self.compute_type = compute_type
         # Lazy initialization
         self._transcriber = None
 
@@ -70,11 +79,15 @@ class AudioTranscriber:
 
     # Initialize pretrained models only when needed
     @property
-    def transcriber(self) -> whisper.Whisper:
+    def transcriber(self) -> WhisperModel:
         """The loaded whisper model for audio transcription."""
         if not self._transcriber:
-            self._transcriber = whisper.load_model(
-                self.whisper_model, self.device
+            self._transcriber = WhisperModel(
+                self.whisper_model,
+                device=self.device.type
+                if isinstance(self.device, torch.device)
+                else str(self.device),  # accepts only string, not torch.device
+                compute_type=self.compute_type,
             )
             self.logger.debug(
                 "Initialized %s whisper model for audio transcription",
@@ -98,7 +111,7 @@ class AudioTranscriber:
         filepath: str,
         audio_annotation: SpeakerAnnotation,
         language: Optional[str] = None,
-        options: Optional[whisper.DecodingOptions] = None,
+        options: Optional[TranscriptionOptions] = None,
         show_progress: bool = True,
     ) -> AudioTranscription:
         """Transcribe speech in an audio file to text.
@@ -129,12 +142,11 @@ class AudioTranscriber:
 
         """
         if not options:
-            self.logger.debug(
-                "Using default options for whisper: No native timestamps and FP16 only if CUDA is available"
-            )
-            options = self.get_default_options(language=language)
+            options = {}
+        else:
+            options = asdict(options)
 
-        audio = torch.Tensor(whisper.load_audio(filepath))
+        audio = decode_audio(filepath, sampling_rate=SAMPLE_RATE)
 
         transcription = AudioTranscription(
             filename=filepath, segments=IntervalTree()
@@ -146,7 +158,7 @@ class AudioTranscriber:
             disable=not show_progress,
         ):
             # Get segment length
-            segment_length = seg.end - seg.begin
+            seg_length = seg.end - seg.begin
 
             # Get start and end frame
             start = int(seg.begin * SAMPLE_RATE)
@@ -159,14 +171,15 @@ class AudioTranscriber:
                 "Transcribing segment %s from %s to %s", i, seg.begin, seg.end
             )
             try:
-                output = self.transcriber.transcribe(
+                output, info = self.transcriber.transcribe(
                     audio_sub,
+                    language=language,
                     word_timestamps=True,
-                    verbose=None,
-                    **asdict(options),
+                    # verbose=None,
+                    **options,
                 )
             except RuntimeError as exc:
-                if segment_length < 0.02:
+                if seg_length < 0.02:
                     self.logger.error(
                         "Audio waveform too short to be transcribed: %s", exc
                     )
@@ -178,94 +191,77 @@ class AudioTranscriber:
 
             self.logger.debug(
                 "Detected language: %s",
-                whisper.tokenizer.LANGUAGES[output["language"]].title(),
-            )
-            text = output["text"].strip()
-
-            # Split text into sentences
-            sents = re.split(self.sentence_rule, text)
-            self.logger.debug(
-                "Segment text split into %s sentences", len(sents)
+                info.language,
             )
 
-            # Concatenate word timestamps from every segment
-            whole_word_timestamps = []
+            for out_seg in output:
+                text = out_seg.text.strip()
 
-            for segment in output["segments"]:
-                whole_word_timestamps.extend(segment["words"])
+                # Split text into sentences
+                sents = re.split(self.sentence_rule, text)
+                # self.logger.debug(
+                #     "Segment text split into %s sentences", len(sents)
+                # )
 
-            if len(whole_word_timestamps) > 0:
-                idx = 0
+                # Concatenate word timestamps from every segment
+                whole_word_timestamps = []
 
-                for j, sent in enumerate(sents):
-                    sent_len = len(sent.split(" ")) - 1
+                for word in out_seg.words:
+                    whole_word_timestamps.append(word)
 
-                    # Get timestamp of first word in sentence (BEFORE the first word is spoken - 'start')
-                    sent_start = self._get_timestamp(
-                        whole_word_timestamps, idx, timestamp_type="start"
-                    )
-                    # Get timestamp of last word in sentence (AFTER the last word is spoken - 'end')
-                    sent_end = self._get_timestamp(
-                        whole_word_timestamps,
-                        (idx + sent_len),
-                        timestamp_type="end",
-                    )
+                if len(whole_word_timestamps) > 0:
+                    idx = 0
 
-                    self.logger.debug(
-                        "Processing sentence %s from %s to %s with text: %s",
-                        j,
-                        seg.begin + sent_start,
-                        seg.begin + sent_end,
-                        sent,
-                    )
+                    for j, sent in enumerate(sents):
+                        sent_len = len(sent.split(" ")) - 1
 
-                    if (sent_end - sent_start) > 0:
-                        # Calculate average probability of transcription accuracy for sentence
-                        conf = self._get_avg_confidence(
-                            whole_word_timestamps, idx, sent_len
+                        # Get timestamp of first word in sentence (BEFORE the first word is spoken - 'start')
+                        sent_start = self._get_timestamp(
+                            whole_word_timestamps, idx, timestamp_type="start"
                         )
-                        # Add transcription to output
-                        transcription.segments.add(
-                            Interval(
-                                begin=seg.begin + sent_start,
-                                end=seg.begin + sent_end,
-                                data=TranscriptionData(
-                                    index=i,
-                                    text=sent,
-                                    speaker=seg.data.name,
-                                    confidence=conf,
-                                ),
+                        # Get timestamp of last word in sentence (AFTER the last word is spoken - 'end')
+                        sent_end = self._get_timestamp(
+                            whole_word_timestamps,
+                            (idx + sent_len),
+                            timestamp_type="end",
+                        )
+
+                        self.logger.debug(
+                            "Processing sentence %s from %s to %s with text: %s",
+                            j,
+                            seg.begin + sent_start,
+                            seg.begin + sent_end,
+                            sent,
+                        )
+
+                        if (sent_end - sent_start) > 0:
+                            # Calculate average probability of transcription accuracy for sentence
+                            conf = self._get_avg_confidence(
+                                whole_word_timestamps, idx, sent_len
                             )
-                        )
-                    else:
-                        self.logger.warning(
-                            "Sentence has duration <= 0 and was not added to transcription"
-                        )
+                            # Add transcription to output
+                            transcription.segments.add(
+                                Interval(
+                                    begin=seg.begin + sent_start,
+                                    end=seg.begin + sent_end,
+                                    data=TranscriptionData(
+                                        index=i,
+                                        text=sent,
+                                        speaker=seg.data.name,
+                                        confidence=conf,
+                                    ),
+                                )
+                            )
+                        else:
+                            self.logger.warning(
+                                "Sentence has duration <= 0 and was not added to transcription"
+                            )
 
-                    idx += sent_len + 1
+                        idx += sent_len + 1
 
         del self.transcriber
 
         return transcription
-
-    @staticmethod
-    def get_default_options(
-        language: Optional[str] = None,
-    ) -> whisper.DecodingOptions:
-        """Set default options for transcription.
-
-        Sets language as well as `without_timestamps=False` and `fp16=torch.cuda.is_available()`.
-
-        Returns
-        -------
-        whisper.DecodingOptions
-
-        """
-        return whisper.DecodingOptions(
-            language=language,
-            without_timestamps=False,
-            fp16=torch.cuda.is_available(),
-        )
 
     @staticmethod
     def _get_timestamp(
@@ -274,11 +270,11 @@ class AudioTranscriber:
         timestamp_type: str = "start",
     ) -> float:
         # get word-level timestamp for the word located at index idx in sequence list of words
-        return word_timestamps[idx][timestamp_type]
+        return getattr(word_timestamps[idx], timestamp_type)
 
     @staticmethod
     def _get_avg_confidence(
-        word_timestamps: List[Dict[str, Union[str, float]]],
+        word_timestamps: List[Word],
         idx: int,
         sentence_len: int,
     ) -> float:
@@ -292,7 +288,7 @@ class AudioTranscriber:
         total = 0.0
         for j, word in enumerate(word_timestamps):
             if idx <= j < sentence_len:
-                total += word["probability"]
+                total += word.probability
 
         return total / sentence_len
 
@@ -317,7 +313,9 @@ def cli():
     )
     parser.add_argument("-o", "--outdir", type=str, required=True)
     parser.add_argument(
-        "--model", default="small", choices=whisper.available_models()
+        "--model",
+        default="small",
+        choices=faster_whisper.utils.available_models(),
     )
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--language", type=optional_str, default=None)
@@ -336,12 +334,6 @@ def cli():
         sentence_rule=args["sentence_rule"],
     )
 
-    options = whisper.DecodingOptions(
-        language=args["language"],
-        without_timestamps=False,
-        fp16=torch.cuda.is_available(),
-    )
-
     audio_annotation = SpeakerAnnotation.from_json(
         args["annotation_path"], extra_filename=args["filepath"]
     )
@@ -349,7 +341,7 @@ def cli():
     output = transcriber.apply(
         args["filepath"],
         audio_annotation=audio_annotation,
-        options=options,
+        language=args["language"],
         show_progress=args["show_progress"],
     )
 
