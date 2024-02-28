@@ -5,7 +5,8 @@ import subprocess
 
 import numpy as np
 import pytest
-import whisper
+from faster_whisper import WhisperModel
+from faster_whisper.transcribe import TranscriptionOptions, Word
 
 from mexca.data import AudioTranscription, SpeakerAnnotation, TranscriptionData
 from mexca.text import AudioTranscriber
@@ -29,7 +30,7 @@ class TestAudioTranscription:
 
     def test_lazy_init(self, audio_transcriber):
         assert not audio_transcriber._transcriber
-        assert isinstance(audio_transcriber.transcriber, whisper.Whisper)
+        assert isinstance(audio_transcriber.transcriber, WhisperModel)
         del audio_transcriber.transcriber
         assert not audio_transcriber._transcriber
 
@@ -49,8 +50,8 @@ class TestAudioTranscription:
     @pytest.fixture
     def timestamps(self):
         return [
-            {"start": 0.1, "end": 0.2, "probability": 0.75},
-            {"start": 0.3, "end": 0.4, "probability": 0.25},
+            Word(start=0.1, end=0.2, word="test1", probability=0.75),
+            Word(start=0.3, end=0.4, word="test2", probability=0.25),
         ]
 
     def test_get_timestamp(self, audio_transcriber, timestamps):
@@ -96,15 +97,13 @@ class TestWhisper:
 
     @pytest.fixture
     def model(self):
-        return whisper.load_model(self.model_size)
-
-    @pytest.fixture
-    def stable_model(self):
-        return whisper.load_model(self.model_size)
+        return WhisperModel(self.model_size)
 
     def test_transcribe(self, model):
-        output = model.transcribe(self.filepath, fp16=False)
+        output, info = model.transcribe(self.filepath)
 
         # Test entire text of audio and language detection
-        assert isinstance(output["text"].strip(), str)
-        assert isinstance(output["language"], str)
+        for segment in output:
+            assert isinstance(segment.text.strip(), str)
+
+        assert isinstance(info.language, str)
