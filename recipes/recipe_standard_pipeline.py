@@ -81,23 +81,23 @@ def main():
         config = yaml.safe_load(file)
         logging.config.dictConfig(config)
 
-    try:
-        pipeline.logger.info("Processing %s ...", filenames)
+    pipeline.logger.info("Processing %s ...", filenames)
 
-        # Set seeds
-        np.random.seed(1)
-        torch.manual_seed(1)
+    # Set seeds
+    np.random.seed(1)
+    torch.manual_seed(1)
 
-        # Apply pipeline
-        results = pipeline.apply(
-            filepath=filenames,
-            frame_batch_size=args.batch_size,
-            skip_frames=args.skip_frames,
-            process_subclip=args.process_subclip,
-        )
+    # Save results for each file
+    for filename in filenames:
+        try:
+            # Apply pipeline
+            result = pipeline.apply(
+                filepath=filename,
+                frame_batch_size=args.batch_size,
+                skip_frames=args.skip_frames,
+                process_subclip=args.process_subclip,
+            )
 
-        # Save results for each file
-        for filename, result in zip(filenames, results):
             # Remove path and only keep filename without extension
             base_name = os.path.splitext(os.path.split(filename)[-1])[0]
 
@@ -136,10 +136,9 @@ def main():
                 )
             )
 
-    # Log exceptions
-    except Exception as exc:
-        pipeline.logger.error("%s", exc, exc_info=True)
-        raise exc
+        # Log exceptions
+        except Exception as exc:
+            pipeline.logger.error("%s", exc, exc_info=True)
 
 
 if __name__ == "__main__":
