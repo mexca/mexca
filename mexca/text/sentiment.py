@@ -121,22 +121,28 @@ class SentimentExtractor:
             total=len(transcription.segments),
             disable=not show_progress,
         ):
-            self.logger.debug("Extracting sentiment for sentence %s", i)
-            tokens = self.tokenizer(sent.data.text, return_tensors="pt").to(
-                self.device
-            )
-            output = self.classifier(**tokens)
-            logits = output.logits.detach().cpu().numpy()
-            scores = softmax(logits)[0]
+            # Catch extremely rare tokenization errors
+            try:
+                self.logger.debug("Extracting sentiment for sentence %s", i)
+                # Add padding to prevent tensor size mismatch runtime error
+                tokens = self.tokenizer(
+                    sent.data.text, padding=True, return_tensors="pt"
+                ).to(self.device)
+                output = self.classifier(**tokens)
+                logits = output.logits.detach().cpu().numpy()
+                scores = softmax(logits)[0]
+            except RuntimeError:
+                scores = (None, None, None)
+
             sentiment_annotation.segments.add(
                 Interval(
                     begin=sent.begin,
                     end=sent.end,
                     data=SentimentData(
                         text=sent.data.text,
-                        pos=float(scores[2]),
-                        neg=float(scores[0]),
-                        neu=float(scores[1]),
+                        pos=scores[2],
+                        neg=scores[0],
+                        neu=scores[1],
                     ),
                 )
             )

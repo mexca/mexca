@@ -192,7 +192,9 @@ def main():
     # Write to CSV files
     for i, filename in enumerate(feat_filenames):
         feat_dfs[i].write_csv(
-            os.path.join(args.output_dir, filename.split(".")[0] + "_post.csv")
+            os.path.join(
+                args.output_dir, os.path.splitext(filename)[0] + "_post.csv"
+            )
         )
 
 

@@ -334,7 +334,6 @@ class FaceExtractor:
             self._extractor = MEFARG.from_pretrained(self.au_model).to(
                 self.device
             )
-            self._extractor.eval()
             self.logger.debug(
                 "Initialized MEFARG action unit feature extractor"
             )
@@ -509,9 +508,9 @@ class FaceExtractor:
             frm = transform(frm)
 
             with torch.no_grad():
-                aus = self.extractor(frm)
+                aus = self.extractor(frm.to(self.device))
 
-            aus_list.append(aus.numpy())
+            aus_list.append(aus.detach().cpu().numpy())
 
         return np.array(aus_list)
 
