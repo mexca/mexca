@@ -4,6 +4,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.3] - 2023-05-01
+
+Fixes one crucial and one minor bug.
+
+### Changed
+
+- Output files in the standard pipeline recipe are save after each video file is processed (instead of saving everything at the end)
+- GitHub action workflows are tested on MacOS version 13 because FFMPeg cannot be automatically installed on newest version
+- An extra step for freeing disk space is added to GitHub action Docker workflows
+
+### Fixes
+
+- A bug in the `FaceExtractor` component where the input for the `MEFARG` model was not sent to the correct device (GPU only)
+- A bug in the `SentimentExtractor` compoenent where the tokenizer would raise a run time error in very rare cases (probably for very long sentences). Now, padding is added to avoid the error and exceptions are caught returning `null` sentiment scores.
+
 ## [1.0.2] - 2023-04-29
 
 Changes the pretrained MEFARG model to be downloaded from Hugging Face Hub instead of Google Drive due to problems with the gdown package.
