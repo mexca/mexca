@@ -664,6 +664,8 @@ class FaceExtractor:
         batch_size: int = 1,
         skip_frames: int = 1,
         process_subclip: Tuple[Optional[float]] = (0, None),
+        cluster_embeddings: bool = True,
+        return_embeddings: bool = False,
         show_progress: bool = True,
     ) -> VideoAnnotation:
         """Apply multiple steps to extract features from faces in a video file.
@@ -681,6 +683,10 @@ class FaceExtractor:
             Only process every nth frame, starting at 0.
         process_subclip: tuple, default=(0, None)
             Process only a part of the video clip. Must be the start and end of the subclip in seconds.
+        cluster_embeddings: bool, default=True
+            Cluster embeddings using spectral clustering.
+        return_embeddings: bool, default=False
+            Return embedding vectors for each detected face.
         show_progress: bool, default=True
             Enables the display of a progress bar.
 
@@ -704,7 +710,7 @@ class FaceExtractor:
 
         embeddings = (
             []
-        )  # Embeddings are separate because they won't be returned
+        )  # Embeddings are separate because they won't necessarily be returned
 
         self.logger.info(
             "Detecting and encoding faces, extracting facial features"
@@ -785,16 +791,26 @@ class FaceExtractor:
         del self.encoder
         del self.extractor
 
-        face_label = self.identify(np.asarray(embeddings).squeeze()).tolist()
-        annotation.face_label = [
-            lbl if np.isfinite(lbl) else EMPTY_VALUE for lbl in face_label
-        ]
-        annotation.face_average_embeddings = self.compute_avg_embeddings(
-            np.asarray(embeddings), np.asarray(face_label)
-        )
-        annotation.face_confidence = self.compute_confidence(
-            np.asarray(embeddings), np.asarray(face_label)
-        ).tolist()
+        if cluster_embeddings:
+            face_label = self.identify(
+                np.asarray(embeddings).squeeze()
+            ).tolist()
+            annotation.face_label = [
+                lbl if np.isfinite(lbl) else EMPTY_VALUE for lbl in face_label
+            ]
+            annotation.face_average_embeddings = self.compute_avg_embeddings(
+                np.asarray(embeddings), np.asarray(face_label)
+            )
+            annotation.face_confidence = self.compute_confidence(
+                np.asarray(embeddings), np.asarray(face_label)
+            ).tolist()
+
+        if return_embeddings:
+            annotation.face_embeddings = [
+                emb.tolist() if np.all(np.isfinite(emb)) else EMPTY_VALUE
+                for emb in embeddings
+            ]
+
         annotation.time = (
             np.array(annotation.frame) / video_dataset.video_fps
         ).tolist()

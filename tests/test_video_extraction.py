@@ -253,6 +253,55 @@ class TestFaceExtractor:
         assert isinstance(features, VideoAnnotation)
         assert features.face_prob[0] is EMPTY_VALUE
 
+    def test_apply_no_clustering(self, extractor):
+        features = extractor.apply(
+            self.filepath,
+            batch_size=5,
+            skip_frames=5,
+            cluster_embeddings=False,
+            show_progress=False,
+        )
+        assert isinstance(features, VideoAnnotation)
+
+        assert features.frame == self.features["frame"]
+        assert features.time == self.features["time"]
+
+        for attr in [
+            "frame",
+            "time",
+            "face_box",
+            "face_prob",
+            "face_landmarks",
+            "face_aus",
+        ]:
+            assert len(getattr(features, attr)) == len(self.features[attr])
+            assert len(getattr(features, attr)) == len(features.frame)
+
+    def test_apply_return_embeddings(self, extractor):
+        features = extractor.apply(
+            self.filepath,
+            batch_size=5,
+            skip_frames=5,
+            return_embeddings=True,
+            show_progress=False,
+        )
+        assert isinstance(features, VideoAnnotation)
+
+        assert features.frame == self.features["frame"]
+        assert features.time == self.features["time"]
+
+        for attr in [
+            "frame",
+            "time",
+            "face_box",
+            "face_prob",
+            "face_label",
+            "face_landmarks",
+            "face_aus",
+            "face_embeddings",
+        ]:
+            assert len(getattr(features, attr)) == len(features.frame)
+
     def test_cli(self):
         out_filename = (
             os.path.splitext(os.path.basename(self.filepath))[0]

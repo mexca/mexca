@@ -269,6 +269,8 @@ class VideoAnnotation(BaseFeatures):
         Facial action unit activations of a detected face. Is `None` if no face was detected.
     face_label : typing.List[Float2Str], optional, default=list()
         Label of a detected face. Is `None` if no face was detected.
+    face_embeddings : typing.List[typing.Optional[typing.List[float]]], optional, default=list()
+        Embedding vector (list of 512 float elements) for each detected face in the input video.
     face_confidence : typing.List[ProbFloat], optional, default=list()
         Confidence of the `face_label` assignment. Is `None` if no face was detected or
         only one face label was assigned.
@@ -289,6 +291,9 @@ class VideoAnnotation(BaseFeatures):
         default_factory=list
     )
     face_label: Optional[List[FloatToStr]] = Field(default_factory=list)
+    face_embeddings: Optional[List[Optional[List[float]]]] = Field(
+        default_factory=list
+    )
     face_confidence: Optional[List[ProbFloat]] = Field(default_factory=list)
     face_average_embeddings: Optional[Dict[FloatToStr, List[float]]] = Field(
         default_factory=dict
@@ -317,17 +322,16 @@ class VideoAnnotation(BaseFeatures):
 
     @model_validator(mode="after")
     def _check_finite(self) -> "VideoAnnotation":
-        for frm, box, prob, lmk, au, label in zip(
+        for frm, box, prob, lmk, au in zip(
             self.frame,
             self.face_box,
             self.face_prob,
             self.face_landmarks,
             self.face_aus,
-            self.face_label,
         ):
-            if box is None and not (box == prob == lmk == au == label):
+            if box is None and not (box == prob == lmk == au):
                 raise ValueError(
-                    f"Face boxes, probabilities, landmarks, action units, and labels not all valid or invalid for frame {frm}"
+                    f"Face boxes, probabilities, landmarks, and action units not all valid or invalid for frame {frm}"
                 )
 
         return self
@@ -974,7 +978,17 @@ class Multimodal(BaseModel):
         if self.video_annotation:
             video_annotation_dict = self.video_annotation.model_dump()
             del video_annotation_dict["face_average_embeddings"]
-            data_frames.append(pl.LazyFrame(video_annotation_dict))
+            del video_annotation_dict["face_embeddings"]
+            # Only include list attributes that have length > 0
+            data_frames.append(
+                pl.LazyFrame(
+                    {
+                        key: val
+                        for (key, val) in video_annotation_dict.items()
+                        if isinstance(val, list) and len(val) > 0
+                    }
+                )
+            )
 
     def _merge_audio_text_features(self, data_frames: List[pl.DataFrame]):
         if self.audio_annotation and self.audio_annotation.segments:
