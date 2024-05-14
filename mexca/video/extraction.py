@@ -507,10 +507,15 @@ class FaceExtractor:
 
             frm = transform(frm)
 
-            with torch.no_grad():
-                aus = self.extractor(frm.to(self.device))
-
-            aus_list.append(aus.detach().cpu().numpy())
+            try:
+                with torch.no_grad():
+                    aus = self.extractor(frm.to(self.device))
+                    aus_list.append(aus.detach().cpu().numpy())
+            except Exception as exc:
+                self.logger.exception(
+                    "Exception in action unit extraction: %s", exc
+                )
+                aus_list.append(None)
 
         return np.array(aus_list)
 
