@@ -121,6 +121,7 @@ class Pipeline:
         frame_batch_size: int = 1,
         skip_frames: int = 1,
         process_subclip: Tuple[Optional[float]] = (0, None),
+        return_embeddings: bool = False,
         language: Optional[str] = None,
         keep_audiofile: bool = False,
         merge: bool = True,
@@ -142,6 +143,10 @@ class Pipeline:
         process_subclip: tuple, default=(0, None)
             Process only a part of the video clip. Must be the start and end of the subclip in seconds.
             `None` indicates the end of the video.
+        return_embeddings: bool, default=False
+            Return embeddings for each detected face. For large input files, this can increase the size of the
+            output substantially as a 512-element vector is stored for each face. Face embeddings are stored in
+            the :class:`video_annotation` attribute of the :class:`Multimodal` object.
         language: str, optional, default=None
             The language of the speech that is transcribed.
             If `None`, the language is detected for each speech segment.
@@ -195,6 +200,7 @@ class Pipeline:
                 frame_batch_size,
                 skip_frames,
                 process_subclip,
+                return_embeddings,
                 language,
                 keep_audiofile,
                 merge,
@@ -208,6 +214,7 @@ class Pipeline:
                         frame_batch_size,
                         skip_frames,
                         process_subclip,
+                        return_embeddings,
                         language,
                         keep_audiofile,
                         merge,
@@ -226,6 +233,7 @@ class Pipeline:
         frame_batch_size: int = 1,
         skip_frames: int = 1,
         process_subclip: Tuple[Optional[float]] = (0, None),
+        return_embeddings: bool = False,
         language: Optional[str] = None,
         keep_audiofile: bool = False,
         merge: bool = True,
@@ -269,6 +277,7 @@ class Pipeline:
                 skip_frames=skip_frames,
                 process_subclip=process_subclip,
                 show_progress=show_progress,
+                return_embeddings=return_embeddings,
             )
             output.video_annotation = video_annotation
 
