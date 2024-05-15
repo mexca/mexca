@@ -5,13 +5,15 @@ import argparse
 import logging
 import os
 import warnings
+from copy import copy
 from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
+from sklearn.base import ClusterMixin
+from sklearn.cluster import SpectralClustering
 from sklearn.metrics.pairwise import cosine_distances
-from spectralcluster import SpectralClusterer
 from torch.utils.data import DataLoader, Dataset
 from torchvision import transforms
 from torchvision.io import read_video, read_video_timestamps
@@ -181,7 +183,7 @@ class FaceExtractor:
     Parameters
     ----------
     num_faces : int, optional
-        Number of faces to identify.
+        Number of faces to identify. Must be other than `None` if `clusterer=None`.
     min_face_size : int, default=20
         Minimum face size (in pixels) for face detection in MTCNN.
     thresholds : tuple, default=(0.6, 0.7, 0.7)
@@ -201,10 +203,10 @@ class FaceExtractor:
         Whether all faces should be returned in the order of `select_largest`.
     device: torch.device, optional, default=torch.device("cpu")
         The device on which face detection and embedding computations are performed.
-    max_cluster_frames : int, optional, default=None
-        Maximum number of frames that are used for spectral clustering. If the number of frames exceeds the maximum,
-        hierarchical clustering is applied first to reduce the frames to this number. This can reduce the computational
-        costs for long videos.
+    clusterer: sklearn.base.ClusterMixin, optional, default=None
+        Class instance from :class:`sklearn.cluster` used for clustering face embeddings.
+        If `None` (default), creates a :class:`sklearn.cluster.SpectralClustering` instance with `n_clusters=num_faces`.
+        For large datasets, :class:`sklearn.cluster.KMeans` is recommended to avoid memory issues.
     embeddings_model : {'vggface2', 'casia-webface'}, default='vggface2'
         Pretrained Inception Resnet V1 model for computing face embeddings.
     post_min_face_size : tuple, default=(45.0, 45.0)
@@ -229,7 +231,7 @@ class FaceExtractor:
         selection_method: Optional[str] = "num_faces",
         keep_all: bool = True,
         device: torch.device = torch.device(type="cpu"),
-        max_cluster_frames: Optional[int] = None,
+        clusterer: Optional[ClusterMixin] = None,
         embeddings_model: str = "vggface2",
         post_min_face_size: Tuple[float, float] = (45.0, 45.0),
         au_model: Optional[str] = None,
@@ -246,7 +248,20 @@ class FaceExtractor:
         self.device = device
         self.embeddings_model = embeddings_model
         self.num_faces = num_faces
-        self.max_cluster_frames = max_cluster_frames
+
+        if clusterer is None:
+            if num_faces is None:
+                raise ValueError(
+                    "Argument 'num_faces' must not be None if 'clusterer' is None"
+                )
+            self._clusterer_cls = SpectralClustering(n_clusters=num_faces)
+        else:
+            if num_faces is not None:
+                self.logger.warning(
+                    "Ignoring 'num_faces' because 'clusterer' is not None"
+                )
+            self._clusterer_cls = clusterer
+
         self.post_min_face_size = post_min_face_size
 
         if au_model is None:
@@ -310,23 +325,21 @@ class FaceExtractor:
         self.logger.debug("Removed InceptionResnetV1 face encoder")
 
     @property
-    def clusterer(self) -> SpectralClusterer:
-        """The spectral clustering model for identifying faces based on embeddings.
-        See `spectralcluster <https://wq2012.github.io/SpectralCluster/>`_ for details.
-        """
+    def clusterer(self) -> ClusterMixin:
+        """The clusterer instance from :class:`sklearn.cluster`."""
         if not self._clusterer:
-            self._clusterer = SpectralClusterer(
-                min_clusters=self.num_faces,
-                max_clusters=self.num_faces,
-                max_spectral_size=self.max_cluster_frames,
-            )
-            self.logger.debug("Initialized spectral clusterer")
+            self._clusterer = copy(self._clusterer_cls)
+
+        self.logger.debug(
+            "Initialized clusterer %s", type(self._clusterer).__name__
+        )
+
         return self._clusterer
 
     @clusterer.deleter
     def clusterer(self):
         self._clusterer = None
-        self.logger.debug("Removed spectral clusterer")
+        self.logger.debug("Removed clusterer")
 
     @property
     def extractor(self) -> MEFARG:
@@ -483,8 +496,14 @@ class FaceExtractor:
 
         self.logger.info("Clustering face embeddings")
 
+        num_faces = (
+            self.num_faces
+            if self.num_faces is not None
+            else self._clusterer_cls.n_clusters
+        )
+
         try:
-            if embeddings_finite.shape[0] < self.num_faces:
+            if embeddings_finite.shape[0] < num_faces:
                 raise NotEnoughFacesError(
                     "Not enough faces detected to perform clustering; consider reducing 'num_faces', 'min_face_size', or 'thresholds'"
                 )
@@ -493,7 +512,7 @@ class FaceExtractor:
             self.logger.exception("NotEnoughFacesError: %s", exc)
             raise exc
 
-        labels[labels_finite] = self.clusterer.predict(embeddings_finite)
+        labels[labels_finite] = self.clusterer.fit_predict(embeddings_finite)
 
         return labels
 
@@ -806,7 +825,7 @@ class FaceExtractor:
                             self.logger.debug(
                                 "Skipped face %s because its size %s is smaller than threshold",
                                 k,
-                                box_v,
+                                self._calc_face_size(box),
                             )
                             continue
                         # Convert everything to lists to make saving and loading easier
@@ -897,18 +916,15 @@ def cli():
         "--select-largest", type=str2bool, default=True, dest="select_largest"
     )
     parser.add_argument(
-        "--selection-method", type=str, default=None, dest="selection_method"
+        "--selection-method",
+        type=str,
+        default="num_faces",
+        dest="selection_method",
     )
     parser.add_argument(
         "--keep-all", type=str2bool, default=True, dest="keep_all"
     )
     parser.add_argument("--device", type=str, default="cpu")
-    parser.add_argument(
-        "--max-cluster-frames",
-        type=optional_int,
-        default=None,
-        dest="max_cluster_frames",
-    )
     parser.add_argument(
         "--embeddings-model",
         type=str,
@@ -925,7 +941,7 @@ def cli():
     process_subclip: list = args.pop("process_subclip")
     show_progress: bool = args.pop("show_progress")
 
-    extractor = FaceExtractor(**args)
+    extractor = FaceExtractor(**args, clusterer=None)
 
     output = extractor.apply(
         filepath=filepath,

@@ -121,7 +121,6 @@ class FaceExtractorContainer(BaseContainer):
         selection_method: Optional[str] = None,
         keep_all: bool = True,
         device: Optional["torch.device"] = "cpu",
-        max_cluster_frames: Optional[int] = None,
         embeddings_model: str = "vggface2",
         image_name: str = "mexca/face-extractor",
         get_latest_tag: bool = False,
@@ -135,7 +134,6 @@ class FaceExtractorContainer(BaseContainer):
         self.selection_method = selection_method
         self.keep_all = keep_all
         self.device = device
-        self.max_cluster_frames = max_cluster_frames
         self.embeddings_model = embeddings_model
 
         super().__init__(image_name=image_name, get_latest_tag=get_latest_tag)
@@ -178,8 +176,6 @@ class FaceExtractorContainer(BaseContainer):
             self.keep_all,
             "--device",
             self.device,
-            "--max-cluster-frames",
-            self.max_cluster_frames,
             "--embeddings-model",
             self.embeddings_model,
         ]
