@@ -194,8 +194,9 @@ class FaceExtractor:
     select_largest : bool, default=True
         Whether to return the largest face or the one with the highest probability
         if multiple faces are detected.
-    selection_method : {None, 'probability', 'largest', 'largest_over_threshold', 'center_weighted_size'}, optional, default=None
+    selection_method : {None, 'num_faces', 'probability', 'largest', 'largest_over_threshold', 'center_weighted_size'}, optional, default='num_faces'
         The heuristic used for selecting detected faces. If not `None`, overrides `select_largest`.
+        The default `num_faces`, selects a maximum of `num_faces` faces per frame.
     keep_all: bool, default=True
         Whether all faces should be returned in the order of `select_largest`.
     device: torch.device, optional, default=torch.device("cpu")
@@ -225,7 +226,7 @@ class FaceExtractor:
         factor: float = 0.709,
         post_process: bool = True,
         select_largest: bool = True,
-        selection_method: Optional[str] = None,
+        selection_method: Optional[str] = "num_faces",
         keep_all: bool = True,
         device: torch.device = torch.device(type="cpu"),
         max_cluster_frames: Optional[int] = None,
@@ -275,7 +276,10 @@ class FaceExtractor:
                 factor=self.factor,
                 post_process=self.post_process,
                 select_largest=self.select_largest,
-                selection_method=self.selection_method,
+                # 'num_faces' is applied in detection method
+                selection_method=None
+                if self.selection_method == "num_faces"
+                else self.selection_method,
                 keep_all=self.keep_all,
                 device=self.device,
             )
@@ -407,6 +411,31 @@ class FaceExtractor:
         self.logger.debug("Detecting faces and facial landmarks")
         boxes, probs, landmarks = self.detector.detect(frame, landmarks=True)
 
+        # Select only the first 'num_faces'
+        if self.selection_method and self.selection_method == "num_faces":
+            if isinstance(boxes, list) or (
+                isinstance(boxes, np.ndarray) and len(boxes.shape) == 1
+            ):
+                boxes = [
+                    box[: self.num_faces, :] if box is not None else None
+                    for box in boxes
+                ]
+                probs = [
+                    prob[: self.num_faces] if prob is not None else None
+                    for prob in probs
+                ]
+                landmarks = [
+                    lmk[: self.num_faces, :] if lmk is not None else None
+                    for lmk in landmarks
+                ]
+            elif (
+                isinstance(boxes, np.ndarray)
+                and boxes.shape[1] > self.num_faces
+            ):
+                boxes = boxes[:, : self.num_faces, :]
+                probs = probs[:, : self.num_faces]
+                landmarks = landmarks[:, : self.num_faces, :, :]
+
         self.logger.debug("Extracting faces")
         faces = self.detector.extract(frame, boxes, save_path=None)
 
@@ -507,10 +536,15 @@ class FaceExtractor:
 
             frm = transform(frm)
 
-            with torch.no_grad():
-                aus = self.extractor(frm.to(self.device))
-
-            aus_list.append(aus.detach().cpu().numpy())
+            try:
+                with torch.no_grad():
+                    aus = self.extractor(frm.to(self.device))
+                    aus_list.append(aus.detach().cpu().numpy())
+            except Exception as exc:
+                self.logger.exception(
+                    "Exception in action unit extraction: %s", exc
+                )
+                aus_list.append(None)
 
         return np.array(aus_list)
 

@@ -325,3 +325,38 @@ class TestFaceExtractor:
         )
         assert os.path.exists(out_filename)
         os.remove(out_filename)
+
+
+class TestFaceExtractorMaxFaces:
+    filepath = os.path.join(
+        "tests", "test_files", "test_video_multi_5_frames.mp4"
+    )
+
+    dataset = VideoDataset(filepath, skip_frames=1)
+    data_loader = DataLoader(dataset, batch_size=1)
+
+    @pytest.fixture
+    def extractor(self):
+        return FaceExtractor(
+            num_faces=2, selection_method="num_faces"
+        )  # This is actually now the default
+
+    def test_detect_num_faces(self, extractor):
+        image = self.dataset[0:5]["Image"]
+        faces, boxes, probs, landmarks = extractor.detect(image)
+
+        assert (
+            isinstance(boxes, np.ndarray)
+            and boxes.shape[1] == extractor.num_faces
+        )
+        assert (
+            isinstance(probs, np.ndarray)
+            and probs.shape[1] == extractor.num_faces
+        )
+        assert (
+            isinstance(landmarks, np.ndarray)
+            and landmarks.shape[1] == extractor.num_faces
+        )
+        assert isinstance(faces, list) and np.all(
+            [face.shape[0] == extractor.num_faces for face in faces]
+        )
