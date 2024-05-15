@@ -9,7 +9,8 @@ import numpy as np
 import pytest
 import torch
 from facenet_pytorch import MTCNN, InceptionResnetV1
-from spectralcluster import SpectralClusterer
+from sklearn.base import ClusterMixin
+from sklearn.cluster import KMeans, SpectralClustering
 from torch.utils.data import DataLoader
 
 from mexca.data import EMPTY_VALUE, VideoAnnotation
@@ -88,7 +89,7 @@ class TestFaceExtractor:
 
         assert isinstance(extractor.detector, MTCNN)
         assert isinstance(extractor.encoder, InceptionResnetV1)
-        assert isinstance(extractor.clusterer, SpectralClusterer)
+        assert isinstance(extractor.clusterer, ClusterMixin)
         assert isinstance(extractor.extractor, MEFARG)
 
         del extractor.detector
@@ -127,6 +128,24 @@ class TestFaceExtractor:
         assert embeddings.shape == (1, 512)
 
     def test_identify(self, extractor):
+        n_samples = 10
+        embeddings = np.random.uniform(0, 1, size=(n_samples, 512))
+        labels = extractor.identify(embeddings)
+        assert labels.shape == (n_samples,)
+
+    def test_identify_spectral(self):
+        extractor = FaceExtractor(
+            num_faces=None, clusterer=SpectralClustering(n_clusters=4)
+        )
+        n_samples = 10
+        embeddings = np.random.uniform(0, 1, size=(n_samples, 512))
+        labels = extractor.identify(embeddings)
+        assert labels.shape == (n_samples,)
+
+    def test_identify_kmeans(self):
+        extractor = FaceExtractor(
+            num_faces=None, clusterer=KMeans(n_clusters=4)
+        )
         n_samples = 10
         embeddings = np.random.uniform(0, 1, size=(n_samples, 512))
         labels = extractor.identify(embeddings)
