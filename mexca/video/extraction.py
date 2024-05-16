@@ -247,7 +247,7 @@ class FaceExtractor:
         self.logger.debug("Initializing FaceExtractor on device %s", device)
         self.device = device
         self.embeddings_model = embeddings_model
-        self.num_faces = num_faces
+        self._num_faces = num_faces
 
         if clusterer is None:
             if num_faces is None:
@@ -276,6 +276,14 @@ class FaceExtractor:
         self._extractor = None
 
         self.logger.debug(ClassInitMessage())
+
+    @property
+    def num_faces(self) -> int:
+        return (
+            self._num_faces
+            if self._num_faces is not None
+            else self._clusterer_cls.n_clusters
+        )
 
     # Initialize pretrained models only when needed
     @property
@@ -496,14 +504,8 @@ class FaceExtractor:
 
         self.logger.info("Clustering face embeddings")
 
-        num_faces = (
-            self.num_faces
-            if self.num_faces is not None
-            else self._clusterer_cls.n_clusters
-        )
-
         try:
-            if embeddings_finite.shape[0] < num_faces:
+            if embeddings_finite.shape[0] < self.num_faces:
                 raise NotEnoughFacesError(
                     "Not enough faces detected to perform clustering; consider reducing 'num_faces', 'min_face_size', or 'thresholds'"
                 )
