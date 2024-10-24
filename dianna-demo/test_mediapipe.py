@@ -1,3 +1,11 @@
+"""Run a performance experiment combining face detection with
+facial action unit prediction for real-time processing.
+
+Disclaimer: This code was created with the help of the generative AI tool
+Claude (3.5; Sonnet) and verified for correctness.
+
+"""
+
 import argparse
 import csv
 import os
