@@ -1,5 +1,4 @@
-"""Post-process extracted emotion expression features.
-"""
+"""Post-process extracted emotion expression features."""
 
 from itertools import product
 from typing import Dict, Iterable, Union
@@ -135,24 +134,24 @@ def get_face_speaker_mapping(
     """
     df = df.drop_nulls([face_label_column_name, speaker_label_column_name])
 
-    x_labels = df.select(pl.col(face_label_column_name).unique()).to_numpy()
-    y_labels = df.select(pl.col(speaker_label_column_name).unique()).to_numpy()
+    face_labels = df[face_label_column_name].to_numpy()
+    speaker_labels = df[speaker_label_column_name].to_numpy()
+
+    x_labels = np.unique(face_labels)
+    y_labels = np.unique(speaker_labels)
 
     # Init cost matrix
     cost_mat = np.zeros((len(x_labels), len(y_labels)))
 
     for x, y in zip(
-        df.select(pl.col(face_label_column_name)).to_series(),
-        df.select(pl.col(speaker_label_column_name)).to_series(),
+        face_labels,
+        speaker_labels,
     ):
         # Get unique detected faces (some faces are duplicates for different speakers) larger than minimum height
         x = np.unique(np.array(x))
 
-        # Create nested loop pairs
-        matches = product(x, y)
-
         # Loop through pairs
-        for match in matches:
+        for match in product(x, y):
             # If pair elements match increase cost matrix cell
             cost_mat[
                 np.where(x_labels == match[0]), np.where(y_labels == match[1])
@@ -161,11 +160,7 @@ def get_face_speaker_mapping(
     # Get mapping from cost matrix
     rows, cols = linear_sum_assignment(-cost_mat, maximize=False)
 
-    mapping = {}
-
-    # Assign labels to mapping
-    for r, c in zip(rows, cols):
-        mapping[str(int(r))] = str(int(y_labels[c]))
+    mapping = {str(int(r)): str(int(y_labels[c])) for r, c in zip(rows, cols)}
 
     return mapping
 
