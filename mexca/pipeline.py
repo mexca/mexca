@@ -7,7 +7,7 @@ import os
 from collections.abc import Iterable
 from typing import Optional, Tuple, Union
 
-from moviepy.editor import VideoFileClip
+from moviepy import VideoClip
 
 from mexca.data import Multimodal
 from mexca.utils import ClassInitMessage
@@ -245,7 +245,7 @@ class Pipeline:
         self.logger.info("Starting MEXCA pipeline")
         output = Multimodal(filename=filepath)
 
-        with VideoFileClip(filepath) as clip:
+        with VideoClip(filepath) as clip:
             audio_path = os.path.splitext(filepath)[0] + ".wav"
             subclip = clip.subclip(process_subclip[0], process_subclip[1])
             if process_subclip != (0, None):
