@@ -10,7 +10,7 @@ if importlib.util.find_spec("scipy") is not None:
 
     all.append("SentimentExtractor")
 
-if importlib.util.find_spec("whisper") is not None:
+if importlib.util.find_spec("faster_whisper") is not None:
     from .transcription import AudioTranscriber
 
     all.append("AudioTranscriber")
